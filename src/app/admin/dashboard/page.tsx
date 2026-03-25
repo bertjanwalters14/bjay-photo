@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Client } from '@/lib/types'
 
 export default function AdminDashboard() {
@@ -37,72 +38,95 @@ export default function AdminDashboard() {
   }
 
   return (
-    <main className="min-h-screen" style={{ backgroundColor: '#e8ede9' }}>
+    <main className="min-h-screen" style={{ backgroundColor: '#080f0c' }}>
       {/* Header */}
-      <header className="px-6 py-4 flex items-center justify-between" style={{ backgroundColor: '#053221' }}>
-        <h1 className="text-2xl font-light tracking-widest uppercase" style={{ color: '#c8a96e' }}>
-          Bjay.photo — Admin
-        </h1>
-        <div className="flex gap-4 items-center">
+      <header className="px-6 py-4 flex items-center justify-between"
+        style={{ borderBottom: '1px solid rgba(200,169,110,0.15)' }}>
+        <div className="flex items-center gap-3">
+          <Image src="/logoBJAYv3.0-iconbackground.png" alt="Bjay.photo" width={32} height={32} />
+          <span className="text-base font-bold tracking-widest uppercase"
+            style={{ color: '#c8a96e', fontFamily: 'var(--font-jost), sans-serif' }}>
+            Bjay.photo
+          </span>
+          <span className="text-xs tracking-widest uppercase ml-1"
+            style={{ color: 'rgba(232,237,233,0.3)' }}>
+            / Admin
+          </span>
+        </div>
+        <div className="flex items-center gap-4">
           <button
             onClick={() => router.push('/admin/clients/new')}
-            className="px-4 py-2 rounded text-sm font-medium transition hover:opacity-80"
+            className="px-4 py-2 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
             style={{ backgroundColor: '#c8a96e', color: '#053221' }}
           >
             + Nieuwe klant
           </button>
-          <button
-            onClick={handleLogout}
-            className="text-sm transition hover:opacity-70"
-            style={{ color: '#e8ede9' }}
-          >
+          <button onClick={handleLogout} className="text-sm transition hover:opacity-70"
+            style={{ color: 'rgba(232,237,233,0.5)' }}>
             Uitloggen
           </button>
         </div>
       </header>
 
       {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <h2 className="text-xl font-light mb-6" style={{ color: '#053221' }}>
-          Klanten
-        </h2>
+      <div className="max-w-4xl mx-auto px-6 py-10">
+        <p className="text-xs tracking-widest uppercase mb-6"
+          style={{ color: 'rgba(200,169,110,0.6)' }}>
+          {clients.length} klant{clients.length !== 1 ? 'en' : ''}
+        </p>
 
         {loading ? (
-          <p style={{ color: '#4a6358' }}>Laden...</p>
+          <p className="text-sm" style={{ color: 'rgba(232,237,233,0.4)' }}>Laden...</p>
         ) : clients.length === 0 ? (
-          <div
-            className="rounded-lg p-8 text-center"
-            style={{ backgroundColor: '#fff', border: '1px solid #c8a96e' }}
-          >
-            <p style={{ color: '#4a6358' }}>Nog geen klanten aangemaakt.</p>
+          <div className="py-16 text-center" style={{ border: '1px solid rgba(200,169,110,0.15)' }}>
+            <p className="text-sm mb-6" style={{ color: 'rgba(232,237,233,0.4)' }}>
+              Nog geen klanten aangemaakt.
+            </p>
             <button
               onClick={() => router.push('/admin/clients/new')}
-              className="mt-4 px-6 py-2 rounded font-medium transition hover:opacity-80"
-              style={{ backgroundColor: '#053221', color: '#c8a96e' }}
+              className="px-6 py-2 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
+              style={{ backgroundColor: '#c8a96e', color: '#053221' }}
             >
               Eerste klant aanmaken
             </button>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            {clients.map(client => (
+          <div className="flex flex-col" style={{ border: '1px solid rgba(200,169,110,0.15)' }}>
+            {clients.map((client, i) => (
               <div
                 key={client.code}
-                className="rounded-lg p-4 flex items-center justify-between cursor-pointer hover:opacity-90 transition"
-                style={{ backgroundColor: '#fff', border: '1px solid #c8a96e' }}
+                className="px-6 py-4 flex items-center justify-between cursor-pointer transition"
+                style={{
+                  borderBottom: i < clients.length - 1 ? '1px solid rgba(200,169,110,0.1)' : 'none',
+                  backgroundColor: 'transparent',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(200,169,110,0.05)')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                 onClick={() => router.push(`/admin/clients/${client.code}`)}
               >
-                <div>
-                  <p className="font-medium" style={{ color: '#053221' }}>{client.name}</p>
-                  <p className="text-sm" style={{ color: '#4a6358' }}>{client.email || 'Geen e-mail'}</p>
+                <div className="flex items-center gap-4">
+                  <div className="w-8 h-8 flex items-center justify-center text-xs font-bold"
+                    style={{ backgroundColor: 'rgba(200,169,110,0.15)', color: '#c8a96e' }}>
+                    {client.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: '#e8ede9' }}>{client.name}</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'rgba(232,237,233,0.4)' }}>
+                      {client.email || 'Geen e-mail'}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-mono tracking-widest" style={{ color: '#c8a96e' }}>
+                <div className="text-right flex items-center gap-6">
+                  <p className="text-xs font-mono tracking-widest" style={{ color: '#c8a96e' }}>
                     {client.code}
                   </p>
-                  <p className="text-xs" style={{ color: '#4a6358' }}>
+                  <p className="text-xs hidden sm:block" style={{ color: 'rgba(232,237,233,0.3)' }}>
                     {new Date(client.createdAt).toLocaleDateString('nl-NL')}
                   </p>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="rgba(200,169,110,0.4)" strokeWidth="2">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
                 </div>
               </div>
             ))}

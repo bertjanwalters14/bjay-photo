@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 
 export default function AdminLoginPage() {
   const [password, setPassword] = useState('')
@@ -32,16 +33,18 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#053221' }}>
+    <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#080f0c' }}>
       <div className="w-full max-w-sm px-6">
-
+        <div className="flex justify-center mb-6">
+          <Image src="/logoBJAYv3.0-iconbackground.png" alt="Bjay.photo" width={64} height={64} />
+        </div>
         <h1
-          className="text-4xl font-light text-center mb-2 tracking-widest uppercase"
-          style={{ color: '#c8a96e' }}
+          className="text-3xl font-bold text-center mb-1 tracking-widest uppercase"
+          style={{ color: '#c8a96e', fontFamily: 'var(--font-jost), sans-serif' }}
         >
           Admin
         </h1>
-        <p className="text-center text-sm mb-8" style={{ color: '#e8ede9' }}>
+        <p className="text-center text-xs tracking-widest uppercase mb-8" style={{ color: 'rgba(232,237,233,0.4)' }}>
           Bjay.photo beheer
         </p>
 
@@ -51,26 +54,23 @@ export default function AdminLoginPage() {
             value={password}
             onChange={e => setPassword(e.target.value)}
             placeholder="Wachtwoord"
-            className="rounded px-4 py-3 focus:outline-none transition"
+            className="px-4 py-3 text-sm focus:outline-none transition"
             style={{
-              backgroundColor: '#032a1c',
+              backgroundColor: '#0d1f18',
               color: '#e8ede9',
-              border: '1px solid #c8a96e',
+              border: '1px solid rgba(200,169,110,0.3)',
             }}
           />
 
           {error && (
-            <p className="text-sm text-center" style={{ color: '#c8a96e' }}>{error}</p>
+            <p className="text-xs text-center tracking-wide" style={{ color: '#c8a96e' }}>{error}</p>
           )}
 
           <button
             type="submit"
             disabled={loading || !password}
-            className="font-medium py-3 rounded transition disabled:opacity-40"
-            style={{
-              backgroundColor: '#c8a96e',
-              color: '#053221',
-            }}
+            className="py-3 text-sm font-medium tracking-widest uppercase transition disabled:opacity-30"
+            style={{ backgroundColor: '#c8a96e', color: '#053221' }}
           >
             {loading ? 'Laden...' : 'Inloggen'}
           </button>

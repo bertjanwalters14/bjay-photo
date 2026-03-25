@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 
 export default function NewClientPage() {
   const [name, setName] = useState('')
@@ -36,64 +37,85 @@ export default function NewClientPage() {
   }
 
   return (
-    <main className="min-h-screen" style={{ backgroundColor: '#e8ede9' }}>
-      <header className="px-6 py-4 flex items-center justify-between" style={{ backgroundColor: '#053221' }}>
-        <h1 className="text-2xl font-light tracking-widest uppercase" style={{ color: '#c8a96e' }}>
-          Nieuwe klant
-        </h1>
+    <main className="min-h-screen" style={{ backgroundColor: '#080f0c' }}>
+      {/* Header */}
+      <header className="px-6 py-4 flex items-center justify-between"
+        style={{ borderBottom: '1px solid rgba(200,169,110,0.15)' }}>
+        <div className="flex items-center gap-3">
+          <Image src="/logoBJAYv3.0-iconbackground.png" alt="Bjay.photo" width={32} height={32} />
+          <span className="text-base font-bold tracking-widest uppercase"
+            style={{ color: '#c8a96e', fontFamily: 'var(--font-jost), sans-serif' }}>
+            Bjay.photo
+          </span>
+          <span className="text-xs tracking-widest uppercase ml-1"
+            style={{ color: 'rgba(232,237,233,0.3)' }}>
+            / Nieuwe klant
+          </span>
+        </div>
         <button
           onClick={() => router.push('/admin/dashboard')}
           className="text-sm transition hover:opacity-70"
-          style={{ color: '#e8ede9' }}
+          style={{ color: 'rgba(232,237,233,0.5)' }}
         >
-          ← Terug
+          ← Dashboard
         </button>
       </header>
 
-      <div className="max-w-md mx-auto px-4 py-8">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div className="max-w-md mx-auto px-6 py-10">
+        <p className="text-xs tracking-widest uppercase mb-8"
+          style={{ color: 'rgba(200,169,110,0.6)' }}>
+          Klantgegevens
+        </p>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>
-            <label className="block text-sm mb-1" style={{ color: '#4a6358' }}>Naam *</label>
+            <label className="block text-xs tracking-widest uppercase mb-2"
+              style={{ color: 'rgba(232,237,233,0.4)' }}>
+              Naam *
+            </label>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="Naam klant"
               required
-              className="w-full rounded px-4 py-3 focus:outline-none transition"
+              className="w-full px-4 py-3 text-sm focus:outline-none transition"
               style={{
-                backgroundColor: '#fff',
-                color: '#053221',
-                border: '1px solid #c8a96e',
+                backgroundColor: '#0d1f18',
+                color: '#e8ede9',
+                border: '1px solid rgba(200,169,110,0.25)',
               }}
             />
           </div>
 
           <div>
-            <label className="block text-sm mb-1" style={{ color: '#4a6358' }}>E-mail</label>
+            <label className="block text-xs tracking-widest uppercase mb-2"
+              style={{ color: 'rgba(232,237,233,0.4)' }}>
+              E-mail
+            </label>
             <input
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="email@voorbeeld.nl"
-              className="w-full rounded px-4 py-3 focus:outline-none transition"
+              className="w-full px-4 py-3 text-sm focus:outline-none transition"
               style={{
-                backgroundColor: '#fff',
-                color: '#053221',
-                border: '1px solid #c8a96e',
+                backgroundColor: '#0d1f18',
+                color: '#e8ede9',
+                border: '1px solid rgba(200,169,110,0.25)',
               }}
             />
           </div>
 
           {error && (
-            <p className="text-sm" style={{ color: '#c8a96e' }}>{error}</p>
+            <p className="text-xs tracking-wide" style={{ color: '#c8a96e' }}>{error}</p>
           )}
 
           <button
             type="submit"
             disabled={loading || !name}
-            className="py-3 rounded font-medium transition disabled:opacity-40"
-            style={{ backgroundColor: '#053221', color: '#c8a96e' }}
+            className="py-3 text-xs font-medium tracking-widest uppercase transition disabled:opacity-30 mt-2"
+            style={{ backgroundColor: '#c8a96e', color: '#053221' }}
           >
             {loading ? 'Aanmaken...' : 'Klant aanmaken'}
           </button>
