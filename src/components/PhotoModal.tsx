@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import { Photo } from '@/lib/types'
 import { PRINT_SIZES } from '@/lib/printSizes'
@@ -27,8 +27,8 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
   const [orderSent, setOrderSent] = useState(false)
   const [showShare, setShowShare] = useState(false)
   const [copied, setCopied] = useState(false)
-  const imgRef = useRef<HTMLDivElement>(null)
-  const [imgSize, setImgSize] = useState({ w: 0, h: 0 })
+  const [previewRect, setPreviewRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null)
+  const imgElRef = useRef<HTMLImageElement | null>(null)
 
   const feedbackSent = sentPhotos.includes(current.publicId)
   const idx = photos.findIndex(p => p.publicId === current.publicId)
@@ -49,52 +49,48 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
     return () => window.removeEventListener('keydown', onKey)
   }, [idx, showOrder, showShare])
 
-  // Meet de weergegeven afbeelding op
-  function measureImg() {
-    if (imgRef.current) {
-      const img = imgRef.current.querySelector('img')
-      if (img) setImgSize({ w: img.offsetWidth, h: img.offsetHeight })
-    }
-  }
+  const calcPreview = useCallback(() => {
+    const img = imgElRef.current
+    if (!img) return
+    const rect = img.getBoundingClientRect()
+    const dispW = rect.width
+    const dispH = rect.height
+    if (!dispW || !dispH) return
 
-  useEffect(() => {
-    window.addEventListener('resize', measureImg)
-    return () => window.removeEventListener('resize', measureImg)
-  }, [])
-
-  useEffect(() => {
-    setImgSize({ w: 0, h: 0 })
-    setTimeout(measureImg, 100)
-  }, [current, showOrder])
-
-  // Bereken preview rechthoek op basis van geselecteerd formaat
-  function getPreviewRect() {
-    if (!imgSize.w || !imgSize.h) return null
     const [wCm, hCm] = selectedFormat.format.replace(' cm', '').split('x').map(s => parseFloat(s.trim()))
+    const fmtAspect = wCm / hCm
     const photoAspect = current.width / current.height
-    const formatAspect = wCm / hCm
 
-    let rectW, rectH
-    if (formatAspect > photoAspect) {
-      rectW = imgSize.w
-      rectH = imgSize.w / formatAspect
+    let rW, rH
+    if (fmtAspect > photoAspect) {
+      rW = dispW * 0.88
+      rH = rW / fmtAspect
     } else {
-      rectH = imgSize.h
-      rectW = imgSize.h * formatAspect
+      rH = dispH * 0.88
+      rW = rH * fmtAspect
     }
 
-    // Schaal naar max 90% van de afbeelding
-    const scale = Math.min((imgSize.w * 0.9) / rectW, (imgSize.h * 0.9) / rectH, 1)
-    rectW *= scale
-    rectH *= scale
+    setPreviewRect({
+      left: (dispW - rW) / 2,
+      top: (dispH - rH) / 2,
+      width: rW,
+      height: rH,
+    })
+  }, [selectedFormat, current])
 
-    return {
-      left: (imgSize.w - rectW) / 2,
-      top: (imgSize.h - rectH) / 2,
-      width: rectW,
-      height: rectH,
+  useEffect(() => {
+    if (showOrder) {
+      setTimeout(calcPreview, 150)
+      window.addEventListener('resize', calcPreview)
+    } else {
+      setPreviewRect(null)
     }
-  }
+    return () => window.removeEventListener('resize', calcPreview)
+  }, [showOrder, calcPreview])
+
+  useEffect(() => {
+    if (showOrder) setTimeout(calcPreview, 50)
+  }, [selectedFormat, calcPreview, showOrder])
 
   function handleToggleFav() {
     setFavs(prev => prev.includes(current.publicId)
@@ -151,8 +147,6 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const previewRect = showOrder ? getPreviewRect() : null
-
   return (
     <div className="fixed inset-0 z-50 flex flex-col" style={{ backgroundColor: '#080f0c' }}>
 
@@ -166,7 +160,7 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
           <button onClick={handleToggleFav} className="flex items-center gap-2 text-sm transition hover:opacity-70"
             style={{ color: currentIsFav ? '#c8a96e' : 'rgba(232,237,233,0.6)' }}>
             <HeartIcon filled={currentIsFav} />
-            <span className="hidden sm:inline">{currentIsFav ? 'Favoriet' : 'Favoriet'}</span>
+            <span className="hidden sm:inline">Favoriet</span>
           </button>
           <button onClick={() => { setShowShare(!showShare); setShowOrder(false) }}
             className="flex items-center gap-2 text-sm transition hover:opacity-70"
@@ -211,7 +205,7 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
         </div>
       )}
 
-      {/* Bestel panel — formaat keuze */}
+      {/* Bestel panel */}
       {showOrder && (
         <div className="flex-shrink-0 px-6 py-4"
           style={{ backgroundColor: '#0d1f18', borderBottom: '1px solid rgba(200,169,110,0.15)' }}>
@@ -223,25 +217,19 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
             <div className="flex flex-wrap items-center gap-3">
               <span className="text-xs tracking-widest uppercase" style={{ color: 'rgba(200,169,110,0.7)' }}>Formaat</span>
               {PRINT_SIZES.map(s => (
-                <button
-                  key={s.format}
-                  onClick={() => setSelectedFormat(s)}
+                <button key={s.format} onClick={() => setSelectedFormat(s)}
                   className="px-3 py-1.5 text-xs rounded-sm transition"
                   style={{
                     backgroundColor: selectedFormat.format === s.format ? '#c8a96e' : 'transparent',
                     color: selectedFormat.format === s.format ? '#053221' : 'rgba(232,237,233,0.6)',
                     border: '1px solid rgba(200,169,110,0.3)',
-                  }}
-                >
+                  }}>
                   {s.format} — {s.price}
                 </button>
               ))}
-              <button
-                onClick={handleOrder}
-                disabled={ordering}
+              <button onClick={handleOrder} disabled={ordering}
                 className="px-5 py-1.5 text-xs font-medium rounded-sm transition disabled:opacity-40 ml-auto"
-                style={{ backgroundColor: '#c8a96e', color: '#053221' }}
-              >
+                style={{ backgroundColor: '#c8a96e', color: '#053221' }}>
                 {ordering ? 'Versturen...' : `Bestellen — ${selectedFormat.price}`}
               </button>
             </div>
@@ -257,37 +245,30 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
           <ChevronIcon dir="left" />
         </button>
 
-        {/* Foto wrapper voor overlay meting */}
-        <div ref={imgRef} className="relative flex items-center justify-center"
-          style={{ maxHeight: 'calc(100vh - 200px)', maxWidth: '100%' }}>
-          <Image
+        <div className="relative" style={{ maxHeight: 'calc(100vh - 200px)', maxWidth: '100%' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            ref={imgElRef}
             src={current.url}
             alt=""
-            width={current.width}
-            height={current.height}
-            className="max-h-full max-w-full object-contain"
-            style={{ maxHeight: 'calc(100vh - 200px)' }}
-            onLoad={measureImg}
-            priority
+            onLoad={calcPreview}
+            style={{ maxHeight: 'calc(100vh - 200px)', maxWidth: '100%', display: 'block', objectFit: 'contain' }}
           />
 
           {/* Formaat preview overlay */}
           {showOrder && !orderSent && previewRect && (
-            <div
-              className="absolute pointer-events-none"
-              style={{
-                left: previewRect.left,
-                top: previewRect.top,
-                width: previewRect.width,
-                height: previewRect.height,
-                border: '2px solid #c8a96e',
-                boxShadow: '0 0 0 9999px rgba(0,0,0,0.45)',
-              }}
-            >
-              <div className="absolute bottom-2 left-0 right-0 text-center text-xs font-medium"
-                style={{ color: '#c8a96e', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
+            <div className="absolute pointer-events-none" style={{
+              left: previewRect.left,
+              top: previewRect.top,
+              width: previewRect.width,
+              height: previewRect.height,
+              border: '2px solid #c8a96e',
+              boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)',
+            }}>
+              <span className="absolute bottom-2 left-0 right-0 text-center text-xs font-medium"
+                style={{ color: '#c8a96e', textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
                 {selectedFormat.format}
-              </div>
+              </span>
             </div>
           )}
         </div>
@@ -308,14 +289,10 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
           </p>
         ) : (
           <form onSubmit={handleFeedback} className="flex gap-2 w-full">
-            <input
-              type="text"
-              value={feedback}
-              onChange={e => setFeedback(e.target.value)}
+            <input type="text" value={feedback} onChange={e => setFeedback(e.target.value)}
               placeholder="Laat een reactie achter over deze foto..."
               className="flex-1 px-4 py-2 text-sm rounded-sm focus:outline-none"
-              style={{ backgroundColor: '#0d1f18', color: '#e8ede9', border: '1px solid rgba(200,169,110,0.25)' }}
-            />
+              style={{ backgroundColor: '#0d1f18', color: '#e8ede9', border: '1px solid rgba(200,169,110,0.25)' }} />
             <button type="submit" disabled={sending || !feedback}
               className="px-5 py-2 text-sm font-medium rounded-sm transition disabled:opacity-30"
               style={{ backgroundColor: '#c8a96e', color: '#053221' }}>
@@ -336,7 +313,6 @@ function HeartIcon({ filled }: { filled: boolean }) {
     </svg>
   )
 }
-
 function ShareIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -346,7 +322,6 @@ function ShareIcon() {
     </svg>
   )
 }
-
 function CartIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -356,7 +331,6 @@ function CartIcon() {
     </svg>
   )
 }
-
 function DownloadIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -367,7 +341,6 @@ function DownloadIcon() {
     </svg>
   )
 }
-
 function CloseIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
@@ -376,7 +349,6 @@ function CloseIcon() {
     </svg>
   )
 }
-
 function ChevronIcon({ dir }: { dir: 'left' | 'right' }) {
   return (
     <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
