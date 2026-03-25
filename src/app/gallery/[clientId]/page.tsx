@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import PhotoGrid from '@/components/PhotoGrid'
@@ -17,7 +17,9 @@ export default function GalleryPage() {
   const [client, setClient] = useState<Client | null>(null)
   const [coverUrl, setCoverUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [showGrid, setShowGrid] = useState(false)
+  const [gridVisible, setGridVisible] = useState(false)
+
+  const gridRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     async function load() {
@@ -47,6 +49,16 @@ export default function GalleryPage() {
 
     load()
   }, [clientId, router])
+
+  // Fade in grid wanneer het in beeld scrolt
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setGridVisible(true) },
+      { threshold: 0.05 }
+    )
+    if (gridRef.current) observer.observe(gridRef.current)
+    return () => observer.disconnect()
+  }, [loading])
 
   async function toggleFavorite(photoId: string) {
     const isFav = favorites.includes(photoId)
@@ -83,7 +95,7 @@ export default function GalleryPage() {
       {/* Header */}
       <header
         className="fixed top-0 left-0 right-0 z-40 px-6 py-3 flex items-center justify-between"
-        style={{ backgroundColor: 'rgba(5,50,33,0.95)', borderBottom: '1px solid rgba(200,169,110,0.2)' }}
+        style={{ backgroundColor: 'rgba(5,50,33,0.85)', backdropFilter: 'blur(8px)', borderBottom: '1px solid rgba(200,169,110,0.2)' }}
       >
         <div className="flex items-center gap-3">
           <Image src="/logoBJAYv3.0-iconbackground.png" alt="Bjay.photo" width={32} height={32} />
@@ -104,93 +116,89 @@ export default function GalleryPage() {
       </header>
 
       {/* Hero */}
-      {!showGrid && (
+      <div
+        className="relative flex items-center justify-center overflow-hidden"
+        style={{ height: '100vh', backgroundColor: '#080f0c' }}
+      >
+        {coverUrl && (
+          <img
+            src={coverUrl}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ opacity: 0.85 }}
+          />
+        )}
+        <div className="relative text-center px-6 z-10">
+          <p className="text-sm tracking-widest uppercase mb-3" style={{ color: 'rgba(200,169,110,0.9)' }}>
+            Jouw galerij
+          </p>
+          <h1
+            className="text-5xl font-bold tracking-widest uppercase mb-10"
+            style={{ color: '#fff', fontFamily: 'var(--font-jost), sans-serif', textShadow: '0 2px 20px rgba(0,0,0,0.4)' }}
+          >
+            {client?.name}
+          </h1>
+          <button
+            onClick={() => gridRef.current?.scrollIntoView({ behavior: 'smooth' })}
+            className="px-8 py-3 text-sm font-medium tracking-widest uppercase transition mb-8"
+            style={{ border: '1px solid rgba(255,255,255,0.8)', color: '#fff' }}
+            onMouseEnter={e => {
+              (e.target as HTMLButtonElement).style.backgroundColor = '#fff'
+              ;(e.target as HTMLButtonElement).style.color = '#053221'
+            }}
+            onMouseLeave={e => {
+              (e.target as HTMLButtonElement).style.backgroundColor = 'transparent'
+              ;(e.target as HTMLButtonElement).style.color = '#fff'
+            }}
+          >
+            Galerij weergeven
+          </button>
+          {/* Scroll indicator */}
+          <div className="flex flex-col items-center gap-2 animate-bounce"
+            style={{ color: 'rgba(255,255,255,0.5)' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* Grid sectie */}
+      <div ref={gridRef}>
+        {/* Subheader */}
         <div
-          className="relative h-screen flex items-center justify-center overflow-hidden"
-          style={{ backgroundColor: '#080f0c' }}
+          className="px-6 py-4 flex items-center justify-between sticky top-14 z-30"
+          style={{ backgroundColor: '#053221', borderBottom: '1px solid rgba(200,169,110,0.2)' }}
         >
-          {coverUrl && (
-            <img
-              src={coverUrl}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover"
-              style={{ opacity: 0.6 }}
+          <div>
+            <p className="text-xs tracking-widest uppercase" style={{ color: 'rgba(200,169,110,0.6)' }}>
+              {client?.name}
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(232,237,233,0.4)' }}>
+              {photos.length} foto{photos.length !== 1 ? "'s" : ''}
+            </p>
+          </div>
+        </div>
+
+        {/* Foto grid met fade-in */}
+        <div
+          className="max-w-7xl mx-auto px-3 py-6 transition-all duration-700"
+          style={{ opacity: gridVisible ? 1 : 0, transform: gridVisible ? 'translateY(0)' : 'translateY(24px)' }}
+        >
+          {photos.length === 0 ? (
+            <div className="flex items-center justify-center h-64">
+              <p style={{ color: '#4a6358' }}>Er zijn nog geen foto's beschikbaar.</p>
+            </div>
+          ) : (
+            <PhotoGrid
+              photos={photos}
+              favorites={favorites}
+              onSelect={setSelectedPhoto}
+              onToggleFavorite={toggleFavorite}
             />
           )}
-          <div
-            className="absolute inset-0"
-            style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.55) 100%)' }}
-          />
-          <div className="relative text-center px-6 z-10">
-            <p className="text-sm tracking-widest uppercase mb-3" style={{ color: 'rgba(200,169,110,0.8)' }}>
-              Jouw galerij
-            </p>
-            <h1
-              className="text-5xl font-bold tracking-widest uppercase mb-8"
-              style={{ color: '#fff', fontFamily: 'var(--font-jost), sans-serif' }}
-            >
-              {client?.name}
-            </h1>
-            <button
-              onClick={() => setShowGrid(true)}
-              className="px-8 py-3 text-sm font-medium tracking-widest uppercase transition"
-              style={{ border: '1px solid #fff', color: '#fff' }}
-              onMouseEnter={e => {
-                (e.target as HTMLButtonElement).style.backgroundColor = '#fff'
-                ;(e.target as HTMLButtonElement).style.color = '#053221'
-              }}
-              onMouseLeave={e => {
-                (e.target as HTMLButtonElement).style.backgroundColor = 'transparent'
-                ;(e.target as HTMLButtonElement).style.color = '#fff'
-              }}
-            >
-              Galerij weergeven
-            </button>
-          </div>
         </div>
-      )}
-
-      {/* Grid */}
-      {showGrid && (
-        <div className="pt-14">
-          {/* Subheader */}
-          <div
-            className="px-6 py-4 flex items-center justify-between"
-            style={{ backgroundColor: '#053221', borderBottom: '1px solid rgba(200,169,110,0.2)' }}
-          >
-            <div>
-              <p className="text-xs tracking-widest uppercase" style={{ color: 'rgba(200,169,110,0.6)' }}>
-                {client?.name}
-              </p>
-              <p className="text-xs mt-0.5" style={{ color: 'rgba(232,237,233,0.4)' }}>
-                {photos.length} foto{photos.length !== 1 ? "'s" : ''}
-              </p>
-            </div>
-            <button
-              onClick={() => setShowGrid(false)}
-              className="text-xs tracking-widest uppercase transition hover:opacity-70"
-              style={{ color: 'rgba(232,237,233,0.5)' }}
-            >
-              ← Terug
-            </button>
-          </div>
-
-          <div className="max-w-7xl mx-auto px-3 py-6">
-            {photos.length === 0 ? (
-              <div className="flex items-center justify-center h-64">
-                <p style={{ color: '#4a6358' }}>Er zijn nog geen foto's beschikbaar.</p>
-              </div>
-            ) : (
-              <PhotoGrid
-                photos={photos}
-                favorites={favorites}
-                onSelect={setSelectedPhoto}
-                onToggleFavorite={toggleFavorite}
-              />
-            )}
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* Modal */}
       {selectedPhoto && (
@@ -201,6 +209,7 @@ export default function GalleryPage() {
           onClose={() => setSelectedPhoto(null)}
           onToggleFavorite={toggleFavorite}
           clientId={clientId}
+          clientName={client?.name}
         />
       )}
     </main>
