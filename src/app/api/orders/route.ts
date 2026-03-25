@@ -8,6 +8,7 @@ export async function POST(req: NextRequest) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       access_key: 'aa1038ea-0718-4fbc-a78b-9f0f4686c164',
+      email: 'info@bjay.photo',
       subject: `📸 Nieuwe fotobestelling van ${clientName}`,
       from_name: 'Bjay.photo Galerij',
       message: `
