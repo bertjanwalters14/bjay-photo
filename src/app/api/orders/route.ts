@@ -27,7 +27,9 @@ ${photoUrl}
       body: JSON.stringify(payload),
     })
 
-    const data = await res.json()
+    const resText = await res.text()
+    let data: Record<string, unknown> = {}
+    try { data = JSON.parse(resText) } catch { data = { raw: resText } }
 
     if (!res.ok) {
       console.error('Web3Forms error:', data)
