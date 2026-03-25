@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { Photo } from '@/lib/types'
 import { PRINT_SIZES } from '@/lib/printSizes'
@@ -27,6 +27,8 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
   const [orderSent, setOrderSent] = useState(false)
   const [showShare, setShowShare] = useState(false)
   const [copied, setCopied] = useState(false)
+  const imgRef = useRef<HTMLDivElement>(null)
+  const [imgSize, setImgSize] = useState({ w: 0, h: 0 })
 
   const feedbackSent = sentPhotos.includes(current.publicId)
   const idx = photos.findIndex(p => p.publicId === current.publicId)
@@ -46,6 +48,48 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [idx, showOrder, showShare])
+
+  // Meet de weergegeven afbeelding op
+  useEffect(() => {
+    function measure() {
+      if (imgRef.current) {
+        const img = imgRef.current.querySelector('img')
+        if (img) setImgSize({ w: img.offsetWidth, h: img.offsetHeight })
+      }
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [current, showOrder])
+
+  // Bereken preview rechthoek op basis van geselecteerd formaat
+  function getPreviewRect() {
+    if (!imgSize.w || !imgSize.h) return null
+    const [wCm, hCm] = selectedFormat.format.replace(' cm', '').split('x').map(s => parseFloat(s.trim()))
+    const photoAspect = current.width / current.height
+    const formatAspect = wCm / hCm
+
+    let rectW, rectH
+    if (formatAspect > photoAspect) {
+      rectW = imgSize.w
+      rectH = imgSize.w / formatAspect
+    } else {
+      rectH = imgSize.h
+      rectW = imgSize.h * formatAspect
+    }
+
+    // Schaal naar max 90% van de afbeelding
+    const scale = Math.min((imgSize.w * 0.9) / rectW, (imgSize.h * 0.9) / rectH, 1)
+    rectW *= scale
+    rectH *= scale
+
+    return {
+      left: (imgSize.w - rectW) / 2,
+      top: (imgSize.h - rectH) / 2,
+      width: rectW,
+      height: rectH,
+    }
+  }
 
   function handleToggleFav() {
     setFavs(prev => prev.includes(current.publicId)
@@ -102,6 +146,8 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const previewRect = showOrder ? getPreviewRect() : null
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col" style={{ backgroundColor: '#080f0c' }}>
 
@@ -112,33 +158,28 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
           {idx + 1} / {photos.length}
         </span>
         <div className="flex items-center gap-4">
-          {/* Favoriet */}
           <button onClick={handleToggleFav} className="flex items-center gap-2 text-sm transition hover:opacity-70"
             style={{ color: currentIsFav ? '#c8a96e' : 'rgba(232,237,233,0.6)' }}>
             <HeartIcon filled={currentIsFav} />
             <span className="hidden sm:inline">{currentIsFav ? 'Favoriet' : 'Favoriet'}</span>
           </button>
-          {/* Delen */}
           <button onClick={() => { setShowShare(!showShare); setShowOrder(false) }}
             className="flex items-center gap-2 text-sm transition hover:opacity-70"
             style={{ color: showShare ? '#c8a96e' : 'rgba(232,237,233,0.6)' }}>
             <ShareIcon />
             <span className="hidden sm:inline">Delen</span>
           </button>
-          {/* Bestellen */}
           <button onClick={() => { setShowOrder(!showOrder); setShowShare(false) }}
             className="flex items-center gap-2 text-sm transition hover:opacity-70"
             style={{ color: showOrder ? '#c8a96e' : 'rgba(232,237,233,0.6)' }}>
             <CartIcon />
             <span className="hidden sm:inline">Bestellen</span>
           </button>
-          {/* Download */}
           <button onClick={handleDownload} className="flex items-center gap-2 text-sm transition hover:opacity-70"
             style={{ color: 'rgba(232,237,233,0.6)' }}>
             <DownloadIcon />
             <span className="hidden sm:inline">Downloaden</span>
           </button>
-          {/* Sluiten */}
           <button onClick={onClose} className="transition hover:opacity-70 ml-2"
             style={{ color: 'rgba(232,237,233,0.6)' }}>
             <CloseIcon />
@@ -153,14 +194,10 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
           <span className="text-xs tracking-widest uppercase mr-2" style={{ color: 'rgba(200,169,110,0.7)' }}>Delen via</span>
           <a href={`https://wa.me/?text=${encodeURIComponent(current.url)}`} target="_blank" rel="noopener"
             className="px-4 py-1.5 text-xs rounded-sm transition hover:opacity-80"
-            style={{ backgroundColor: '#25d366', color: '#fff' }}>
-            WhatsApp
-          </a>
+            style={{ backgroundColor: '#25d366', color: '#fff' }}>WhatsApp</a>
           <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(current.url)}`} target="_blank" rel="noopener"
             className="px-4 py-1.5 text-xs rounded-sm transition hover:opacity-80"
-            style={{ backgroundColor: '#1877f2', color: '#fff' }}>
-            Facebook
-          </a>
+            style={{ backgroundColor: '#1877f2', color: '#fff' }}>Facebook</a>
           <button onClick={handleCopyLink}
             className="px-4 py-1.5 text-xs rounded-sm transition hover:opacity-80"
             style={{ backgroundColor: 'rgba(200,169,110,0.2)', color: '#c8a96e', border: '1px solid rgba(200,169,110,0.3)' }}>
@@ -169,7 +206,7 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
         </div>
       )}
 
-      {/* Bestel panel */}
+      {/* Bestel panel — formaat keuze */}
       {showOrder && (
         <div className="flex-shrink-0 px-6 py-4"
           style={{ backgroundColor: '#0d1f18', borderBottom: '1px solid rgba(200,169,110,0.15)' }}>
@@ -215,15 +252,39 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
           <ChevronIcon dir="left" />
         </button>
 
-        <Image
-          src={current.url}
-          alt=""
-          width={current.width}
-          height={current.height}
-          className="max-h-full max-w-full object-contain"
-          style={{ maxHeight: 'calc(100vh - 200px)' }}
-          priority
-        />
+        {/* Foto wrapper voor overlay meting */}
+        <div ref={imgRef} className="relative flex items-center justify-center"
+          style={{ maxHeight: 'calc(100vh - 200px)', maxWidth: '100%' }}>
+          <Image
+            src={current.url}
+            alt=""
+            width={current.width}
+            height={current.height}
+            className="max-h-full max-w-full object-contain"
+            style={{ maxHeight: 'calc(100vh - 200px)' }}
+            priority
+          />
+
+          {/* Formaat preview overlay */}
+          {showOrder && !orderSent && previewRect && (
+            <div
+              className="absolute pointer-events-none"
+              style={{
+                left: previewRect.left,
+                top: previewRect.top,
+                width: previewRect.width,
+                height: previewRect.height,
+                border: '2px solid #c8a96e',
+                boxShadow: '0 0 0 9999px rgba(0,0,0,0.45)',
+              }}
+            >
+              <div className="absolute bottom-2 left-0 right-0 text-center text-xs font-medium"
+                style={{ color: '#c8a96e', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
+                {selectedFormat.format}
+              </div>
+            </div>
+          )}
+        </div>
 
         <button onClick={next} disabled={!hasNext}
           className="absolute right-4 z-10 transition hover:opacity-80 disabled:opacity-10"
