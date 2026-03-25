@@ -15,14 +15,17 @@ export default function GalleryPage() {
   const [favorites, setFavorites] = useState<string[]>([])
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null)
   const [client, setClient] = useState<Client | null>(null)
+  const [coverUrl, setCoverUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showGrid, setShowGrid] = useState(false)
 
   useEffect(() => {
     async function load() {
-      const [photosRes, favsRes, clientRes] = await Promise.all([
+      const [photosRes, favsRes, clientRes, coverRes] = await Promise.all([
         fetch(`/api/clients/${clientId}/photos`),
         fetch(`/api/clients/${clientId}/favorites`),
         fetch(`/api/clients/${clientId}`),
+        fetch(`/api/clients/${clientId}/cover`),
       ])
 
       if (photosRes.status === 401) {
@@ -33,10 +36,12 @@ export default function GalleryPage() {
       const photosData = await photosRes.json()
       const favsData = await favsRes.json()
       const clientData = await clientRes.json()
+      const coverData = await coverRes.json()
 
       setPhotos(photosData.photos || [])
       setFavorites(favsData.favorites || [])
       setClient(clientData.client || null)
+      setCoverUrl(coverData.cover || null)
       setLoading(false)
     }
 
@@ -64,28 +69,31 @@ export default function GalleryPage() {
     router.push('/login')
   }
 
+  if (loading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#080f0c' }}>
+        <p style={{ color: '#4a6358' }}>Foto's laden...</p>
+      </main>
+    )
+  }
+
   return (
     <main className="min-h-screen" style={{ backgroundColor: '#e8ede9' }}>
+
       {/* Header */}
       <header
-        className="sticky top-0 z-40 px-6 py-3 flex items-center justify-between"
-        style={{ backgroundColor: '#053221', borderBottom: '1px solid rgba(200,169,110,0.2)' }}
+        className="fixed top-0 left-0 right-0 z-40 px-6 py-3 flex items-center justify-between"
+        style={{ backgroundColor: 'rgba(5,50,33,0.95)', borderBottom: '1px solid rgba(200,169,110,0.2)' }}
       >
         <div className="flex items-center gap-3">
-          <Image
-            src="/logoBJAYv3.0-iconbackground.png"
-            alt="Bjay.photo"
-            width={36}
-            height={36}
-          />
+          <Image src="/logoBJAYv3.0-iconbackground.png" alt="Bjay.photo" width={32} height={32} />
           <span
-            className="text-lg font-bold tracking-widest uppercase hidden sm:inline"
+            className="text-base font-bold tracking-widest uppercase hidden sm:inline"
             style={{ color: '#c8a96e', fontFamily: 'var(--font-jost), sans-serif' }}
           >
             Bjay.photo
           </span>
         </div>
-
         <button
           onClick={handleLogout}
           className="text-sm transition hover:opacity-70"
@@ -95,46 +103,94 @@ export default function GalleryPage() {
         </button>
       </header>
 
-      {/* Hero tekst */}
-      {!loading && client && (
+      {/* Hero */}
+      {!showGrid && (
         <div
-          className="px-6 py-10 text-center"
-          style={{ backgroundColor: '#053221' }}
+          className="relative h-screen flex items-center justify-center overflow-hidden"
+          style={{ backgroundColor: '#080f0c' }}
         >
-          <p className="text-sm tracking-widest uppercase mb-1" style={{ color: 'rgba(200,169,110,0.6)' }}>
-            Jouw galerij
-          </p>
-          <h1
-            className="text-3xl font-bold tracking-wide uppercase"
-            style={{ color: '#c8a96e', fontFamily: 'var(--font-jost), sans-serif' }}
-          >
-            {client.name}
-          </h1>
-          <p className="text-sm mt-2" style={{ color: 'rgba(232,237,233,0.45)' }}>
-            {photos.length} foto{photos.length !== 1 ? "'s" : ''} beschikbaar
-          </p>
+          {coverUrl && (
+            <img
+              src={coverUrl}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ opacity: 0.6 }}
+            />
+          )}
+          <div
+            className="absolute inset-0"
+            style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.55) 100%)' }}
+          />
+          <div className="relative text-center px-6 z-10">
+            <p className="text-sm tracking-widest uppercase mb-3" style={{ color: 'rgba(200,169,110,0.8)' }}>
+              Jouw galerij
+            </p>
+            <h1
+              className="text-5xl font-bold tracking-widest uppercase mb-8"
+              style={{ color: '#fff', fontFamily: 'var(--font-jost), sans-serif' }}
+            >
+              {client?.name}
+            </h1>
+            <button
+              onClick={() => setShowGrid(true)}
+              className="px-8 py-3 text-sm font-medium tracking-widest uppercase transition"
+              style={{ border: '1px solid #fff', color: '#fff' }}
+              onMouseEnter={e => {
+                (e.target as HTMLButtonElement).style.backgroundColor = '#fff'
+                ;(e.target as HTMLButtonElement).style.color = '#053221'
+              }}
+              onMouseLeave={e => {
+                (e.target as HTMLButtonElement).style.backgroundColor = 'transparent'
+                ;(e.target as HTMLButtonElement).style.color = '#fff'
+              }}
+            >
+              Galerij weergeven
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-3 py-6">
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <p style={{ color: '#4a6358' }}>Foto's laden...</p>
+      {/* Grid */}
+      {showGrid && (
+        <div className="pt-14">
+          {/* Subheader */}
+          <div
+            className="px-6 py-4 flex items-center justify-between"
+            style={{ backgroundColor: '#053221', borderBottom: '1px solid rgba(200,169,110,0.2)' }}
+          >
+            <div>
+              <p className="text-xs tracking-widest uppercase" style={{ color: 'rgba(200,169,110,0.6)' }}>
+                {client?.name}
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: 'rgba(232,237,233,0.4)' }}>
+                {photos.length} foto{photos.length !== 1 ? "'s" : ''}
+              </p>
+            </div>
+            <button
+              onClick={() => setShowGrid(false)}
+              className="text-xs tracking-widest uppercase transition hover:opacity-70"
+              style={{ color: 'rgba(232,237,233,0.5)' }}
+            >
+              ← Terug
+            </button>
           </div>
-        ) : photos.length === 0 ? (
-          <div className="flex items-center justify-center h-64">
-            <p style={{ color: '#4a6358' }}>Er zijn nog geen foto's beschikbaar.</p>
+
+          <div className="max-w-7xl mx-auto px-3 py-6">
+            {photos.length === 0 ? (
+              <div className="flex items-center justify-center h-64">
+                <p style={{ color: '#4a6358' }}>Er zijn nog geen foto's beschikbaar.</p>
+              </div>
+            ) : (
+              <PhotoGrid
+                photos={photos}
+                favorites={favorites}
+                onSelect={setSelectedPhoto}
+                onToggleFavorite={toggleFavorite}
+              />
+            )}
           </div>
-        ) : (
-          <PhotoGrid
-            photos={photos}
-            favorites={favorites}
-            onSelect={setSelectedPhoto}
-            onToggleFavorite={toggleFavorite}
-          />
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Modal */}
       {selectedPhoto && (
