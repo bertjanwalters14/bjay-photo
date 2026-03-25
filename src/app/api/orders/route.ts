@@ -5,7 +5,7 @@ export async function POST(req: NextRequest) {
     const { photoUrl, format, price, clientName, clientCode } = await req.json()
 
     const payload = {
-      access_key: 'aa1038ea-0718-4fbc-a78b-9f0f4686c164',
+      access_key: 'c7fd30ab-8f21-41a0-9c1f-ee06915d4062',
       email: 'info@bjay.photo',
       subject: `Nieuwe fotobestelling van ${clientName}`,
       from_name: 'Bjay.photo Galerij',
