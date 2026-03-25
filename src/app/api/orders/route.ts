@@ -4,12 +4,17 @@ export async function POST(req: NextRequest) {
   try {
     const { photoUrl, format, price, clientName, clientCode } = await req.json()
 
-    const payload = {
-      access_key: 'c7fd30ab-8f21-41a0-9c1f-ee06915d4062',
-      email: 'info@bjay.photo',
-      subject: `Nieuwe fotobestelling van ${clientName}`,
-      from_name: 'Bjay.photo Galerij',
-      message: `
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from: 'Bjay.photo <onboarding@resend.dev>',
+        to: 'info@bjay.photo',
+        subject: `Nieuwe fotobestelling van ${clientName}`,
+        text: `
 Nieuwe bestelling ontvangen!
 
 Klant: ${clientName} (code: ${clientCode})
@@ -18,22 +23,15 @@ Prijs: ${price}
 
 Foto URL:
 ${photoUrl}
-      `.trim(),
-    }
-
-    const res = await fetch('https://api.web3forms.com/submit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+        `.trim(),
+      }),
     })
 
-    const resText = await res.text()
-    let data: Record<string, unknown> = {}
-    try { data = JSON.parse(resText) } catch { data = { raw: resText } }
+    const data = await res.json()
 
     if (!res.ok) {
-      console.error('Web3Forms error:', data)
-      return NextResponse.json({ error: 'Bestelling kon niet worden verstuurd', detail: data }, { status: 500 })
+      console.error('Resend error:', data)
+      return NextResponse.json({ error: 'Mail kon niet worden verstuurd', detail: data }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })
