@@ -178,11 +178,12 @@ export default function GalleryPage() {
           </div>
         </div>
 
-        {/* Foto grid met fade-in en padding onderaan */}
+        {/* Foto grid */}
         <div
-          className="max-w-7xl mx-auto px-3 py-6"
           style={{
-            paddingBottom: '24rem',
+            maxWidth: '80rem',
+            margin: '0 auto',
+            padding: '1.5rem 0.75rem 24rem 0.75rem',
             opacity: gridVisible ? 1 : 0,
             transform: gridVisible ? 'translateY(0)' : 'translateY(24px)',
             transition: 'opacity 0.7s ease, transform 0.7s ease',
