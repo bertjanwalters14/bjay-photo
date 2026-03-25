@@ -58,15 +58,24 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
     if (!dispW || !dispH) return
 
     const [wCm, hCm] = selectedFormat.format.replace(' cm', '').split('x').map(s => parseFloat(s.trim()))
+
+    // Grootste formaat als referentie (40x60)
+    const maxCm = Math.max(...PRINT_SIZES.map(s => {
+      const [w, h] = s.format.replace(' cm', '').split('x').map(n => parseFloat(n.trim()))
+      return Math.max(w, h)
+    }))
+
+    // Schaal relatief aan grootste formaat, max 88% van de foto
+    const scale = (Math.max(wCm, hCm) / maxCm) * 0.88
     const fmtAspect = wCm / hCm
     const photoAspect = current.width / current.height
 
     let rW, rH
     if (fmtAspect > photoAspect) {
-      rW = dispW * 0.88
+      rW = dispW * scale
       rH = rW / fmtAspect
     } else {
-      rH = dispH * 0.88
+      rH = dispH * scale
       rW = rH * fmtAspect
     }
 
