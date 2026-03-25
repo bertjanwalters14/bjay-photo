@@ -50,16 +50,21 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
   }, [idx, showOrder, showShare])
 
   // Meet de weergegeven afbeelding op
-  useEffect(() => {
-    function measure() {
-      if (imgRef.current) {
-        const img = imgRef.current.querySelector('img')
-        if (img) setImgSize({ w: img.offsetWidth, h: img.offsetHeight })
-      }
+  function measureImg() {
+    if (imgRef.current) {
+      const img = imgRef.current.querySelector('img')
+      if (img) setImgSize({ w: img.offsetWidth, h: img.offsetHeight })
     }
-    measure()
-    window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
+  }
+
+  useEffect(() => {
+    window.addEventListener('resize', measureImg)
+    return () => window.removeEventListener('resize', measureImg)
+  }, [])
+
+  useEffect(() => {
+    setImgSize({ w: 0, h: 0 })
+    setTimeout(measureImg, 100)
   }, [current, showOrder])
 
   // Bereken preview rechthoek op basis van geselecteerd formaat
@@ -262,6 +267,7 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
             height={current.height}
             className="max-h-full max-w-full object-contain"
             style={{ maxHeight: 'calc(100vh - 200px)' }}
+            onLoad={measureImg}
             priority
           />
 
