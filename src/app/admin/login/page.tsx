@@ -33,7 +33,7 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#080f0c' }}>
+    <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#053221' }}>
       <div className="w-full max-w-sm px-6">
         <div className="flex justify-center mb-6">
           <Image src="/logoBJAYv3.0-iconbackground.png" alt="Bjay.photo" width={64} height={64} />

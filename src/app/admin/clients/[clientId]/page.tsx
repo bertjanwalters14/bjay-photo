@@ -75,18 +75,18 @@ export default function AdminClientPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#080f0c' }}>
-        <p className="text-sm" style={{ color: 'rgba(232,237,233,0.4)' }}>Laden...</p>
+      <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#e8ede9' }}>
+        <p className="text-sm" style={{ color: '#4a6358' }}>Laden...</p>
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen" style={{ backgroundColor: '#080f0c' }}>
+    <main className="min-h-screen" style={{ backgroundColor: '#e8ede9' }}>
 
       {/* Header */}
       <header className="px-6 py-4 flex items-center justify-between"
-        style={{ borderBottom: '1px solid rgba(200,169,110,0.15)' }}>
+        style={{ backgroundColor: '#053221', borderBottom: '1px solid rgba(200,169,110,0.2)' }}>
         <div className="flex items-center gap-3">
           <Image src="/logoBJAYv3.0-iconbackground.png" alt="Bjay.photo" width={32} height={32} />
           <span className="text-base font-bold tracking-widest uppercase"

@@ -38,10 +38,10 @@ export default function AdminDashboard() {
   }
 
   return (
-    <main className="min-h-screen" style={{ backgroundColor: '#080f0c' }}>
+    <main className="min-h-screen" style={{ backgroundColor: '#e8ede9' }}>
       {/* Header */}
       <header className="px-6 py-4 flex items-center justify-between"
-        style={{ borderBottom: '1px solid rgba(200,169,110,0.15)' }}>
+        style={{ backgroundColor: '#053221', borderBottom: '1px solid rgba(200,169,110,0.2)' }}>
         <div className="flex items-center gap-3">
           <Image src="/logoBJAYv3.0-iconbackground.png" alt="Bjay.photo" width={32} height={32} />
           <span className="text-base font-bold tracking-widest uppercase"

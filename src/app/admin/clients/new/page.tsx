@@ -37,10 +37,10 @@ export default function NewClientPage() {
   }
 
   return (
-    <main className="min-h-screen" style={{ backgroundColor: '#080f0c' }}>
+    <main className="min-h-screen" style={{ backgroundColor: '#e8ede9' }}>
       {/* Header */}
       <header className="px-6 py-4 flex items-center justify-between"
-        style={{ borderBottom: '1px solid rgba(200,169,110,0.15)' }}>
+        style={{ backgroundColor: '#053221', borderBottom: '1px solid rgba(200,169,110,0.2)' }}>
         <div className="flex items-center gap-3">
           <Image src="/logoBJAYv3.0-iconbackground.png" alt="Bjay.photo" width={32} height={32} />
           <span className="text-base font-bold tracking-widest uppercase"
@@ -63,14 +63,14 @@ export default function NewClientPage() {
 
       <div className="max-w-md mx-auto px-6 py-10">
         <p className="text-xs tracking-widest uppercase mb-8"
-          style={{ color: 'rgba(200,169,110,0.6)' }}>
+          style={{ color: '#4a6358' }}>
           Klantgegevens
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>
             <label className="block text-xs tracking-widest uppercase mb-2"
-              style={{ color: 'rgba(232,237,233,0.4)' }}>
+              style={{ color: '#4a6358' }}>
               Naam *
             </label>
             <input
@@ -81,16 +81,16 @@ export default function NewClientPage() {
               required
               className="w-full px-4 py-3 text-sm focus:outline-none transition"
               style={{
-                backgroundColor: '#0d1f18',
-                color: '#e8ede9',
-                border: '1px solid rgba(200,169,110,0.25)',
+                backgroundColor: '#fff',
+                color: '#053221',
+                border: '1px solid rgba(200,169,110,0.4)',
               }}
             />
           </div>
 
           <div>
             <label className="block text-xs tracking-widest uppercase mb-2"
-              style={{ color: 'rgba(232,237,233,0.4)' }}>
+              style={{ color: '#4a6358' }}>
               E-mail
             </label>
             <input
@@ -100,9 +100,9 @@ export default function NewClientPage() {
               placeholder="email@voorbeeld.nl"
               className="w-full px-4 py-3 text-sm focus:outline-none transition"
               style={{
-                backgroundColor: '#0d1f18',
-                color: '#e8ede9',
-                border: '1px solid rgba(200,169,110,0.25)',
+                backgroundColor: '#fff',
+                color: '#053221',
+                border: '1px solid rgba(200,169,110,0.4)',
               }}
             />
           </div>
