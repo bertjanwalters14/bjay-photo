@@ -76,7 +76,7 @@ export default function AdminClientPage() {
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#e8ede9' }}>
-        <p className="text-sm" style={{ color: '#4a6358' }}>Laden...</p>
+        <p style={{ color: '#4a6358' }}>Laden...</p>
       </main>
     )
   }
@@ -85,100 +85,97 @@ export default function AdminClientPage() {
     <main className="min-h-screen" style={{ backgroundColor: '#e8ede9' }}>
 
       {/* Header */}
-      <header className="px-6 py-4 flex items-center justify-between"
-        style={{ backgroundColor: '#053221', borderBottom: '1px solid rgba(200,169,110,0.2)' }}>
+      <header className="px-6 py-4 flex items-center justify-between" style={{ backgroundColor: '#053221' }}>
         <div className="flex items-center gap-3">
           <Image src="/logoBJAYv3.0-iconbackground.png" alt="Bjay.photo" width={32} height={32} />
-          <span className="text-base font-bold tracking-widest uppercase"
+          <h1 className="text-xl font-bold tracking-widest uppercase"
             style={{ color: '#c8a96e', fontFamily: 'var(--font-jost), sans-serif' }}>
             Bjay.photo
-          </span>
-          <span className="text-xs tracking-widest uppercase ml-1"
-            style={{ color: 'rgba(232,237,233,0.3)' }}>
+          </h1>
+          <span className="text-xs tracking-widest uppercase" style={{ color: 'rgba(200,169,110,0.5)' }}>
             / {client?.name}
           </span>
         </div>
-        <button
-          onClick={() => router.push('/admin/dashboard')}
-          className="text-sm transition hover:opacity-70"
-          style={{ color: 'rgba(232,237,233,0.5)' }}
-        >
-          ← Dashboard
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => window.open(`/gallery/${clientId}`, '_blank')}
+            className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
+            style={{ border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }}
+          >
+            Preview
+          </button>
+          <button
+            onClick={() => router.push('/admin/dashboard')}
+            className="text-sm transition hover:opacity-70"
+            style={{ color: 'rgba(232,237,233,0.6)' }}
+          >
+            ← Dashboard
+          </button>
+        </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-6 py-10 flex flex-col gap-10">
+      <div className="max-w-4xl mx-auto px-4 py-8 flex flex-col gap-8">
 
-        {/* Klantinfo + stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <div className="sm:col-span-1 p-5 flex flex-col gap-2"
-            style={{ border: '1px solid rgba(200,169,110,0.15)' }}>
-            <p className="text-xs tracking-widest uppercase mb-1" style={{ color: 'rgba(200,169,110,0.6)' }}>
-              Klantinfo
-            </p>
-            <p className="text-xs" style={{ color: 'rgba(232,237,233,0.5)' }}>
-              {client?.email || 'Geen e-mail'}
-            </p>
-            <p className="text-sm font-mono tracking-widest mt-1" style={{ color: '#c8a96e' }}>
-              {client?.code}
-            </p>
-            <p className="text-xs mt-1" style={{ color: 'rgba(232,237,233,0.3)' }}>
-              {client ? new Date(client.createdAt).toLocaleDateString('nl-NL') : ''}
-            </p>
-          </div>
+        {/* Klantinfo */}
+        <div className="rounded-lg p-4" style={{ backgroundColor: '#fff', border: '1px solid rgba(200,169,110,0.3)' }}>
+          <p className="text-sm" style={{ color: '#4a6358' }}>E-mail: {client?.email || 'Niet opgegeven'}</p>
+          <p className="text-sm mt-1" style={{ color: '#4a6358' }}>
+            Inlogcode: <span className="font-mono tracking-widest" style={{ color: '#c8a96e' }}>{client?.code}</span>
+          </p>
+          <p className="text-sm mt-1" style={{ color: '#4a6358' }}>
+            Aangemaakt: {client ? new Date(client.createdAt).toLocaleDateString('nl-NL') : ''}
+          </p>
+        </div>
+
+        {/* Statistieken */}
+        <div className="grid grid-cols-3 gap-3">
           {[
             { label: "Foto's", value: photos.length },
             { label: 'Favorieten', value: favorites.length },
             { label: 'Reacties', value: feedback.length },
           ].map(stat => (
-            <div key={stat.label} className="p-5 flex flex-col justify-center items-center"
-              style={{ border: '1px solid rgba(200,169,110,0.15)' }}>
-              <p className="text-4xl font-light" style={{ color: '#c8a96e' }}>{stat.value}</p>
-              <p className="text-xs tracking-widest uppercase mt-1"
-                style={{ color: 'rgba(232,237,233,0.4)' }}>{stat.label}</p>
+            <div key={stat.label} className="rounded-lg p-4 text-center"
+              style={{ backgroundColor: '#fff', border: '1px solid rgba(200,169,110,0.3)' }}>
+              <p className="text-3xl font-light" style={{ color: '#053221' }}>{stat.value}</p>
+              <p className="text-sm mt-1" style={{ color: '#4a6358' }}>{stat.label}</p>
             </div>
           ))}
         </div>
 
         {/* Upload */}
         <div>
-          <p className="text-xs tracking-widest uppercase mb-4" style={{ color: 'rgba(200,169,110,0.6)' }}>
-            Foto's uploaden
-          </p>
+          <h2 className="text-lg font-light mb-3" style={{ color: '#053221' }}>Foto's uploaden</h2>
           <label
-            className="flex items-center justify-center p-10 cursor-pointer transition"
-            style={{ border: '1px dashed rgba(200,169,110,0.3)' }}
-            onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(200,169,110,0.6)')}
-            onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(200,169,110,0.3)')}
+            className="flex items-center justify-center rounded-lg p-8 cursor-pointer transition hover:opacity-80"
+            style={{ backgroundColor: '#fff', border: '2px dashed rgba(200,169,110,0.5)' }}
           >
             <div className="text-center">
-              <p className="text-sm" style={{ color: uploading ? '#c8a96e' : 'rgba(232,237,233,0.5)' }}>
+              <p style={{ color: uploading ? '#c8a96e' : '#053221' }}>
                 {uploading ? 'Uploaden...' : "Klik om foto's te selecteren"}
               </p>
-              <p className="text-xs mt-1" style={{ color: 'rgba(232,237,233,0.3)' }}>JPG, PNG, WEBP</p>
+              <p className="text-sm mt-1" style={{ color: '#4a6358' }}>JPG, PNG, WEBP</p>
             </div>
             <input type="file" accept="image/*" multiple className="hidden"
               onChange={handleUpload} disabled={uploading} />
           </label>
-          {uploadError && <p className="text-xs mt-2" style={{ color: '#c8a96e' }}>{uploadError}</p>}
+          {uploadError && <p className="text-sm mt-2" style={{ color: '#c8a96e' }}>{uploadError}</p>}
         </div>
 
         {/* Foto grid */}
         {photos.length > 0 && (
           <div>
-            <p className="text-xs tracking-widest uppercase mb-1" style={{ color: 'rgba(200,169,110,0.6)' }}>
+            <h2 className="text-lg font-light mb-1" style={{ color: '#053221' }}>
               Foto's ({photos.length})
-            </p>
-            <p className="text-xs mb-4" style={{ color: 'rgba(232,237,233,0.3)' }}>
+            </h2>
+            <p className="text-sm mb-3" style={{ color: '#4a6358' }}>
               Hover over een foto om deze als omslagfoto in te stellen.
             </p>
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-1">
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
               {photos.map(photo => {
                 const isCover = coverUrl === photo.url
                 return (
                   <div key={photo.publicId} className="relative overflow-hidden aspect-square group">
                     <Image src={photo.thumbnail} alt="" fill className="object-cover" />
-
                     {isCover && (
                       <div className="absolute top-1 left-1 text-xs px-2 py-0.5"
                         style={{ backgroundColor: '#c8a96e', color: '#053221' }}>
@@ -195,8 +192,8 @@ export default function AdminClientPage() {
                     {!isCover && (
                       <button
                         onClick={() => setCover(photo)}
-                        className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-200 text-xs font-medium tracking-wide"
-                        style={{ backgroundColor: 'rgba(5,50,33,0.8)', color: '#c8a96e' }}
+                        className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-200 text-xs font-medium"
+                        style={{ backgroundColor: 'rgba(5,50,33,0.75)', color: '#c8a96e' }}
                       >
                         Stel in als cover
                       </button>
@@ -211,25 +208,23 @@ export default function AdminClientPage() {
         {/* Feedback */}
         {feedback.length > 0 && (
           <div>
-            <p className="text-xs tracking-widest uppercase mb-4" style={{ color: 'rgba(200,169,110,0.6)' }}>
-              Reacties
-            </p>
-            <div className="flex flex-col gap-px">
+            <h2 className="text-lg font-light mb-3" style={{ color: '#053221' }}>Reacties</h2>
+            <div className="flex flex-col gap-2">
               {feedback.map((fb, i) => {
                 const relatedPhoto = photos.find(p => p.publicId === fb.photoId)
                 return (
-                  <div key={i} className="p-4 flex gap-4 items-start"
-                    style={{ backgroundColor: '#0d1f18', border: '1px solid rgba(200,169,110,0.1)' }}>
+                  <div key={i} className="rounded-lg p-3 flex gap-3 items-start"
+                    style={{ backgroundColor: '#fff', border: '1px solid rgba(200,169,110,0.3)' }}>
                     {relatedPhoto ? (
                       <img src={relatedPhoto.thumbnail} alt=""
-                        className="w-14 h-14 object-cover flex-shrink-0" />
+                        className="w-16 h-16 object-cover rounded flex-shrink-0" />
                     ) : (
-                      <div className="w-14 h-14 flex-shrink-0"
-                        style={{ backgroundColor: 'rgba(200,169,110,0.1)' }} />
+                      <div className="w-16 h-16 rounded flex-shrink-0"
+                        style={{ backgroundColor: '#e8ede9' }} />
                     )}
                     <div>
-                      <p className="text-sm" style={{ color: '#e8ede9' }}>{fb.message}</p>
-                      <p className="text-xs mt-1" style={{ color: 'rgba(232,237,233,0.3)' }}>
+                      <p style={{ color: '#053221' }}>{fb.message}</p>
+                      <p className="text-xs mt-1" style={{ color: '#4a6358' }}>
                         {new Date(fb.createdAt).toLocaleString('nl-NL')}
                       </p>
                     </div>

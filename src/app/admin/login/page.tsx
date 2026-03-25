@@ -44,7 +44,8 @@ export default function AdminLoginPage() {
         >
           Admin
         </h1>
-        <p className="text-center text-xs tracking-widest uppercase mb-8" style={{ color: 'rgba(232,237,233,0.4)' }}>
+        <p className="text-center text-xs tracking-widest uppercase mb-8"
+          style={{ color: 'rgba(232,237,233,0.5)' }}>
           Bjay.photo beheer
         </p>
 
@@ -56,16 +57,14 @@ export default function AdminLoginPage() {
             placeholder="Wachtwoord"
             className="px-4 py-3 text-sm focus:outline-none transition"
             style={{
-              backgroundColor: '#0d1f18',
+              backgroundColor: '#032a1c',
               color: '#e8ede9',
-              border: '1px solid rgba(200,169,110,0.3)',
+              border: '1px solid rgba(200,169,110,0.4)',
             }}
           />
-
           {error && (
-            <p className="text-xs text-center tracking-wide" style={{ color: '#c8a96e' }}>{error}</p>
+            <p className="text-xs text-center" style={{ color: '#c8a96e' }}>{error}</p>
           )}
-
           <button
             type="submit"
             disabled={loading || !password}
