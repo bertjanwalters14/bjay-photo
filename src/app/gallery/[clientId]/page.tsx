@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import Image from 'next/image'
 import PhotoGrid from '@/components/PhotoGrid'
 import PhotoModal from '@/components/PhotoModal'
-import { Photo } from '@/lib/types'
+import { Photo, Client } from '@/lib/types'
 
 export default function GalleryPage() {
   const { clientId } = useParams<{ clientId: string }>()
@@ -13,13 +14,15 @@ export default function GalleryPage() {
   const [photos, setPhotos] = useState<Photo[]>([])
   const [favorites, setFavorites] = useState<string[]>([])
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null)
+  const [client, setClient] = useState<Client | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
-      const [photosRes, favsRes] = await Promise.all([
+      const [photosRes, favsRes, clientRes] = await Promise.all([
         fetch(`/api/clients/${clientId}/photos`),
         fetch(`/api/clients/${clientId}/favorites`),
+        fetch(`/api/clients/${clientId}`),
       ])
 
       if (photosRes.status === 401) {
@@ -29,9 +32,11 @@ export default function GalleryPage() {
 
       const photosData = await photosRes.json()
       const favsData = await favsRes.json()
+      const clientData = await clientRes.json()
 
       setPhotos(photosData.photos || [])
       setFavorites(favsData.favorites || [])
+      setClient(clientData.client || null)
       setLoading(false)
     }
 
@@ -43,7 +48,6 @@ export default function GalleryPage() {
     setFavorites(prev =>
       isFav ? prev.filter(id => id !== photoId) : [...prev, photoId]
     )
-
     await fetch(`/api/clients/${clientId}/favorites`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -63,21 +67,57 @@ export default function GalleryPage() {
   return (
     <main className="min-h-screen" style={{ backgroundColor: '#e8ede9' }}>
       {/* Header */}
-      <header className="px-6 py-4 flex items-center justify-between" style={{ backgroundColor: '#053221' }}>
-        <h1 className="text-2xl font-light tracking-widest uppercase" style={{ color: '#c8a96e' }}>
-          Bjay.photo
-        </h1>
+      <header
+        className="sticky top-0 z-40 px-6 py-3 flex items-center justify-between"
+        style={{ backgroundColor: '#053221', borderBottom: '1px solid rgba(200,169,110,0.2)' }}
+      >
+        <div className="flex items-center gap-3">
+          <Image
+            src="/logoBJAYv3.0-iconbackground.png"
+            alt="Bjay.photo"
+            width={36}
+            height={36}
+          />
+          <span
+            className="text-lg font-bold tracking-widest uppercase hidden sm:inline"
+            style={{ color: '#c8a96e', fontFamily: 'var(--font-jost), sans-serif' }}
+          >
+            Bjay.photo
+          </span>
+        </div>
+
         <button
           onClick={handleLogout}
           className="text-sm transition hover:opacity-70"
-          style={{ color: '#e8ede9' }}
+          style={{ color: 'rgba(232,237,233,0.6)' }}
         >
           Uitloggen
         </button>
       </header>
 
+      {/* Hero tekst */}
+      {!loading && client && (
+        <div
+          className="px-6 py-10 text-center"
+          style={{ backgroundColor: '#053221' }}
+        >
+          <p className="text-sm tracking-widest uppercase mb-1" style={{ color: 'rgba(200,169,110,0.6)' }}>
+            Jouw galerij
+          </p>
+          <h1
+            className="text-3xl font-bold tracking-wide uppercase"
+            style={{ color: '#c8a96e', fontFamily: 'var(--font-jost), sans-serif' }}
+          >
+            {client.name}
+          </h1>
+          <p className="text-sm mt-2" style={{ color: 'rgba(232,237,233,0.45)' }}>
+            {photos.length} foto{photos.length !== 1 ? "'s" : ''} beschikbaar
+          </p>
+        </div>
+      )}
+
       {/* Content */}
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-3 py-6">
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <p style={{ color: '#4a6358' }}>Foto's laden...</p>
@@ -87,17 +127,12 @@ export default function GalleryPage() {
             <p style={{ color: '#4a6358' }}>Er zijn nog geen foto's beschikbaar.</p>
           </div>
         ) : (
-          <>
-            <p className="text-sm mb-6" style={{ color: '#4a6358' }}>
-              {photos.length} foto{photos.length !== 1 ? "'s" : ''} beschikbaar
-            </p>
-            <PhotoGrid
-              photos={photos}
-              favorites={favorites}
-              onSelect={setSelectedPhoto}
-              onToggleFavorite={toggleFavorite}
-            />
-          </>
+          <PhotoGrid
+            photos={photos}
+            favorites={favorites}
+            onSelect={setSelectedPhoto}
+            onToggleFavorite={toggleFavorite}
+          />
         )}
       </div>
 
