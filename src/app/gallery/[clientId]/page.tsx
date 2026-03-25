@@ -50,7 +50,6 @@ export default function GalleryPage() {
     load()
   }, [clientId, router])
 
-  // Fade in grid wanneer het in beeld scrolt
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) setGridVisible(true) },
@@ -153,7 +152,6 @@ export default function GalleryPage() {
           >
             Galerij weergeven
           </button>
-          {/* Scroll indicator */}
           <div className="flex flex-col items-center gap-2 animate-bounce"
             style={{ color: 'rgba(255,255,255,0.5)' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -180,10 +178,15 @@ export default function GalleryPage() {
           </div>
         </div>
 
-        {/* Foto grid met fade-in */}
+        {/* Foto grid met fade-in en padding onderaan */}
         <div
-          className="max-w-7xl mx-auto px-3 py-6 transition-all duration-700"
-          style={{ opacity: gridVisible ? 1 : 0, transform: gridVisible ? 'translateY(0)' : 'translateY(24px)' }}
+          className="max-w-7xl mx-auto px-3 py-6"
+          style={{
+            paddingBottom: '24rem',
+            opacity: gridVisible ? 1 : 0,
+            transform: gridVisible ? 'translateY(0)' : 'translateY(24px)',
+            transition: 'opacity 0.7s ease, transform 0.7s ease',
+          }}
         >
           {photos.length === 0 ? (
             <div className="flex items-center justify-center h-64">

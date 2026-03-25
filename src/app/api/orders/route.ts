@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         from: 'Bjay.photo <info@bjay.photo>',
-        to: 'info@bjay.photo',
+        to: 'bertjanwalters@gmail.com',
         subject: `Nieuwe fotobestelling van ${clientName}`,
         text: `
 Nieuwe bestelling ontvangen!
