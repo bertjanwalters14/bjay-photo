@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
         'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: 'Bjay.photo <onboarding@resend.dev>',
+        from: 'Bjay.photo <info@bjay.photo>',
         to: 'info@bjay.photo',
         subject: `Nieuwe fotobestelling van ${clientName}`,
         text: `
