@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { redis } from '@/lib/redis'
+import redis from '@/lib/redis'
 
 export async function GET(_: NextRequest, { params }: { params: { clientId: string } }) {
   const cover = await redis.get(`client:${params.clientId}:cover`)
