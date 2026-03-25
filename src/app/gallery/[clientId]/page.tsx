@@ -190,7 +190,7 @@ export default function GalleryPage() {
         >
           {photos.length === 0 ? (
             <div className="flex items-center justify-center h-64">
-              <p style={{ color: '#4a6348' }}>Er zijn nog geen foto's beschikbaar.</p>
+              <p style={{ color: '#4a6358' }}>Er zijn nog geen foto's beschikbaar.</p>
             </div>
           ) : (
             <PhotoGrid
