@@ -27,7 +27,6 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
   const [orderSent, setOrderSent] = useState(false)
   const [showShare, setShowShare] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [previewRect, setPreviewRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null)
   const imgElRef = useRef<HTMLImageElement | null>(null)
 
   const feedbackSent = sentPhotos.includes(current.publicId)
@@ -49,57 +48,15 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
     return () => window.removeEventListener('keydown', onKey)
   }, [idx, showOrder, showShare])
 
-  const calcPreview = useCallback(() => {
-    const img = imgElRef.current
-    if (!img) return
-    const rect = img.getBoundingClientRect()
-    const dispW = rect.width
-    const dispH = rect.height
-    if (!dispW || !dispH) return
-
-    const [wCm, hCm] = selectedFormat.format.replace(' cm', '').split('x').map(s => parseFloat(s.trim()))
-
-    // Grootste formaat als referentie (40x60)
-    const maxCm = Math.max(...PRINT_SIZES.map(s => {
-      const [w, h] = s.format.replace(' cm', '').split('x').map(n => parseFloat(n.trim()))
-      return Math.max(w, h)
-    }))
-
-    // Schaal relatief aan grootste formaat, max 88% van de foto
-    const scale = (Math.max(wCm, hCm) / maxCm) * 0.88
-    const fmtAspect = wCm / hCm
-    const photoAspect = current.width / current.height
-
-    let rW, rH
-    if (fmtAspect > photoAspect) {
-      rW = dispW * scale
-      rH = rW / fmtAspect
-    } else {
-      rH = dispH * scale
-      rW = rH * fmtAspect
-    }
-
-    setPreviewRect({
-      left: (dispW - rW) / 2,
-      top: (dispH - rH) / 2,
-      width: rW,
-      height: rH,
-    })
-  }, [selectedFormat, current])
+  const calcPreview = useCallback(() => {}, [])
 
   useEffect(() => {
-    if (showOrder) {
-      setTimeout(calcPreview, 150)
-      window.addEventListener('resize', calcPreview)
-    } else {
-      setPreviewRect(null)
-    }
+    if (!showOrder) return
+    window.addEventListener('resize', calcPreview)
     return () => window.removeEventListener('resize', calcPreview)
   }, [showOrder, calcPreview])
 
-  useEffect(() => {
-    if (showOrder) setTimeout(calcPreview, 50)
-  }, [selectedFormat, calcPreview, showOrder])
+  useEffect(() => {}, [selectedFormat, calcPreview, showOrder])
 
   function handleToggleFav() {
     setFavs(prev => prev.includes(current.publicId)
@@ -260,26 +217,8 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
             ref={imgElRef}
             src={current.url}
             alt=""
-            onLoad={calcPreview}
             style={{ maxHeight: 'calc(100vh - 200px)', maxWidth: '100%', display: 'block', objectFit: 'contain' }}
           />
-
-          {/* Formaat preview overlay */}
-          {showOrder && !orderSent && previewRect && (
-            <div className="absolute pointer-events-none" style={{
-              left: previewRect.left,
-              top: previewRect.top,
-              width: previewRect.width,
-              height: previewRect.height,
-              border: '2px solid #c8a96e',
-              boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)',
-            }}>
-              <span className="absolute bottom-2 left-0 right-0 text-center text-xs font-medium"
-                style={{ color: '#c8a96e', textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
-                {selectedFormat.format}
-              </span>
-            </div>
-          )}
         </div>
 
         <button onClick={next} disabled={!hasNext}
