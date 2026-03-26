@@ -9,9 +9,7 @@ export async function middleware(req: NextRequest) {
   // Admin routes beschermen
   if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
     const token = req.cookies.get('bjay_admin')?.value
-    if (!token) {
-      return NextResponse.redirect(new URL('/admin/login', req.url))
-    }
+    if (!token) return NextResponse.redirect(new URL('/admin/login', req.url))
     try {
       await jwtVerify(token, secret)
     } catch {
@@ -21,10 +19,20 @@ export async function middleware(req: NextRequest) {
 
   // Galerij routes beschermen
   if (pathname.startsWith('/gallery')) {
-    const token = req.cookies.get('bjay_session')?.value
-    if (!token) {
-      return NextResponse.redirect(new URL('/login', req.url))
+    // Controleer preview token in URL
+    const previewToken = req.nextUrl.searchParams.get('preview')
+    if (previewToken) {
+      try {
+        const { payload } = await jwtVerify(previewToken, secret)
+        if (payload.role === 'preview') return NextResponse.next()
+      } catch {
+        return NextResponse.redirect(new URL('/login', req.url))
+      }
     }
+
+    // Controleer klant cookie
+    const token = req.cookies.get('bjay_session')?.value
+    if (!token) return NextResponse.redirect(new URL('/login', req.url))
     try {
       await jwtVerify(token, secret)
     } catch {

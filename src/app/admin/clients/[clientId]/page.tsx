@@ -64,6 +64,12 @@ export default function AdminClientPage() {
     setUploading(false)
   }
 
+  async function handlePreview() {
+    const res = await fetch(`/api/clients/${clientId}/preview-token`)
+    const data = await res.json()
+    window.open(`/gallery/${clientId}?preview=${data.token}`, '_blank')
+  }
+
   async function setCover(photo: Photo) {
     setCoverUrl(photo.url)
     await fetch(`/api/clients/${clientId}/cover`, {
@@ -98,7 +104,7 @@ export default function AdminClientPage() {
         </div>
         <div className="flex items-center gap-4">
           <button
-            onClick={() => window.open(`/gallery/${clientId}`, '_blank')}
+            onClick={handlePreview}
             className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
             style={{ border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }}
           >
