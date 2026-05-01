@@ -285,16 +285,74 @@ export default function GalleryPage() {
             </p>
             <p className="text-xs mt-0.5" style={{ color: 'rgba(232,237,233,0.4)' }}>
               {photos.length} foto{photos.length !== 1 ? "'s" : ''}
-              {isEvent && (
-                <span style={{ color: 'rgba(200,169,110,0.6)' }}>
-                  {' · Tik op '}
-                  <strong>+</strong>
-                  {' om foto\'s te verzamelen voor je bestelling'}
-                </span>
-              )}
             </p>
           </div>
         </div>
+
+        {/* Bestel-uitleg banner (alleen events) */}
+        {isEvent && photos.length > 0 && (
+          <div
+            className="mx-auto mt-6 px-4"
+            style={{ maxWidth: '60rem' }}
+          >
+            <div
+              className="rounded-lg p-4 sm:p-5"
+              style={{
+                backgroundColor: '#fff',
+                border: '1px solid rgba(200,169,110,0.4)',
+                boxShadow: '0 1px 3px rgba(5,50,33,0.06)',
+              }}
+            >
+              <h3
+                className="text-sm font-medium tracking-widest uppercase mb-3"
+                style={{ color: '#053221' }}
+              >
+                Zo bestel je foto's
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
+                {[
+                  { n: '1', t: 'Selecteer', d: 'Tik op de + knop bij elke foto die je wilt' },
+                  { n: '2', t: 'Checkout', d: 'Klik onderin op de groene knop of kies onbeperkt' },
+                  { n: '3', t: 'Per mail', d: 'Na betaling ontvang je de foto(s) zonder watermerk per mail' },
+                ].map(step => (
+                  <div key={step.n} className="flex gap-3 items-start">
+                    <div
+                      className="flex-shrink-0 flex items-center justify-center text-sm font-bold"
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: '50%',
+                        backgroundColor: '#053221',
+                        color: '#c8a96e',
+                      }}
+                    >
+                      {step.n}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium" style={{ color: '#053221' }}>
+                        {step.t}
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: '#4a6358' }}>
+                        {step.d}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div
+                className="rounded p-3 text-xs"
+                style={{ backgroundColor: 'rgba(200,169,110,0.1)', color: '#053221' }}
+              >
+                <strong>Tarieven (digitale download):</strong>{' '}
+                <span style={{ color: '#4a6358' }}>
+                  1 foto €5 · 3 foto's €12 · 5 foto's €18 · onbeperkt €25
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div
           style={{
