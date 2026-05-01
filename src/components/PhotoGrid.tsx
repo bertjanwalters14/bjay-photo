@@ -8,13 +8,23 @@ interface Props {
   favorites: string[]
   onSelect: (photo: Photo) => void
   onToggleFavorite: (photoId: string) => void
+  // Optioneel: like-counts per foto. Wanneer gezet wordt elke foto met >0 likes
+  // een count-badge onderin links getoond. Negeer voor personal portals.
+  likeCounts?: Record<string, number>
 }
 
-export default function PhotoGrid({ photos, favorites, onSelect, onToggleFavorite }: Props) {
+export default function PhotoGrid({
+  photos,
+  favorites,
+  onSelect,
+  onToggleFavorite,
+  likeCounts,
+}: Props) {
   return (
     <div className="columns-2 sm:columns-3 lg:columns-4 gap-2 space-y-2">
       {photos.map(photo => {
         const isFav = favorites.includes(photo.publicId)
+        const count = likeCounts?.[photo.publicId] ?? 0
         return (
           <div
             key={photo.publicId}
@@ -30,11 +40,12 @@ export default function PhotoGrid({ photos, favorites, onSelect, onToggleFavorit
             />
 
             {/* Hover overlay */}
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none"
+            <div
+              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none"
               style={{ background: 'linear-gradient(to top, rgba(3,42,28,0.5) 0%, transparent 50%)' }}
             />
 
-            {/* Favoriet knop */}
+            {/* Favoriet/like knop rechtsboven */}
             <button
               onClick={e => { e.stopPropagation(); onToggleFavorite(photo.publicId) }}
               className="absolute top-2 right-2 transition duration-200 hover:scale-110"
@@ -44,7 +55,7 @@ export default function PhotoGrid({ photos, favorites, onSelect, onToggleFavorit
               <HeartIcon filled={isFav} />
             </button>
 
-            {/* Toon hartje bij hover via group */}
+            {/* Hover hartje voor unselected */}
             {!isFav && (
               <button
                 onClick={e => { e.stopPropagation(); onToggleFavorite(photo.publicId) }}
@@ -54,6 +65,22 @@ export default function PhotoGrid({ photos, favorites, onSelect, onToggleFavorit
                 <HeartIcon filled={false} />
               </button>
             )}
+
+            {/* Like count badge linksonder (alleen events met >0 likes) */}
+            {likeCounts && count > 0 && (
+              <div
+                className="absolute bottom-2 left-2 flex items-center gap-1 px-2 py-1 text-xs"
+                style={{
+                  backgroundColor: 'rgba(5,50,33,0.65)',
+                  color: '#c8a96e',
+                  borderRadius: '999px',
+                  backdropFilter: 'blur(4px)',
+                }}
+              >
+                <HeartIcon filled small />
+                <span className="font-medium">{count}</span>
+              </div>
+            )}
           </div>
         )
       })}
@@ -61,11 +88,19 @@ export default function PhotoGrid({ photos, favorites, onSelect, onToggleFavorit
   )
 }
 
-function HeartIcon({ filled }: { filled: boolean }) {
+function HeartIcon({ filled, small }: { filled: boolean; small?: boolean }) {
+  const size = small ? 12 : 22
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill={filled ? '#c8a96e' : 'none'}
-      stroke="#c8a96e" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-      style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill={filled ? '#c8a96e' : 'none'}
+      stroke="#c8a96e"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={small ? undefined : { filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}
     >
       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
     </svg>

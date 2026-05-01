@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import Image from 'next/image'
 import { Photo } from '@/lib/types'
 import { PRINT_SIZES } from '@/lib/printSizes'
 
@@ -13,9 +12,21 @@ interface Props {
   onToggleFavorite: (photoId: string) => void
   clientId: string
   clientName?: string
+  // Event mode: optionele like-counts per foto. Wanneer gezet rendert het hart
+  // als 'Vind ik leuk - N' i.p.v. 'Favoriet'.
+  likeCounts?: Record<string, number>
 }
 
-export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggleFavorite, clientId, clientName }: Props) {
+export default function PhotoModal({
+  photo,
+  photos,
+  isFavorite,
+  onClose,
+  onToggleFavorite,
+  clientId,
+  clientName,
+  likeCounts,
+}: Props) {
   const [current, setCurrent] = useState(photo)
   const [feedback, setFeedback] = useState('')
   const [sentPhotos, setSentPhotos] = useState<string[]>([])
@@ -34,6 +45,7 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
   const hasPrev = idx > 0
   const hasNext = idx < photos.length - 1
   const currentIsFav = favs.includes(current.publicId)
+  const currentLikeCount = likeCounts?.[current.publicId] ?? 0
 
   function prev() { if (hasPrev) { setCurrent(photos[idx - 1]); setShowOrder(false); setOrderSent(false) } }
   function next() { if (hasNext) { setCurrent(photos[idx + 1]); setShowOrder(false); setOrderSent(false) } }
@@ -126,7 +138,11 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
           <button onClick={handleToggleFav} className="flex items-center gap-2 text-sm transition hover:opacity-70"
             style={{ color: currentIsFav ? '#c8a96e' : 'rgba(232,237,233,0.6)' }}>
             <HeartIcon filled={currentIsFav} />
-            <span className="hidden sm:inline">Favoriet</span>
+            <span className="hidden sm:inline">
+              {likeCounts
+                ? `Vind ik leuk${currentLikeCount > 0 ? ` - ${currentLikeCount}` : ''}`
+                : 'Favoriet'}
+            </span>
           </button>
           <button onClick={() => { setShowShare(!showShare); setShowOrder(false) }}
             className="flex items-center gap-2 text-sm transition hover:opacity-70"
@@ -166,7 +182,7 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
           <button onClick={handleCopyLink}
             className="px-4 py-1.5 text-xs rounded-sm transition hover:opacity-80"
             style={{ backgroundColor: 'rgba(200,169,110,0.2)', color: '#c8a96e', border: '1px solid rgba(200,169,110,0.3)' }}>
-            {copied ? '✓ Gekopieerd' : 'Kopieer link'}
+            {copied ? 'Gekopieerd' : 'Kopieer link'}
           </button>
         </div>
       )}
@@ -177,7 +193,7 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
           style={{ backgroundColor: '#0d1f18', borderBottom: '1px solid rgba(200,169,110,0.15)' }}>
           {orderSent ? (
             <p className="text-sm text-center py-2" style={{ color: '#c8a96e' }}>
-              ✓ Bestelling ontvangen! Ik neem zo snel mogelijk contact met je op.
+              Bestelling ontvangen! Ik neem zo snel mogelijk contact met je op.
             </p>
           ) : (
             <div className="flex flex-wrap items-center gap-3">
@@ -190,13 +206,13 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
                     color: selectedFormat.format === s.format ? '#053221' : 'rgba(232,237,233,0.6)',
                     border: '1px solid rgba(200,169,110,0.3)',
                   }}>
-                  {s.format} — {s.price}
+                  {s.format} - {s.price}
                 </button>
               ))}
               <button onClick={handleOrder} disabled={ordering}
                 className="px-5 py-1.5 text-xs font-medium rounded-sm transition disabled:opacity-40 ml-auto"
                 style={{ backgroundColor: '#c8a96e', color: '#053221' }}>
-                {ordering ? 'Versturen...' : `Bestellen — ${selectedFormat.price}`}
+                {ordering ? 'Versturen...' : `Bestellen - ${selectedFormat.price}`}
               </button>
             </div>
           )}
@@ -233,7 +249,7 @@ export default function PhotoModal({ photo, photos, isFavorite, onClose, onToggl
         style={{ borderTop: '1px solid rgba(200,169,110,0.15)' }}>
         {feedbackSent ? (
           <p className="text-sm w-full text-center" style={{ color: '#c8a96e' }}>
-            Reactie verstuurd — bedankt!
+            Reactie verstuurd - bedankt!
           </p>
         ) : (
           <form onSubmit={handleFeedback} className="flex gap-2 w-full">

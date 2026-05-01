@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import PhotoGrid from '@/components/PhotoGrid'
 import PhotoModal from '@/components/PhotoModal'
+import NamePrompt from '@/components/NamePrompt'
 import { Photo, Client } from '@/lib/types'
 
 export default function GalleryPage() {
@@ -12,7 +13,12 @@ export default function GalleryPage() {
   const router = useRouter()
 
   const [photos, setPhotos] = useState<Photo[]>([])
+  // 'favorites' = wat de huidige gebruiker heeft gehearted.
+  // - personal: server-side favorites set
+  // - event:    de visitor's eigen likes (afgeleid van /likes?name=...)
   const [favorites, setFavorites] = useState<string[]>([])
+  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({})
+  const [visitorName, setVisitorName] = useState<string | null>(null)
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null)
   const [client, setClient] = useState<Client | null>(null)
   const [coverUrl, setCoverUrl] = useState<string | null>(null)
@@ -21,11 +27,21 @@ export default function GalleryPage() {
 
   const gridRef = useRef<HTMLDivElement>(null)
 
+  const isEvent = client?.type === 'event'
+  const visitorStorageKey = useMemo(() => `bjay:visitor:${clientId}`, [clientId])
+
+  // Visitor naam uit localStorage lezen (zodra clientId bekend is)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const stored = window.localStorage.getItem(visitorStorageKey)
+    if (stored) setVisitorName(stored)
+  }, [visitorStorageKey])
+
+  // Laad foto's, client en cover bij mount
   useEffect(() => {
     async function load() {
-      const [photosRes, favsRes, clientRes, coverRes] = await Promise.all([
+      const [photosRes, clientRes, coverRes] = await Promise.all([
         fetch(`/api/clients/${clientId}/photos`),
-        fetch(`/api/clients/${clientId}/favorites`),
         fetch(`/api/clients/${clientId}`),
         fetch(`/api/clients/${clientId}/cover`),
       ])
@@ -36,12 +52,10 @@ export default function GalleryPage() {
       }
 
       const photosData = await photosRes.json()
-      const favsData = await favsRes.json()
       const clientData = await clientRes.json()
       const coverData = await coverRes.json()
 
       setPhotos(photosData.photos || [])
-      setFavorites(favsData.favorites || [])
       setClient(clientData.client || null)
       setCoverUrl(coverData.cover || null)
       setLoading(false)
@@ -49,6 +63,31 @@ export default function GalleryPage() {
 
     load()
   }, [clientId, router])
+
+  // Laad favorieten of likes zodra type + (event-)naam bekend zijn
+  useEffect(() => {
+    if (!client) return
+
+    async function loadInteractions() {
+      if (client?.type === 'event') {
+        if (!visitorName) return // wacht tot naam ingevuld is
+        const url = `/api/clients/${clientId}/likes?name=${encodeURIComponent(visitorName)}`
+        const res = await fetch(url)
+        if (!res.ok) return
+        const data = await res.json()
+        setFavorites(data.mine || [])
+        setLikeCounts(data.counts || {})
+      } else {
+        const res = await fetch(`/api/clients/${clientId}/favorites`)
+        if (!res.ok) return
+        const data = await res.json()
+        setFavorites(data.favorites || [])
+        setLikeCounts({})
+      }
+    }
+
+    loadInteractions()
+  }, [client, clientId, visitorName])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -60,15 +99,43 @@ export default function GalleryPage() {
   }, [loading])
 
   async function toggleFavorite(photoId: string) {
-    const isFav = favorites.includes(photoId)
-    setFavorites(prev =>
-      isFav ? prev.filter(id => id !== photoId) : [...prev, photoId]
-    )
-    await fetch(`/api/clients/${clientId}/favorites`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ photoId }),
-    })
+    if (client?.type === 'event') {
+      if (!visitorName) return
+      const wasMine = favorites.includes(photoId)
+
+      // Optimistic update
+      setFavorites(prev =>
+        wasMine ? prev.filter(id => id !== photoId) : [...prev, photoId]
+      )
+      setLikeCounts(prev => {
+        const current = prev[photoId] || 0
+        const next = wasMine ? Math.max(0, current - 1) : current + 1
+        return { ...prev, [photoId]: next }
+      })
+
+      await fetch(`/api/clients/${clientId}/likes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photoId, name: visitorName }),
+      })
+    } else {
+      const isFav = favorites.includes(photoId)
+      setFavorites(prev =>
+        isFav ? prev.filter(id => id !== photoId) : [...prev, photoId]
+      )
+      await fetch(`/api/clients/${clientId}/favorites`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photoId }),
+      })
+    }
+  }
+
+  function handleNameSubmit(name: string) {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(visitorStorageKey, name)
+    }
+    setVisitorName(name)
   }
 
   async function handleLogout() {
@@ -91,6 +158,11 @@ export default function GalleryPage() {
   return (
     <main className="min-h-screen" style={{ backgroundColor: '#e8ede9' }}>
 
+      {/* Naam-prompt voor events zonder opgeslagen naam */}
+      {isEvent && !visitorName && (
+        <NamePrompt eventName={client?.name} onSubmit={handleNameSubmit} />
+      )}
+
       {/* Header */}
       <header
         className="fixed top-0 left-0 right-0 z-40 px-6 py-3 flex items-center justify-between"
@@ -105,13 +177,20 @@ export default function GalleryPage() {
             Bjay.photo
           </span>
         </div>
-        <button
-          onClick={handleLogout}
-          className="text-sm transition hover:opacity-70"
-          style={{ color: 'rgba(232,237,233,0.6)' }}
-        >
-          Uitloggen
-        </button>
+        <div className="flex items-center gap-4">
+          {isEvent && visitorName && (
+            <span className="text-xs hidden sm:inline" style={{ color: 'rgba(232,237,233,0.6)' }}>
+              Hi, {visitorName}
+            </span>
+          )}
+          <button
+            onClick={handleLogout}
+            className="text-sm transition hover:opacity-70"
+            style={{ color: 'rgba(232,237,233,0.6)' }}
+          >
+            Uitloggen
+          </button>
+        </div>
       </header>
 
       {/* Hero */}
@@ -120,6 +199,7 @@ export default function GalleryPage() {
         style={{ height: '100vh', backgroundColor: '#080f0c' }}
       >
         {coverUrl && (
+          /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={coverUrl}
             alt=""
@@ -129,7 +209,7 @@ export default function GalleryPage() {
         )}
         <div className="relative text-center px-6 z-10">
           <p className="text-sm tracking-widest uppercase mb-3" style={{ color: 'rgba(200,169,110,0.9)' }}>
-            Jouw galerij
+            {isEvent ? 'Evenement galerij' : 'Jouw galerij'}
           </p>
           <h1
             className="text-5xl font-bold tracking-widest uppercase mb-10"
@@ -199,6 +279,7 @@ export default function GalleryPage() {
               favorites={favorites}
               onSelect={setSelectedPhoto}
               onToggleFavorite={toggleFavorite}
+              likeCounts={isEvent ? likeCounts : undefined}
             />
           )}
         </div>
@@ -214,6 +295,7 @@ export default function GalleryPage() {
           onToggleFavorite={toggleFavorite}
           clientId={clientId}
           clientName={client?.name}
+          likeCounts={isEvent ? likeCounts : undefined}
         />
       )}
     </main>
