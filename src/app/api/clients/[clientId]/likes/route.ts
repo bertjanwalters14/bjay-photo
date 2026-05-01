@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import redis from '@/lib/redis'
-import { getClientSession, getAdminSession } from '@/lib/auth'
+import {
+  getAdminSession,
+  getClientOrPreviewSession,
+  canActAsClient,
+} from '@/lib/auth'
 import type { Like } from '@/lib/types'
 
-// Helper: zet een naam om naar een uniciteits-slug (voor field key in de hash)
 function nameSlug(name: string) {
   return name
     .trim()
     .toLowerCase()
     .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '') // diacrieten weg
+    .replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
 }
@@ -19,16 +22,14 @@ function fieldKey(photoId: string, name: string) {
 }
 
 // GET — likes ophalen
-// Admin krijgt volledige lijst per foto met namen.
-// Client (visitor) krijgt alleen counts per foto + zijn eigen likes (op basis van naam in query string).
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ clientId: string }> }
 ) {
   const { clientId } = await params
 
-  const clientCode = await getClientSession()
   const isAdmin = await getAdminSession()
+  const clientCode = await getClientOrPreviewSession(req)
 
   if (!isAdmin && clientCode !== clientId) {
     return NextResponse.json({ error: 'Niet toegestaan' }, { status: 401 })
@@ -38,7 +39,6 @@ export async function GET(
   const entries: Like[] = raw ? Object.values(raw) : []
 
   if (isAdmin) {
-    // Groepeer per foto met namen
     const byPhoto: Record<string, { count: number; names: { name: string; createdAt: string }[] }> = {}
     for (const e of entries) {
       if (!byPhoto[e.photoId]) byPhoto[e.photoId] = { count: 0, names: [] }
@@ -48,7 +48,6 @@ export async function GET(
     return NextResponse.json({ likes: byPhoto, total: entries.length })
   }
 
-  // Visitor: counts + eigen likes (op basis van ?name=)
   const url = new URL(req.url)
   const visitorName = url.searchParams.get('name') || ''
   const visitorSlug = visitorName ? nameSlug(visitorName) : ''
@@ -71,9 +70,9 @@ export async function POST(
   { params }: { params: Promise<{ clientId: string }> }
 ) {
   const { clientId } = await params
-  const clientCode = await getClientSession()
 
-  if (clientCode !== clientId) {
+  const allowed = await canActAsClient(clientId, req)
+  if (!allowed) {
     return NextResponse.json({ error: 'Niet toegestaan' }, { status: 401 })
   }
 
@@ -96,7 +95,6 @@ export async function POST(
   const existing = await redis.hget<Like>(key, field)
 
   if (existing) {
-    // unlike
     await redis.hdel(key, field)
     return NextResponse.json({ liked: false })
   }

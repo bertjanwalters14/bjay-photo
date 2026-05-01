@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Photo } from '@/lib/types'
 import { calculatePriceForCount, priceForUnlimited, PRICE_CATALOG } from '@/lib/eventPackages'
+import { apiUrl } from '@/lib/apiUrl'
 
 interface Props {
   photos: Photo[]
@@ -77,7 +78,7 @@ export default function OrderCart({
     }
 
     setPlacing(true)
-    const res = await fetch('/api/orders', {
+    const res = await fetch(apiUrl('/api/orders'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -105,16 +106,12 @@ export default function OrderCart({
     }
   }
 
-  if (selectedIds.length === 0 && !showCheckout) {
-    return null
-  }
-
   return (
     <>
       {/* Sticky bestelbalk */}
-      {selectedIds.length > 0 && !showCheckout && (
+      {!showCheckout && (
         <div
-          className="fixed bottom-0 left-0 right-0 z-30 px-4 py-3"
+          className="fixed bottom-0 left-0 right-0 z-[60] px-4 py-3"
           style={{
             backgroundColor: 'rgba(5,50,33,0.96)',
             backdropFilter: 'blur(8px)',
@@ -132,13 +129,15 @@ export default function OrderCart({
                 </span>
               )}
             </div>
-            <button
-              onClick={onClear}
-              className="text-xs underline"
-              style={{ color: 'rgba(232,237,233,0.5)' }}
-            >
-              Wissen
-            </button>
+            {selectedIds.length > 0 && (
+              <button
+                onClick={onClear}
+                className="text-xs underline"
+                style={{ color: 'rgba(232,237,233,0.5)' }}
+              >
+                Wissen
+              </button>
+            )}
             <div className="flex-1" />
             <button
               onClick={() => {
@@ -155,10 +154,13 @@ export default function OrderCart({
                 setMode('custom')
                 setShowCheckout(true)
               }}
-              className="px-4 py-2 text-xs font-medium tracking-widest uppercase transition"
+              disabled={selectedIds.length === 0}
+              className="px-4 py-2 text-xs font-medium tracking-widest uppercase transition disabled:opacity-30 disabled:cursor-not-allowed"
               style={{ backgroundColor: '#c8a96e', color: '#053221' }}
             >
-              Naar checkout - {customBreakdown.priceLabel}
+              {selectedIds.length === 0
+                ? 'Selecteer foto\'s'
+                : `Naar checkout - ${customBreakdown.priceLabel}`}
             </button>
           </div>
         </div>

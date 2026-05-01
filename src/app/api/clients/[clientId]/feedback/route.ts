@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import redis from '@/lib/redis'
-import { getClientSession, getAdminSession } from '@/lib/auth'
+import { getAdminSession, canActAsClient } from '@/lib/auth'
 import { Feedback } from '@/lib/types'
 
 // GET — feedback ophalen (admin only)
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ clientId: string }> }
 ) {
   const { clientId } = await params
@@ -23,15 +23,15 @@ export async function GET(
   return NextResponse.json({ feedback })
 }
 
-// POST — feedback versturen (klant)
+// POST — feedback versturen (klant of preview-mode admin)
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ clientId: string }> }
 ) {
   const { clientId } = await params
-  const clientCode = await getClientSession()
 
-  if (clientCode !== clientId) {
+  const allowed = await canActAsClient(clientId, req)
+  if (!allowed) {
     return NextResponse.json({ error: 'Niet toegestaan' }, { status: 401 })
   }
 

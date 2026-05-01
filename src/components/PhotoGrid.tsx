@@ -85,16 +85,16 @@ export default function PhotoGrid({
                 onClick={e => { e.stopPropagation(); onToggleSelection?.(photo.publicId) }}
                 className="absolute top-2 left-2 transition duration-200 hover:scale-110"
                 style={{
-                  width: 28,
-                  height: 28,
+                  width: 40,
+                  height: 40,
                   borderRadius: '50%',
-                  backgroundColor: isSelected ? '#c8a96e' : 'rgba(5,50,33,0.7)',
+                  backgroundColor: isSelected ? '#c8a96e' : 'rgba(5,50,33,0.85)',
                   color: isSelected ? '#053221' : '#c8a96e',
                   border: '2px solid #c8a96e',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 14,
+                  fontSize: 18,
                   fontWeight: 'bold',
                   backdropFilter: 'blur(4px)',
                 }}

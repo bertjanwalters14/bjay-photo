@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import redis from '@/lib/redis'
-import { getClientSession, getAdminSession } from '@/lib/auth'
+import {
+  getAdminSession,
+  getClientOrPreviewSession,
+  canActAsClient,
+} from '@/lib/auth'
 
 // GET — favorieten ophalen
 export async function GET(
@@ -9,8 +13,8 @@ export async function GET(
 ) {
   const { clientId } = await params
 
-  const clientCode = await getClientSession()
   const isAdmin = await getAdminSession()
+  const clientCode = await getClientOrPreviewSession(req)
 
   if (!isAdmin && clientCode !== clientId) {
     return NextResponse.json({ error: 'Niet toegestaan' }, { status: 401 })
@@ -26,9 +30,9 @@ export async function POST(
   { params }: { params: Promise<{ clientId: string }> }
 ) {
   const { clientId } = await params
-  const clientCode = await getClientSession()
 
-  if (clientCode !== clientId) {
+  const allowed = await canActAsClient(clientId, req)
+  if (!allowed) {
     return NextResponse.json({ error: 'Niet toegestaan' }, { status: 401 })
   }
 

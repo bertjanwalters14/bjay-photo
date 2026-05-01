@@ -8,6 +8,7 @@ import PhotoModal from '@/components/PhotoModal'
 import NamePrompt from '@/components/NamePrompt'
 import OrderCart from '@/components/OrderCart'
 import { Photo, Client } from '@/lib/types'
+import { apiUrl } from '@/lib/apiUrl'
 
 export default function GalleryPage() {
   const { clientId } = useParams<{ clientId: string }>()
@@ -66,9 +67,9 @@ export default function GalleryPage() {
   useEffect(() => {
     async function load() {
       const [photosRes, clientRes, coverRes] = await Promise.all([
-        fetch(`/api/clients/${clientId}/photos`),
-        fetch(`/api/clients/${clientId}`),
-        fetch(`/api/clients/${clientId}/cover`),
+        fetch(apiUrl(`/api/clients/${clientId}/photos`)),
+        fetch(apiUrl(`/api/clients/${clientId}`)),
+        fetch(apiUrl(`/api/clients/${clientId}/cover`)),
       ])
 
       if (photosRes.status === 401) {
@@ -96,14 +97,14 @@ export default function GalleryPage() {
     async function loadInteractions() {
       if (client?.type === 'event') {
         if (!visitorName) return
-        const url = `/api/clients/${clientId}/likes?name=${encodeURIComponent(visitorName)}`
+        const url = apiUrl(`/api/clients/${clientId}/likes?name=${encodeURIComponent(visitorName)}`)
         const res = await fetch(url)
         if (!res.ok) return
         const data = await res.json()
         setFavorites(data.mine || [])
         setLikeCounts(data.counts || {})
       } else {
-        const res = await fetch(`/api/clients/${clientId}/favorites`)
+        const res = await fetch(apiUrl(`/api/clients/${clientId}/favorites`))
         if (!res.ok) return
         const data = await res.json()
         setFavorites(data.favorites || [])
@@ -137,7 +138,7 @@ export default function GalleryPage() {
         return { ...prev, [photoId]: next }
       })
 
-      await fetch(`/api/clients/${clientId}/likes`, {
+      await fetch(apiUrl(`/api/clients/${clientId}/likes`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ photoId, name: visitorName }),
@@ -147,7 +148,7 @@ export default function GalleryPage() {
       setFavorites(prev =>
         isFav ? prev.filter(id => id !== photoId) : [...prev, photoId]
       )
-      await fetch(`/api/clients/${clientId}/favorites`, {
+      await fetch(apiUrl(`/api/clients/${clientId}/favorites`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ photoId }),
@@ -173,7 +174,7 @@ export default function GalleryPage() {
   }
 
   async function handleLogout() {
-    await fetch('/api/auth/logout', {
+    await fetch(apiUrl('/api/auth/logout'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ role: 'client' }),
@@ -300,7 +301,7 @@ export default function GalleryPage() {
             maxWidth: '80rem',
             margin: '0 auto',
             // Extra padding-bottom om sticky cart-balk niet over foto's heen te laten vallen
-            padding: isEvent && selectedIds.length > 0
+            padding: isEvent
               ? '1.5rem 0.75rem 28rem 0.75rem'
               : '1.5rem 0.75rem 24rem 0.75rem',
             opacity: gridVisible ? 1 : 0,

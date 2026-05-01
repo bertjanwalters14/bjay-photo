@@ -16,7 +16,7 @@ export async function createClientSession(clientCode: string) {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7, // 7 dagen
+    maxAge: 60 * 60 * 24 * 7,
     path: '/',
   })
 }
@@ -32,12 +32,12 @@ export async function createAdminSession() {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 60 * 60 * 24, // 1 dag
+    maxAge: 60 * 60 * 24,
     path: '/',
   })
 }
 
-// --- Sessie verifiëren ---
+// --- Sessie verifieren ---
 
 export async function getClientSession(): Promise<string | null> {
   const cookieStore = await cookies()
@@ -63,6 +63,40 @@ export async function getAdminSession(): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+// Geeft de clientCode terug als er een geldige client-sessie is OF een geldige
+// preview-token in de URL query. Gebruik in API routes die zowel echte
+// klant-bezoek als admin-preview moeten ondersteunen.
+export async function getClientOrPreviewSession(req?: Request): Promise<string | null> {
+  const fromSession = await getClientSession()
+  if (fromSession) return fromSession
+
+  if (req) {
+    try {
+      const url = new URL(req.url)
+      const previewToken = url.searchParams.get('preview')
+      if (previewToken) {
+        const { payload } = await jwtVerify(previewToken, secret)
+        if (payload.role === 'preview' && typeof payload.clientCode === 'string') {
+          return payload.clientCode
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  return null
+}
+
+// Geeft true als de huidige request mag handelen namens deze clientId:
+// admin-sessie, regulier ingelogde klant met dezelfde code, of preview-token.
+export async function canActAsClient(clientId: string, req?: Request): Promise<boolean> {
+  const isAdmin = await getAdminSession()
+  if (isAdmin) return true
+  const code = await getClientOrPreviewSession(req)
+  return code === clientId
 }
 
 // --- Sessie verwijderen ---

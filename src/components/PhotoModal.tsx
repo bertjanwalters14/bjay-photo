@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Photo } from '@/lib/types'
 import { PRINT_SIZES } from '@/lib/printSizes'
+import { apiUrl } from '@/lib/apiUrl'
 
 interface Props {
   photo: Photo
@@ -121,7 +122,7 @@ export default function PhotoModal({
   async function handleFeedback(e: React.FormEvent) {
     e.preventDefault()
     setSending(true)
-    await fetch(`/api/clients/${clientId}/feedback`, {
+    await fetch(apiUrl(`/api/clients/${clientId}/feedback`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ photoId: current.publicId, message: feedback }),
@@ -142,7 +143,7 @@ export default function PhotoModal({
       return
     }
     setOrdering(true)
-    const res = await fetch('/api/orders', {
+    const res = await fetch(apiUrl('/api/orders'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
