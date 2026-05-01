@@ -4,6 +4,29 @@ import redis from '@/lib/redis'
 import { getAdminSession } from '@/lib/auth'
 import type { Order } from '@/lib/types'
 
+const FROM_ADDRESS = 'Bjay.photo <info@bjay.photo>'
+const PHOTOGRAPHER_TO = 'bertjanwalters@gmail.com'
+
+async function sendMail(to: string, subject: string, text: string) {
+  if (!process.env.RESEND_API_KEY) return
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({ from: FROM_ADDRESS, to, subject, text }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      console.error('Resend error:', data)
+    }
+  } catch (err) {
+    console.error('Mail versturen mislukt:', err)
+  }
+}
+
 // GET (admin) — alle bestellingen ophalen, nieuwste eerst
 export async function GET() {
   const isAdmin = await getAdminSession()
@@ -52,7 +75,7 @@ export async function POST(req: NextRequest) {
       updatedAt: now,
     }
 
-    // Persist eerst — een falende mail mag de bestelling niet weggooien
+    // Persist eerst zodat een mailfout de bestelling niet kwijtmaakt
     try {
       await redis.set(`order:${order.id}`, order)
       await redis.lpush('orders:all', order.id)
@@ -61,44 +84,52 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Database fout' }, { status: 500 })
     }
 
-    // Mail versturen via Resend (best-effort)
-    if (process.env.RESEND_API_KEY) {
-      try {
-        const customerLine = customerName || customerEmail
-          ? `Klant: ${customerName || '(geen naam)'} <${customerEmail || 'geen mail'}>`
-          : 'Klant: (geen contactgegevens opgegeven)'
+    // Mail aan fotograaf (admin notificatie)
+    const customerLine = customerName || customerEmail
+      ? `Klant: ${customerName || '(geen naam)'} <${customerEmail || 'geen mail'}>`
+      : 'Klant: (geen contactgegevens opgegeven)'
 
-        const res = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-          },
-          body: JSON.stringify({
-            from: 'Bjay.photo <info@bjay.photo>',
-            to: 'bertjanwalters@gmail.com',
-            subject: `Nieuwe fotobestelling van ${customerName || clientName}`,
-            text: [
-              'Nieuwe bestelling ontvangen!',
-              '',
-              `Portaal: ${clientName} (code: ${clientCode})`,
-              customerLine,
-              `Formaat: ${format}`,
-              `Prijs: ${price}`,
-              '',
-              `Foto URL: ${photoUrl}`,
-              '',
-              `Order ID: ${order.id}`,
-            ].join('\n'),
-          }),
-        })
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}))
-          console.error('Resend error:', data)
-        }
-      } catch (err) {
-        console.error('Mail versturen mislukt:', err)
-      }
+    await sendMail(
+      PHOTOGRAPHER_TO,
+      `Nieuwe fotobestelling van ${customerName || clientName}`,
+      [
+        'Nieuwe bestelling ontvangen!',
+        '',
+        `Portaal: ${clientName} (code: ${clientCode})`,
+        customerLine,
+        `Formaat: ${format}`,
+        `Prijs: ${price}`,
+        '',
+        `Foto URL: ${photoUrl}`,
+        '',
+        `Order ID: ${order.id}`,
+      ].join('\n')
+    )
+
+    // Mail aan klant (bevestiging)
+    if (customerEmail) {
+      await sendMail(
+        customerEmail,
+        'Bevestiging van je fotobestelling - Bjay.photo',
+        [
+          `Hoi ${customerName || ''},`.trim(),
+          '',
+          'Bedankt voor je bestelling bij Bjay.photo!',
+          '',
+          'Wat je hebt besteld:',
+          `  Formaat: ${format}`,
+          `  Prijs:   ${price}`,
+          '',
+          'Hoe het verder gaat:',
+          '  1. Ik stuur je binnenkort persoonlijk een betaalverzoek (Tikkie of iDEAL link).',
+          '  2. Zodra de betaling binnen is, ontvang je de foto zonder watermerk per mail.',
+          '',
+          'Mocht je vragen hebben, beantwoord deze mail dan gewoon.',
+          '',
+          'Tot snel!',
+          'Bert-Jan - Bjay.photo',
+        ].join('\n')
+      )
     }
 
     return NextResponse.json({ success: true, orderId: order.id })
