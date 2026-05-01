@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import redis from '@/lib/redis'
 import { getAdminSession } from '@/lib/auth'
 import { nanoid } from 'nanoid'
-import { Client } from '@/lib/types'
+import { Client, PortalType } from '@/lib/types'
 
 // GET — alle klanten ophalen
 export async function GET() {
@@ -21,7 +21,12 @@ export async function GET() {
     codes.map(code => redis.get<Client>(`client:${code}`))
   )
 
-  return NextResponse.json({ clients: clients.filter(Boolean) })
+  // Backwards-compat: oudere records hebben nog geen `type`. Default naar 'personal'.
+  const normalized = clients
+    .filter((c): c is Client => Boolean(c))
+    .map(c => ({ ...c, type: c.type ?? 'personal' as PortalType }))
+
+  return NextResponse.json({ clients: normalized })
 }
 
 // POST — nieuwe klant aanmaken
@@ -31,19 +36,51 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Niet toegestaan' }, { status: 401 })
   }
 
-  const { name, email } = await req.json()
+  const body = await req.json()
+  const name: string | undefined = body?.name
+  const email: string | undefined = body?.email
+  const type: PortalType = body?.type === 'event' ? 'event' : 'personal'
+  const customCodeRaw: string | undefined = body?.customCode
 
-  if (!name) {
+  if (!name || !name.trim()) {
     return NextResponse.json({ error: 'Naam is verplicht' }, { status: 400 })
   }
 
-  const code = nanoid(8).toLowerCase()
+  let code: string
+
+  if (customCodeRaw && customCodeRaw.trim()) {
+    const candidate = customCodeRaw.trim().toLowerCase()
+
+    // Alleen letters, cijfers en streepje; lengte 4–32
+    if (!/^[a-z0-9-]{4,32}$/.test(candidate)) {
+      return NextResponse.json(
+        {
+          error:
+            'Code mag alleen kleine letters, cijfers en streepjes bevatten (4–32 tekens)',
+        },
+        { status: 400 }
+      )
+    }
+
+    const exists = await redis.exists(`client:${candidate}`)
+    if (exists) {
+      return NextResponse.json(
+        { error: 'Deze code is al in gebruik' },
+        { status: 409 }
+      )
+    }
+
+    code = candidate
+  } else {
+    code = nanoid(8).toLowerCase()
+  }
 
   const client: Client = {
     id: nanoid(),
-    name,
-    email: email || '',
+    name: name.trim(),
+    email: (email || '').trim(),
     code,
+    type,
     createdAt: new Date().toISOString(),
   }
 

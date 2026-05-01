@@ -100,7 +100,26 @@ export default function AdminDashboard() {
                     {client.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="font-medium" style={{ color: '#053221' }}>{client.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium" style={{ color: '#053221' }}>{client.name}</p>
+                      <span
+                        className="text-[10px] px-2 py-0.5 tracking-widest uppercase rounded-full"
+                        style={{
+                          backgroundColor:
+                            (client.type ?? 'personal') === 'event'
+                              ? 'rgba(200,169,110,0.15)'
+                              : 'rgba(5,50,33,0.08)',
+                          color:
+                            (client.type ?? 'personal') === 'event' ? '#c8a96e' : '#053221',
+                          border:
+                            (client.type ?? 'personal') === 'event'
+                              ? '1px solid rgba(200,169,110,0.4)'
+                              : '1px solid rgba(5,50,33,0.2)',
+                        }}
+                      >
+                        {(client.type ?? 'personal') === 'event' ? '🎪 Event' : '👤 Personal'}
+                      </span>
+                    </div>
                     <p className="text-xs mt-0.5" style={{ color: '#4a6358' }}>
                       {client.email || 'Geen e-mail'}
                     </p>
