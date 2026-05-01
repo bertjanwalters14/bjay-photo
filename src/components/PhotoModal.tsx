@@ -38,7 +38,18 @@ export default function PhotoModal({
   const [orderSent, setOrderSent] = useState(false)
   const [showShare, setShowShare] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [customerName, setCustomerName] = useState('')
+  const [customerEmail, setCustomerEmail] = useState('')
+  const [orderError, setOrderError] = useState('')
   const imgElRef = useRef<HTMLImageElement | null>(null)
+
+  // Pre-fill customer naam vanuit localStorage (event-bezoeker), 1x bij mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const stored = window.localStorage.getItem(`bjay:visitor:${clientId}`)
+    if (stored && !customerName) setCustomerName(stored)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId])
 
   const feedbackSent = sentPhotos.includes(current.publicId)
   const idx = photos.findIndex(p => p.publicId === current.publicId)
@@ -47,8 +58,8 @@ export default function PhotoModal({
   const currentIsFav = favs.includes(current.publicId)
   const currentLikeCount = likeCounts?.[current.publicId] ?? 0
 
-  function prev() { if (hasPrev) { setCurrent(photos[idx - 1]); setShowOrder(false); setOrderSent(false) } }
-  function next() { if (hasNext) { setCurrent(photos[idx + 1]); setShowOrder(false); setOrderSent(false) } }
+  function prev() { if (hasPrev) { setCurrent(photos[idx - 1]); setShowOrder(false); setOrderSent(false); setOrderError('') } }
+  function next() { if (hasNext) { setCurrent(photos[idx + 1]); setShowOrder(false); setOrderSent(false); setOrderError('') } }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -103,8 +114,17 @@ export default function PhotoModal({
   }
 
   async function handleOrder() {
+    setOrderError('')
+    if (!customerName.trim()) {
+      setOrderError('Vul je naam in')
+      return
+    }
+    if (!customerEmail.trim() || !/^\S+@\S+\.\S+$/.test(customerEmail)) {
+      setOrderError('Vul een geldig e-mailadres in')
+      return
+    }
     setOrdering(true)
-    await fetch('/api/orders', {
+    const res = await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -113,10 +133,16 @@ export default function PhotoModal({
         price: selectedFormat.price,
         clientName: clientName || clientId,
         clientCode: clientId,
+        customerName: customerName.trim(),
+        customerEmail: customerEmail.trim(),
       }),
     })
     setOrdering(false)
-    setOrderSent(true)
+    if (res.ok) {
+      setOrderSent(true)
+    } else {
+      setOrderError('Bestelling kon niet verstuurd worden, probeer opnieuw.')
+    }
   }
 
   function handleCopyLink() {
@@ -196,24 +222,56 @@ export default function PhotoModal({
               Bestelling ontvangen! Ik neem zo snel mogelijk contact met je op.
             </p>
           ) : (
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="text-xs tracking-widest uppercase" style={{ color: 'rgba(200,169,110,0.7)' }}>Formaat</span>
-              {PRINT_SIZES.map(s => (
-                <button key={s.format} onClick={() => setSelectedFormat(s)}
-                  className="px-3 py-1.5 text-xs rounded-sm transition"
-                  style={{
-                    backgroundColor: selectedFormat.format === s.format ? '#c8a96e' : 'transparent',
-                    color: selectedFormat.format === s.format ? '#053221' : 'rgba(232,237,233,0.6)',
-                    border: '1px solid rgba(200,169,110,0.3)',
-                  }}>
-                  {s.format} - {s.price}
+            <div className="flex flex-col gap-3">
+              {/* Customer info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={e => setCustomerName(e.target.value)}
+                  placeholder="Jouw naam"
+                  maxLength={80}
+                  className="px-3 py-2 text-sm rounded-sm focus:outline-none"
+                  style={{ backgroundColor: '#0a1813', color: '#e8ede9', border: '1px solid rgba(200,169,110,0.25)' }}
+                />
+                <input
+                  type="email"
+                  value={customerEmail}
+                  onChange={e => setCustomerEmail(e.target.value)}
+                  placeholder="Jouw e-mailadres"
+                  maxLength={120}
+                  className="px-3 py-2 text-sm rounded-sm focus:outline-none"
+                  style={{ backgroundColor: '#0a1813', color: '#e8ede9', border: '1px solid rgba(200,169,110,0.25)' }}
+                />
+              </div>
+
+              {/* Format kiezer + bestel knop */}
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xs tracking-widest uppercase" style={{ color: 'rgba(200,169,110,0.7)' }}>Formaat</span>
+                {PRINT_SIZES.map(s => (
+                  <button key={s.format} onClick={() => setSelectedFormat(s)}
+                    className="px-3 py-1.5 text-xs rounded-sm transition"
+                    style={{
+                      backgroundColor: selectedFormat.format === s.format ? '#c8a96e' : 'transparent',
+                      color: selectedFormat.format === s.format ? '#053221' : 'rgba(232,237,233,0.6)',
+                      border: '1px solid rgba(200,169,110,0.3)',
+                    }}>
+                    {s.format} - {s.price}
+                  </button>
+                ))}
+                <button onClick={handleOrder} disabled={ordering}
+                  className="px-5 py-1.5 text-xs font-medium rounded-sm transition disabled:opacity-40 ml-auto"
+                  style={{ backgroundColor: '#c8a96e', color: '#053221' }}>
+                  {ordering ? 'Versturen...' : `Bestellen - ${selectedFormat.price}`}
                 </button>
-              ))}
-              <button onClick={handleOrder} disabled={ordering}
-                className="px-5 py-1.5 text-xs font-medium rounded-sm transition disabled:opacity-40 ml-auto"
-                style={{ backgroundColor: '#c8a96e', color: '#053221' }}>
-                {ordering ? 'Versturen...' : `Bestellen - ${selectedFormat.price}`}
-              </button>
+              </div>
+
+              {orderError && (
+                <p className="text-xs" style={{ color: '#ff8a8a' }}>{orderError}</p>
+              )}
+              <p className="text-xs" style={{ color: 'rgba(232,237,233,0.45)' }}>
+                Je krijgt geen automatische betaling. Ik neem persoonlijk contact met je op om de levering en betaling te regelen.
+              </p>
             </div>
           )}
         </div>

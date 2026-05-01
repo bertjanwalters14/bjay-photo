@@ -53,6 +53,13 @@ export default function AdminDashboard() {
         </div>
         <div className="flex items-center gap-4">
           <button
+            onClick={() => router.push('/admin/orders')}
+            className="px-4 py-2 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
+            style={{ border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }}
+          >
+            Bestellingen
+          </button>
+          <button
             onClick={() => router.push('/admin/clients/new')}
             className="px-4 py-2 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
             style={{ backgroundColor: '#c8a96e', color: '#053221' }}
@@ -117,7 +124,7 @@ export default function AdminDashboard() {
                               : '1px solid rgba(5,50,33,0.2)',
                         }}
                       >
-                        {(client.type ?? 'personal') === 'event' ? '🎪 Event' : '👤 Personal'}
+                        {(client.type ?? 'personal') === 'event' ? 'Event' : 'Personal'}
                       </span>
                     </div>
                     <p className="text-xs mt-0.5" style={{ color: '#4a6358' }}>
@@ -131,7 +138,6 @@ export default function AdminDashboard() {
                   <p className="text-sm font-mono tracking-widest hidden sm:block" style={{ color: '#c8a96e' }}>
                     {client.code}
                   </p>
-                  {/* Preview knop */}
                   <button
                     onClick={() => window.open(`/gallery/${client.code}`, '_blank')}
                     className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
@@ -139,7 +145,6 @@ export default function AdminDashboard() {
                   >
                     Preview
                   </button>
-                  {/* Beheer knop */}
                   <button
                     onClick={() => router.push(`/admin/clients/${client.code}`)}
                     className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"

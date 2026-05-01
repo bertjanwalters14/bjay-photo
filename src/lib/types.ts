@@ -36,3 +36,25 @@ export interface ClientStats {
   feedback: Feedback[]
   likes: Like[]
 }
+
+export type OrderStatus =
+  | 'new'
+  | 'contacted'
+  | 'paid'
+  | 'shipped'
+  | 'cancelled'
+
+export interface Order {
+  id: string
+  clientCode: string
+  clientName: string
+  customerName: string
+  customerEmail: string
+  photoUrl: string
+  format: string
+  price: string
+  status: OrderStatus
+  notes: string
+  createdAt: string
+  updatedAt: string
+}
