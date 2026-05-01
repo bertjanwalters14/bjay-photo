@@ -24,7 +24,7 @@ export default function NewClientPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name,
-        email,
+        email: type === 'personal' ? email : '',
         type,
         customCode: customCode.trim() || undefined,
       }),
@@ -121,7 +121,10 @@ export default function NewClientPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setType('event')}
+                  onClick={() => {
+                    setType('event')
+                    setEmail('')
+                  }}
                   className="py-3 text-xs font-medium tracking-widest uppercase transition"
                   style={{
                     backgroundColor: type === 'event' ? '#053221' : '#fff',
@@ -158,23 +161,25 @@ export default function NewClientPage() {
               />
             </div>
 
-            {/* E-mail */}
-            <div>
-              <label
-                className="block text-xs tracking-widest uppercase mb-2"
-                style={{ color: '#4a6358' }}
-              >
-                E-mail
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="email@voorbeeld.nl"
-                className="w-full px-4 py-3 text-sm focus:outline-none transition"
-                style={inputStyle}
-              />
-            </div>
+            {/* E-mail (alleen voor persoonlijk portaal) */}
+            {type === 'personal' && (
+              <div>
+                <label
+                  className="block text-xs tracking-widest uppercase mb-2"
+                  style={{ color: '#4a6358' }}
+                >
+                  E-mail
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="email@voorbeeld.nl"
+                  className="w-full px-4 py-3 text-sm focus:outline-none transition"
+                  style={inputStyle}
+                />
+              </div>
+            )}
 
             {/* Custom code (optioneel) */}
             <div>
@@ -197,7 +202,7 @@ export default function NewClientPage() {
                 style={inputStyle}
               />
               <p className="text-xs mt-2" style={{ color: '#4a6358' }}>
-                Leeg laten = automatisch gegenereerd. Alleen kleine letters, cijfers en streepjes (4–32 tekens).
+                Leeg laten = automatisch gegenereerd. Alleen kleine letters, cijfers en streepjes (4-32 tekens).
               </p>
             </div>
 
