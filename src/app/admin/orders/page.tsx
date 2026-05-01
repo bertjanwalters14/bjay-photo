@@ -144,91 +144,149 @@ export default function AdminOrdersPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {filtered.map(order => (
-              <div
-                key={order.id}
-                className="rounded-lg p-4 flex flex-col sm:flex-row gap-4"
-                style={{ backgroundColor: '#fff', border: '1px solid rgba(200,169,110,0.3)' }}
-              >
-                {/* Thumbnail */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={order.photoUrl}
-                  alt=""
-                  className="w-24 h-24 object-cover rounded flex-shrink-0"
-                />
-
-                {/* Info */}
-                <div className="flex-1 min-w-0 flex flex-col gap-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium" style={{ color: '#053221' }}>
-                      {order.customerName || '(geen naam)'}
-                    </span>
-                    {order.customerEmail && (
-                      <a
-                        href={`mailto:${order.customerEmail}?subject=Jouw fotobestelling bij Bjay.photo`}
-                        className="text-xs underline"
-                        style={{ color: '#c8a96e' }}
-                      >
-                        {order.customerEmail}
-                      </a>
+            {filtered.map(order => {
+              const isEventOrder = Boolean(order.packageType)
+              const isUnlimited = order.packageType === 'unlimited'
+              const photoUrls = order.photoUrls || []
+              const photoCount = isUnlimited ? 'alle' : photoUrls.length || 1
+              return (
+                <div
+                  key={order.id}
+                  className="rounded-lg p-4 flex flex-col sm:flex-row gap-4"
+                  style={{ backgroundColor: '#fff', border: '1px solid rgba(200,169,110,0.3)' }}
+                >
+                  {/* Thumbnail(s) */}
+                  <div className="flex-shrink-0">
+                    {isEventOrder ? (
+                      isUnlimited ? (
+                        <div
+                          className="w-24 h-24 rounded flex items-center justify-center text-center text-xs"
+                          style={{
+                            backgroundColor: 'rgba(200,169,110,0.15)',
+                            color: '#c8a96e',
+                            border: '1px dashed rgba(200,169,110,0.5)',
+                          }}
+                        >
+                          Alle foto&apos;s
+                        </div>
+                      ) : photoUrls.length === 1 ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={photoUrls[0]}
+                          alt=""
+                          className="w-24 h-24 object-cover rounded"
+                        />
+                      ) : (
+                        <div className="grid grid-cols-2 gap-1 w-24">
+                          {photoUrls.slice(0, 4).map((url, i) => (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              key={i}
+                              src={url}
+                              alt=""
+                              className="w-full aspect-square object-cover rounded-sm"
+                            />
+                          ))}
+                        </div>
+                      )
+                    ) : (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={order.photoUrl}
+                        alt=""
+                        className="w-24 h-24 object-cover rounded"
+                      />
                     )}
                   </div>
-                  <p className="text-sm" style={{ color: '#4a6358' }}>
-                    Portaal:{' '}
-                    <button
-                      onClick={() => router.push(`/admin/clients/${order.clientCode}`)}
-                      className="underline"
-                      style={{ color: '#053221' }}
-                    >
-                      {order.clientName}
-                    </button>
-                  </p>
-                  <p className="text-sm" style={{ color: '#4a6358' }}>
-                    Formaat: <span style={{ color: '#053221' }}>{order.format}</span>
-                    {' · '}
-                    Prijs: <span style={{ color: '#053221' }}>{order.price}</span>
-                  </p>
-                  <p className="text-xs mt-1" style={{ color: 'rgba(74,99,88,0.7)' }}>
-                    {new Date(order.createdAt).toLocaleString('nl-NL')}
-                    {order.updatedAt !== order.createdAt && (
-                      <> · gewijzigd {new Date(order.updatedAt).toLocaleString('nl-NL')}</>
-                    )}
-                  </p>
-                </div>
 
-                {/* Status */}
-                <div className="flex flex-col items-start sm:items-end gap-2">
-                  <span
-                    className="text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full"
-                    style={{
-                      backgroundColor: STATUS_COLORS[order.status].bg,
-                      color: STATUS_COLORS[order.status].fg,
-                      border: `1px solid ${STATUS_COLORS[order.status].border}`,
-                    }}
-                  >
-                    {STATUS_LABELS[order.status]}
-                  </span>
-                  <select
-                    value={order.status}
-                    disabled={updating[order.id]}
-                    onChange={e => updateStatus(order.id, e.target.value as OrderStatus)}
-                    className="text-xs px-2 py-1 focus:outline-none"
-                    style={{
-                      backgroundColor: '#fff',
-                      color: '#053221',
-                      border: '1px solid rgba(200,169,110,0.4)',
-                    }}
-                  >
-                    {STATUS_ORDER.map(s => (
-                      <option key={s} value={s}>
-                        {STATUS_LABELS[s]}
-                      </option>
-                    ))}
-                  </select>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0 flex flex-col gap-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium" style={{ color: '#053221' }}>
+                        {order.customerName || '(geen naam)'}
+                      </span>
+                      {order.customerEmail && (
+                        <a
+                          href={`mailto:${order.customerEmail}?subject=Jouw fotobestelling bij Bjay.photo`}
+                          className="text-xs underline"
+                          style={{ color: '#c8a96e' }}
+                        >
+                          {order.customerEmail}
+                        </a>
+                      )}
+                      {isEventOrder && (
+                        <span
+                          className="text-[10px] px-2 py-0.5 tracking-widest uppercase rounded-full"
+                          style={{
+                            backgroundColor: 'rgba(200,169,110,0.15)',
+                            color: '#c8a96e',
+                            border: '1px solid rgba(200,169,110,0.4)',
+                          }}
+                        >
+                          Digitaal
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm" style={{ color: '#4a6358' }}>
+                      Portaal:{' '}
+                      <button
+                        onClick={() => router.push(`/admin/clients/${order.clientCode}`)}
+                        className="underline"
+                        style={{ color: '#053221' }}
+                      >
+                        {order.clientName}
+                      </button>
+                    </p>
+                    <p className="text-sm" style={{ color: '#4a6358' }}>
+                      {isEventOrder ? 'Pakket' : 'Formaat'}:{' '}
+                      <span style={{ color: '#053221' }}>{order.format}</span>
+                      {isEventOrder && (
+                        <> ({photoCount} foto{photoCount !== 1 ? "'s" : ''})</>
+                      )}
+                      {' · '}
+                      Prijs: <span style={{ color: '#053221' }}>{order.price}</span>
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: 'rgba(74,99,88,0.7)' }}>
+                      {new Date(order.createdAt).toLocaleString('nl-NL')}
+                      {order.updatedAt !== order.createdAt && (
+                        <> · gewijzigd {new Date(order.updatedAt).toLocaleString('nl-NL')}</>
+                      )}
+                    </p>
+                  </div>
+
+                  {/* Status */}
+                  <div className="flex flex-col items-start sm:items-end gap-2">
+                    <span
+                      className="text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full"
+                      style={{
+                        backgroundColor: STATUS_COLORS[order.status].bg,
+                        color: STATUS_COLORS[order.status].fg,
+                        border: `1px solid ${STATUS_COLORS[order.status].border}`,
+                      }}
+                    >
+                      {STATUS_LABELS[order.status]}
+                    </span>
+                    <select
+                      value={order.status}
+                      disabled={updating[order.id]}
+                      onChange={e => updateStatus(order.id, e.target.value as OrderStatus)}
+                      className="text-xs px-2 py-1 focus:outline-none"
+                      style={{
+                        backgroundColor: '#fff',
+                        color: '#053221',
+                        border: '1px solid rgba(200,169,110,0.4)',
+                      }}
+                    >
+                      {STATUS_ORDER.map(s => (
+                        <option key={s} value={s}>
+                          {STATUS_LABELS[s]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

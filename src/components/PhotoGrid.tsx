@@ -11,6 +11,10 @@ interface Props {
   // Optioneel: like-counts per foto. Wanneer gezet wordt elke foto met >0 likes
   // een count-badge onderin links getoond. Negeer voor personal portals.
   likeCounts?: Record<string, number>
+  // Optioneel: cart-selectie voor digitale event-bestellingen.
+  // Wanneer gezet komt er een tweede knop op elke foto en een visuele markering.
+  selectedIds?: string[]
+  onToggleSelection?: (photoId: string) => void
 }
 
 export default function PhotoGrid({
@@ -19,17 +23,27 @@ export default function PhotoGrid({
   onSelect,
   onToggleFavorite,
   likeCounts,
+  selectedIds,
+  onToggleSelection,
 }: Props) {
+  const selectionMode = Boolean(onToggleSelection)
+
   return (
     <div className="columns-2 sm:columns-3 lg:columns-4 gap-2 space-y-2">
       {photos.map(photo => {
         const isFav = favorites.includes(photo.publicId)
         const count = likeCounts?.[photo.publicId] ?? 0
+        const isSelected = selectedIds?.includes(photo.publicId) ?? false
         return (
           <div
             key={photo.publicId}
             className="relative break-inside-avoid group cursor-pointer overflow-hidden"
             onClick={() => onSelect(photo)}
+            style={{
+              boxShadow: isSelected
+                ? '0 0 0 3px #c8a96e, 0 0 18px rgba(200,169,110,0.4)'
+                : undefined,
+            }}
           >
             <Image
               src={photo.thumbnail}
@@ -55,7 +69,6 @@ export default function PhotoGrid({
               <HeartIcon filled={isFav} />
             </button>
 
-            {/* Hover hartje voor unselected */}
             {!isFav && (
               <button
                 onClick={e => { e.stopPropagation(); onToggleFavorite(photo.publicId) }}
@@ -63,6 +76,31 @@ export default function PhotoGrid({
                 title="Voeg toe aan favorieten"
               >
                 <HeartIcon filled={false} />
+              </button>
+            )}
+
+            {/* Selectie knop linksboven (alleen event mode) */}
+            {selectionMode && (
+              <button
+                onClick={e => { e.stopPropagation(); onToggleSelection?.(photo.publicId) }}
+                className="absolute top-2 left-2 transition duration-200 hover:scale-110"
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: '50%',
+                  backgroundColor: isSelected ? '#c8a96e' : 'rgba(5,50,33,0.7)',
+                  color: isSelected ? '#053221' : '#c8a96e',
+                  border: '2px solid #c8a96e',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 14,
+                  fontWeight: 'bold',
+                  backdropFilter: 'blur(4px)',
+                }}
+                title={isSelected ? 'Verwijder uit bestelling' : 'Voeg toe aan bestelling'}
+              >
+                {isSelected ? '✓' : '+'}
               </button>
             )}
 

@@ -6,6 +6,7 @@ import Image from 'next/image'
 import PhotoGrid from '@/components/PhotoGrid'
 import PhotoModal from '@/components/PhotoModal'
 import NamePrompt from '@/components/NamePrompt'
+import OrderCart from '@/components/OrderCart'
 import { Photo, Client } from '@/lib/types'
 
 export default function GalleryPage() {
@@ -13,9 +14,6 @@ export default function GalleryPage() {
   const router = useRouter()
 
   const [photos, setPhotos] = useState<Photo[]>([])
-  // 'favorites' = wat de huidige gebruiker heeft gehearted.
-  // - personal: server-side favorites set
-  // - event:    de visitor's eigen likes (afgeleid van /likes?name=...)
   const [favorites, setFavorites] = useState<string[]>([])
   const [likeCounts, setLikeCounts] = useState<Record<string, number>>({})
   const [visitorName, setVisitorName] = useState<string | null>(null)
@@ -24,20 +22,47 @@ export default function GalleryPage() {
   const [coverUrl, setCoverUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [gridVisible, setGridVisible] = useState(false)
+  // Cart-selectie voor digital event-bestellingen
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
 
   const gridRef = useRef<HTMLDivElement>(null)
 
   const isEvent = client?.type === 'event'
   const visitorStorageKey = useMemo(() => `bjay:visitor:${clientId}`, [clientId])
+  const cartStorageKey = useMemo(() => `bjay:cart:${clientId}`, [clientId])
 
-  // Visitor naam uit localStorage lezen (zodra clientId bekend is)
+  // Visitor naam uit localStorage lezen
   useEffect(() => {
     if (typeof window === 'undefined') return
     const stored = window.localStorage.getItem(visitorStorageKey)
     if (stored) setVisitorName(stored)
   }, [visitorStorageKey])
 
-  // Laad foto's, client en cover bij mount
+  // Cart-selectie uit localStorage lezen
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const stored = window.localStorage.getItem(cartStorageKey)
+    if (stored) {
+      try {
+        const arr = JSON.parse(stored)
+        if (Array.isArray(arr)) setSelectedIds(arr)
+      } catch {
+        // ignore
+      }
+    }
+  }, [cartStorageKey])
+
+  // Cart-selectie naar localStorage schrijven bij elke wijziging
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (selectedIds.length === 0) {
+      window.localStorage.removeItem(cartStorageKey)
+    } else {
+      window.localStorage.setItem(cartStorageKey, JSON.stringify(selectedIds))
+    }
+  }, [cartStorageKey, selectedIds])
+
+  // Foto's, client, cover laden
   useEffect(() => {
     async function load() {
       const [photosRes, clientRes, coverRes] = await Promise.all([
@@ -64,13 +89,13 @@ export default function GalleryPage() {
     load()
   }, [clientId, router])
 
-  // Laad favorieten of likes zodra type + (event-)naam bekend zijn
+  // Favorieten of likes laden
   useEffect(() => {
     if (!client) return
 
     async function loadInteractions() {
       if (client?.type === 'event') {
-        if (!visitorName) return // wacht tot naam ingevuld is
+        if (!visitorName) return
         const url = `/api/clients/${clientId}/likes?name=${encodeURIComponent(visitorName)}`
         const res = await fetch(url)
         if (!res.ok) return
@@ -103,7 +128,6 @@ export default function GalleryPage() {
       if (!visitorName) return
       const wasMine = favorites.includes(photoId)
 
-      // Optimistic update
       setFavorites(prev =>
         wasMine ? prev.filter(id => id !== photoId) : [...prev, photoId]
       )
@@ -129,6 +153,16 @@ export default function GalleryPage() {
         body: JSON.stringify({ photoId }),
       })
     }
+  }
+
+  function toggleSelection(photoId: string) {
+    setSelectedIds(prev =>
+      prev.includes(photoId) ? prev.filter(id => id !== photoId) : [...prev, photoId]
+    )
+  }
+
+  function clearSelection() {
+    setSelectedIds([])
   }
 
   function handleNameSubmit(name: string) {
@@ -158,12 +192,10 @@ export default function GalleryPage() {
   return (
     <main className="min-h-screen" style={{ backgroundColor: '#e8ede9' }}>
 
-      {/* Naam-prompt voor events zonder opgeslagen naam */}
       {isEvent && !visitorName && (
         <NamePrompt eventName={client?.name} onSubmit={handleNameSubmit} />
       )}
 
-      {/* Header */}
       <header
         className="fixed top-0 left-0 right-0 z-40 px-6 py-3 flex items-center justify-between"
         style={{ backgroundColor: 'rgba(5,50,33,0.85)', backdropFilter: 'blur(8px)', borderBottom: '1px solid rgba(200,169,110,0.2)' }}
@@ -241,9 +273,7 @@ export default function GalleryPage() {
         </div>
       </div>
 
-      {/* Grid sectie */}
       <div ref={gridRef}>
-        {/* Subheader */}
         <div
           className="px-6 py-4 flex items-center justify-between sticky top-14 z-30"
           style={{ backgroundColor: '#053221', borderBottom: '1px solid rgba(200,169,110,0.2)' }}
@@ -254,16 +284,25 @@ export default function GalleryPage() {
             </p>
             <p className="text-xs mt-0.5" style={{ color: 'rgba(232,237,233,0.4)' }}>
               {photos.length} foto{photos.length !== 1 ? "'s" : ''}
+              {isEvent && (
+                <span style={{ color: 'rgba(200,169,110,0.6)' }}>
+                  {' · Tik op '}
+                  <strong>+</strong>
+                  {' om foto\'s te verzamelen voor je bestelling'}
+                </span>
+              )}
             </p>
           </div>
         </div>
 
-        {/* Foto grid */}
         <div
           style={{
             maxWidth: '80rem',
             margin: '0 auto',
-            padding: '1.5rem 0.75rem 24rem 0.75rem',
+            // Extra padding-bottom om sticky cart-balk niet over foto's heen te laten vallen
+            padding: isEvent && selectedIds.length > 0
+              ? '1.5rem 0.75rem 28rem 0.75rem'
+              : '1.5rem 0.75rem 24rem 0.75rem',
             opacity: gridVisible ? 1 : 0,
             transform: gridVisible ? 'translateY(0)' : 'translateY(24px)',
             transition: 'opacity 0.7s ease, transform 0.7s ease',
@@ -280,6 +319,8 @@ export default function GalleryPage() {
               onSelect={setSelectedPhoto}
               onToggleFavorite={toggleFavorite}
               likeCounts={isEvent ? likeCounts : undefined}
+              selectedIds={isEvent ? selectedIds : undefined}
+              onToggleSelection={isEvent ? toggleSelection : undefined}
             />
           )}
         </div>
@@ -296,6 +337,23 @@ export default function GalleryPage() {
           clientId={clientId}
           clientName={client?.name}
           likeCounts={isEvent ? likeCounts : undefined}
+          selectedIds={isEvent ? selectedIds : undefined}
+          onToggleSelection={isEvent ? toggleSelection : undefined}
+        />
+      )}
+
+      {/* Cart bar + checkout (alleen events) */}
+      {isEvent && (
+        <OrderCart
+          photos={photos}
+          selectedIds={selectedIds}
+          clientId={clientId}
+          clientName={client?.name}
+          onRemove={(photoId) => setSelectedIds(prev => prev.filter(id => id !== photoId))}
+          onClear={clearSelection}
+          onPlaced={() => {
+            // Optioneel iets doen na succesvolle bestelling
+          }}
         />
       )}
     </main>

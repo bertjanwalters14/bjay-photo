@@ -44,14 +44,24 @@ export type OrderStatus =
   | 'shipped'
   | 'cancelled'
 
+// Event-pakketten voor digitale downloads.
+// 'custom' = vrije selectie, prijs berekend uit aantal foto's met bundel-korting.
+// 'unlimited' = alle foto's voor €25.
+// 'single' / 'pack3' / 'pack5' bestaan voor backwards-compat met oude orders;
+// nieuwe orders gebruiken 'custom' of 'unlimited'.
+export type EventPackage = 'single' | 'pack3' | 'pack5' | 'unlimited' | 'custom'
+
 export interface Order {
   id: string
   clientCode: string
   clientName: string
   customerName: string
   customerEmail: string
+  // Voor personal print orders: photoUrl + format. Voor event digital orders: packageType + photoUrls.
   photoUrl: string
+  photoUrls?: string[]
   format: string
+  packageType?: EventPackage
   price: string
   status: OrderStatus
   notes: string

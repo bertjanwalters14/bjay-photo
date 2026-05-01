@@ -15,6 +15,10 @@ interface Props {
   // Event mode: optionele like-counts per foto. Wanneer gezet rendert het hart
   // als 'Vind ik leuk - N' i.p.v. 'Favoriet'.
   likeCounts?: Record<string, number>
+  // Event mode: cart-selectie. Wanneer gezet wordt 'Bestellen' een directe
+  // toggle naar cart i.p.v. het bestelpaneel.
+  selectedIds?: string[]
+  onToggleSelection?: (photoId: string) => void
 }
 
 export default function PhotoModal({
@@ -26,6 +30,8 @@ export default function PhotoModal({
   clientId,
   clientName,
   likeCounts,
+  selectedIds,
+  onToggleSelection,
 }: Props) {
   const [current, setCurrent] = useState(photo)
   const [feedback, setFeedback] = useState('')
@@ -43,7 +49,10 @@ export default function PhotoModal({
   const [orderError, setOrderError] = useState('')
   const imgElRef = useRef<HTMLImageElement | null>(null)
 
-  // Pre-fill customer naam vanuit localStorage (event-bezoeker), 1x bij mount
+  const eventMode = Boolean(onToggleSelection)
+  const inCart = selectedIds?.includes(current.publicId) ?? false
+
+  // Pre-fill customer naam vanuit localStorage 1x bij mount (alleen personal flow)
   useEffect(() => {
     if (typeof window === 'undefined') return
     const stored = window.localStorage.getItem(`bjay:visitor:${clientId}`)
@@ -87,6 +96,15 @@ export default function PhotoModal({
       : [...prev, current.publicId]
     )
     onToggleFavorite(current.publicId)
+  }
+
+  function handleOrderButtonClick() {
+    if (eventMode) {
+      onToggleSelection?.(current.publicId)
+    } else {
+      setShowOrder(!showOrder)
+      setShowShare(false)
+    }
   }
 
   async function handleDownload() {
@@ -176,11 +194,15 @@ export default function PhotoModal({
             <ShareIcon />
             <span className="hidden sm:inline">Delen</span>
           </button>
-          <button onClick={() => { setShowOrder(!showOrder); setShowShare(false) }}
+          <button onClick={handleOrderButtonClick}
             className="flex items-center gap-2 text-sm transition hover:opacity-70"
-            style={{ color: showOrder ? '#c8a96e' : 'rgba(232,237,233,0.6)' }}>
+            style={{ color: (showOrder || inCart) ? '#c8a96e' : 'rgba(232,237,233,0.6)' }}>
             <CartIcon />
-            <span className="hidden sm:inline">Bestellen</span>
+            <span className="hidden sm:inline">
+              {eventMode
+                ? (inCart ? 'In bestelling' : 'Bestellen')
+                : 'Bestellen'}
+            </span>
           </button>
           <button onClick={handleDownload} className="flex items-center gap-2 text-sm transition hover:opacity-70"
             style={{ color: 'rgba(232,237,233,0.6)' }}>
@@ -213,8 +235,8 @@ export default function PhotoModal({
         </div>
       )}
 
-      {/* Bestel panel */}
-      {showOrder && (
+      {/* Bestel panel - alleen voor personal (print) flow */}
+      {showOrder && !eventMode && (
         <div className="flex-shrink-0 px-6 py-4"
           style={{ backgroundColor: '#0d1f18', borderBottom: '1px solid rgba(200,169,110,0.15)' }}>
           {orderSent ? (
@@ -223,7 +245,6 @@ export default function PhotoModal({
             </p>
           ) : (
             <div className="flex flex-col gap-3">
-              {/* Customer info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <input
                   type="text"
@@ -245,7 +266,6 @@ export default function PhotoModal({
                 />
               </div>
 
-              {/* Format kiezer + bestel knop */}
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-xs tracking-widest uppercase" style={{ color: 'rgba(200,169,110,0.7)' }}>Formaat</span>
                 {PRINT_SIZES.map(s => (

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { nanoid } from 'nanoid'
 import redis from '@/lib/redis'
 import { getAdminSession } from '@/lib/auth'
+import { calculatePriceForCount, priceForUnlimited } from '@/lib/eventPackages'
 import type { Order } from '@/lib/types'
 
 const FROM_ADDRESS = 'Bjay.photo <info@bjay.photo>'
@@ -27,7 +28,7 @@ async function sendMail(to: string, subject: string, text: string) {
   }
 }
 
-// GET (admin) — alle bestellingen ophalen, nieuwste eerst
+// GET (admin)
 export async function GET() {
   const isAdmin = await getAdminSession()
   if (!isAdmin) {
@@ -43,39 +44,89 @@ export async function GET() {
   return NextResponse.json({ orders: orders.filter(Boolean) })
 }
 
-// POST — nieuwe bestelling vanuit galerij. Geen auth: visitor/klant plaatst order.
+// POST — nieuwe bestelling
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const photoUrl: string | undefined = body?.photoUrl
-    const format: string | undefined = body?.format
-    const price: string | undefined = body?.price
     const clientName: string = (body?.clientName || '').toString()
     const clientCode: string = (body?.clientCode || '').toString()
     const customerName: string = (body?.customerName || '').toString().trim().slice(0, 80)
     const customerEmail: string = (body?.customerEmail || '').toString().trim().slice(0, 120)
 
-    if (!photoUrl || !format || !price || !clientCode) {
-      return NextResponse.json({ error: 'Ontbrekende velden' }, { status: 400 })
+    if (!clientCode) {
+      return NextResponse.json({ error: 'Ontbrekende clientCode' }, { status: 400 })
     }
 
-    const now = new Date().toISOString()
-    const order: Order = {
-      id: nanoid(10),
-      clientCode,
-      clientName,
-      customerName,
-      customerEmail,
-      photoUrl,
-      format,
-      price,
-      status: 'new',
-      notes: '',
-      createdAt: now,
-      updatedAt: now,
+    const isEventOrder = body?.packageType === 'unlimited' || body?.packageType === 'custom'
+
+    let order: Order
+
+    if (isEventOrder) {
+      const isUnlimited = body.packageType === 'unlimited'
+      const photoUrls: string[] = Array.isArray(body?.photoUrls)
+        ? body.photoUrls.filter((u: unknown) => typeof u === 'string')
+        : []
+
+      if (!isUnlimited && photoUrls.length === 0) {
+        return NextResponse.json(
+          { error: 'Selecteer minstens 1 foto of kies onbeperkt' },
+          { status: 400 }
+        )
+      }
+
+      // Server-side prijsberekening (klant kan price niet manipuleren)
+      const breakdown = isUnlimited
+        ? priceForUnlimited()
+        : calculatePriceForCount(photoUrls.length)
+
+      const formatLabel = breakdown.isUnlimited
+        ? 'Onbeperkt'
+        : `${photoUrls.length} foto${photoUrls.length !== 1 ? "'s" : ''}`
+
+      const now = new Date().toISOString()
+      order = {
+        id: nanoid(10),
+        clientCode,
+        clientName,
+        customerName,
+        customerEmail,
+        photoUrl: photoUrls[0] || '',
+        photoUrls: breakdown.isUnlimited ? [] : photoUrls,
+        format: formatLabel,
+        packageType: breakdown.isUnlimited ? 'unlimited' : 'custom',
+        price: breakdown.priceLabel,
+        status: 'new',
+        notes: breakdown.parts.join(' + '),
+        createdAt: now,
+        updatedAt: now,
+      }
+    } else {
+      // Personal print order
+      const photoUrl: string = (body?.photoUrl || '').toString()
+      const format: string = (body?.format || '').toString()
+      const price: string = (body?.price || '').toString()
+
+      if (!photoUrl || !format || !price) {
+        return NextResponse.json({ error: 'Ontbrekende velden' }, { status: 400 })
+      }
+
+      const now = new Date().toISOString()
+      order = {
+        id: nanoid(10),
+        clientCode,
+        clientName,
+        customerName,
+        customerEmail,
+        photoUrl,
+        format,
+        price,
+        status: 'new',
+        notes: '',
+        createdAt: now,
+        updatedAt: now,
+      }
     }
 
-    // Persist eerst zodat een mailfout de bestelling niet kwijtmaakt
     try {
       await redis.set(`order:${order.id}`, order)
       await redis.lpush('orders:all', order.id)
@@ -84,30 +135,43 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Database fout' }, { status: 500 })
     }
 
-    // Mail aan fotograaf (admin notificatie)
+    // Mail naar fotograaf
     const customerLine = customerName || customerEmail
       ? `Klant: ${customerName || '(geen naam)'} <${customerEmail || 'geen mail'}>`
       : 'Klant: (geen contactgegevens opgegeven)'
 
+    const photoSummary = isEventOrder
+      ? order.packageType === 'unlimited'
+        ? 'Alle foto\'s (onbeperkt pakket)'
+        : `${order.photoUrls?.length || 0} geselecteerde foto's:\n${(order.photoUrls || []).join('\n')}`
+      : `Foto URL: ${order.photoUrl}`
+
     await sendMail(
       PHOTOGRAPHER_TO,
-      `Nieuwe fotobestelling van ${customerName || clientName}`,
+      `Nieuwe ${isEventOrder ? 'digitale' : 'print'}-bestelling van ${customerName || clientName}`,
       [
         'Nieuwe bestelling ontvangen!',
         '',
         `Portaal: ${clientName} (code: ${clientCode})`,
         customerLine,
-        `Formaat: ${format}`,
-        `Prijs: ${price}`,
+        `Pakket/formaat: ${order.format}`,
+        `Prijs: ${order.price}`,
+        order.notes ? `Opbouw: ${order.notes}` : '',
         '',
-        `Foto URL: ${photoUrl}`,
+        photoSummary,
         '',
         `Order ID: ${order.id}`,
-      ].join('\n')
+      ].filter(Boolean).join('\n')
     )
 
-    // Mail aan klant (bevestiging)
+    // Bevestiging naar klant
     if (customerEmail) {
+      const klantSummary = isEventOrder
+        ? order.packageType === 'unlimited'
+          ? 'Pakket: Onbeperkt - alle foto\'s van het evenement'
+          : `Selectie: ${order.format}`
+        : `Formaat: ${order.format}`
+
       await sendMail(
         customerEmail,
         'Bevestiging van je fotobestelling - Bjay.photo',
@@ -117,12 +181,14 @@ export async function POST(req: NextRequest) {
           'Bedankt voor je bestelling bij Bjay.photo!',
           '',
           'Wat je hebt besteld:',
-          `  Formaat: ${format}`,
-          `  Prijs:   ${price}`,
+          `  ${klantSummary}`,
+          `  Prijs: ${order.price}`,
           '',
           'Hoe het verder gaat:',
           '  1. Ik stuur je binnenkort persoonlijk een betaalverzoek (Tikkie of iDEAL link).',
-          '  2. Zodra de betaling binnen is, ontvang je de foto zonder watermerk per mail.',
+          isEventOrder
+            ? '  2. Zodra de betaling binnen is, ontvang je de foto(s) zonder watermerk per mail.'
+            : '  2. Zodra de betaling binnen is, regel ik de print en stuur ik je een update.',
           '',
           'Mocht je vragen hebben, beantwoord deze mail dan gewoon.',
           '',
