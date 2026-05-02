@@ -166,6 +166,31 @@ export default function GalleryPage() {
     setSelectedIds([])
   }
 
+  // History API: push state bij modal open zodat browser-back de modal sluit
+  function openPhoto(photo: Photo) {
+    setSelectedPhoto(photo)
+    if (typeof window !== 'undefined') {
+      window.history.pushState({ modal: 'photo' }, '', window.location.href)
+    }
+  }
+
+  function closePhoto() {
+    if (typeof window !== 'undefined' && window.history.state?.modal === 'photo') {
+      // back() triggert popstate die setSelectedPhoto(null) doet
+      window.history.back()
+    } else {
+      setSelectedPhoto(null)
+    }
+  }
+
+  useEffect(() => {
+    function onPopState() {
+      setSelectedPhoto(null)
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
+
   function handleNameSubmit(name: string) {
     if (typeof window !== 'undefined') {
       window.localStorage.setItem(visitorStorageKey, name)
@@ -289,99 +314,95 @@ export default function GalleryPage() {
           </div>
         </div>
 
-        {/* Bestel-uitleg banner (alleen events) */}
-        {isEvent && photos.length > 0 && (
-          <div
-            className="mx-auto mt-6 px-4"
-            style={{ maxWidth: '60rem' }}
-          >
-            <div
-              className="rounded-lg p-4 sm:p-5"
-              style={{
-                backgroundColor: '#fff',
-                border: '1px solid rgba(200,169,110,0.4)',
-                boxShadow: '0 1px 3px rgba(5,50,33,0.06)',
-              }}
-            >
-              <h3
-                className="text-sm font-medium tracking-widest uppercase mb-3"
-                style={{ color: '#053221' }}
-              >
-                Zo bestel je foto's
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
-                {[
-                  { n: '1', t: 'Selecteer', d: 'Tik op de + knop bij elke foto die je wilt' },
-                  { n: '2', t: 'Checkout', d: 'Klik onderin op de groene knop of kies onbeperkt' },
-                  { n: '3', t: 'Per mail', d: 'Na betaling ontvang je de foto(s) zonder watermerk per mail' },
-                ].map(step => (
-                  <div key={step.n} className="flex gap-3 items-start">
-                    <div
-                      className="flex-shrink-0 flex items-center justify-center text-sm font-bold"
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: '50%',
-                        backgroundColor: '#053221',
-                        color: '#c8a96e',
-                      }}
-                    >
-                      {step.n}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium" style={{ color: '#053221' }}>
-                        {step.t}
-                      </p>
-                      <p className="text-xs mt-0.5" style={{ color: '#4a6358' }}>
-                        {step.d}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
+        <div className="mx-auto px-4" style={{ maxWidth: '80rem' }}>
+          {/* Bestel-uitleg banner (alleen events) */}
+          {isEvent && photos.length > 0 && (
+            <div className="mt-6">
               <div
-                className="rounded p-3 text-xs"
-                style={{ backgroundColor: 'rgba(200,169,110,0.1)', color: '#053221' }}
+                className="rounded-lg p-4 sm:p-5"
+                style={{
+                  backgroundColor: '#fff',
+                  border: '1px solid rgba(200,169,110,0.4)',
+                  boxShadow: '0 1px 3px rgba(5,50,33,0.06)',
+                }}
               >
-                <strong>Tarieven (digitale download):</strong>{' '}
-                <span style={{ color: '#4a6358' }}>
-                  1 foto €5 · 3 foto's €12 · 5 foto's €18 · onbeperkt €25
-                </span>
+                <h3
+                  className="text-sm font-medium tracking-widest uppercase mb-3"
+                  style={{ color: '#053221' }}
+                >
+                  Zo bestel je foto's
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
+                  {[
+                    { n: '1', t: 'Selecteer', d: 'Tik op de + knop bij elke foto die je wilt' },
+                    { n: '2', t: 'Checkout', d: 'Klik onderin op de groene knop of kies onbeperkt' },
+                    { n: '3', t: 'Per mail', d: 'Na betaling ontvang je de foto(s) zonder watermerk per mail' },
+                  ].map(step => (
+                    <div key={step.n} className="flex gap-3 items-start">
+                      <div
+                        className="flex-shrink-0 flex items-center justify-center text-sm font-bold"
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: '50%',
+                          backgroundColor: '#053221',
+                          color: '#c8a96e',
+                        }}
+                      >
+                        {step.n}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium" style={{ color: '#053221' }}>
+                          {step.t}
+                        </p>
+                        <p className="text-xs mt-0.5" style={{ color: '#4a6358' }}>
+                          {step.d}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div
+                  className="rounded p-3 text-xs"
+                  style={{ backgroundColor: 'rgba(200,169,110,0.1)', color: '#053221' }}
+                >
+                  <strong>Tarieven (digitale download):</strong>{' '}
+                  <span style={{ color: '#4a6358' }}>
+                    1 foto €5 · 3 foto's €12 · 5 foto's €18 · onbeperkt €25
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-
-        <div
-          style={{
-            maxWidth: '80rem',
-            margin: '0 auto',
-            // Extra padding-bottom om sticky cart-balk niet over foto's heen te laten vallen
-            padding: isEvent
-              ? '1.5rem 0.75rem 28rem 0.75rem'
-              : '1.5rem 0.75rem 24rem 0.75rem',
-            opacity: gridVisible ? 1 : 0,
-            transform: gridVisible ? 'translateY(0)' : 'translateY(24px)',
-            transition: 'opacity 0.7s ease, transform 0.7s ease',
-          }}
-        >
-          {photos.length === 0 ? (
-            <div className="flex items-center justify-center h-64">
-              <p style={{ color: '#4a6358' }}>Er zijn nog geen foto's beschikbaar.</p>
-            </div>
-          ) : (
-            <PhotoGrid
-              photos={photos}
-              favorites={favorites}
-              onSelect={setSelectedPhoto}
-              onToggleFavorite={toggleFavorite}
-              likeCounts={isEvent ? likeCounts : undefined}
-              selectedIds={isEvent ? selectedIds : undefined}
-              onToggleSelection={isEvent ? toggleSelection : undefined}
-            />
           )}
+
+          <div
+            style={{
+              // Extra padding-bottom om sticky cart-balk niet over foto's heen te laten vallen
+              paddingTop: '1.5rem',
+              paddingBottom: isEvent ? '28rem' : '24rem',
+              opacity: gridVisible ? 1 : 0,
+              transform: gridVisible ? 'translateY(0)' : 'translateY(24px)',
+              transition: 'opacity 0.7s ease, transform 0.7s ease',
+            }}
+          >
+            {photos.length === 0 ? (
+              <div className="flex items-center justify-center h-64">
+                <p style={{ color: '#4a6358' }}>Er zijn nog geen foto's beschikbaar.</p>
+              </div>
+            ) : (
+              <PhotoGrid
+                photos={photos}
+                favorites={favorites}
+                onSelect={openPhoto}
+                onToggleFavorite={toggleFavorite}
+                likeCounts={isEvent ? likeCounts : undefined}
+                selectedIds={isEvent ? selectedIds : undefined}
+                onToggleSelection={isEvent ? toggleSelection : undefined}
+              />
+            )}
+          </div>
         </div>
       </div>
 
@@ -391,7 +412,7 @@ export default function GalleryPage() {
           photo={selectedPhoto}
           photos={photos}
           isFavorite={favorites.includes(selectedPhoto.publicId)}
-          onClose={() => setSelectedPhoto(null)}
+          onClose={closePhoto}
           onToggleFavorite={toggleFavorite}
           clientId={clientId}
           clientName={client?.name}
