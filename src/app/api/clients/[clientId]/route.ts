@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import redis from '@/lib/redis'
-import { getAdminSession } from '@/lib/auth'
-import { Client } from '@/lib/types'
+import { canActAsClient } from '@/lib/auth'
+import type { Client, PortalType } from '@/lib/types'
 
+// GET — client info ophalen.
+// Toegankelijk voor: admin, ingelogde klant met dezelfde code, of preview-token.
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ clientId: string }> }
 ) {
   const { clientId } = await params
-  const isAdmin = await getAdminSession()
 
-  if (!isAdmin) {
+  const allowed = await canActAsClient(clientId, req)
+  if (!allowed) {
     return NextResponse.json({ error: 'Niet toegestaan' }, { status: 401 })
   }
 
@@ -20,5 +22,8 @@ export async function GET(
     return NextResponse.json({ error: 'Klant niet gevonden' }, { status: 404 })
   }
 
-  return NextResponse.json({ client })
+  // Backwards-compat: oude records zonder type krijgen 'personal'
+  const normalized: Client = { ...client, type: client.type ?? ('personal' as PortalType) }
+
+  return NextResponse.json({ client: normalized })
 }
