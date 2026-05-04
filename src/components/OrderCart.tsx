@@ -295,7 +295,7 @@ export default function OrderCart({
                 </button>
 
                 <p className="text-xs mt-4" style={{ color: 'rgba(74,99,88,0.7)' }}>
-                  Je ontvangt direct een bevestigingsmail. Daarna stuur ik je een betaalverzoek; zodra dat is voldaan ontvang je de foto('s) zonder watermerk per mail.
+                  Je ontvangt direct een bevestigingsmail. Daarna stuur ik je een betaalverzoek; zodra dat is voldaan ontvang je de foto('s) in hoge resolutie zonder watermerk per mail.
                 </p>
               </>
             )}

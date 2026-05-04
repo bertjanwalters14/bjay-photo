@@ -205,7 +205,7 @@ export async function POST(req: NextRequest) {
           'Hoe het verder gaat:',
           '  1. Ik stuur je binnenkort persoonlijk een betaalverzoek (Tikkie of iDEAL link).',
           isEventOrder
-            ? '  2. Zodra de betaling binnen is, ontvang je de foto(s) zonder watermerk per mail.'
+            ? '  2. Zodra de betaling binnen is, ontvang je de foto(s) in hoge resolutie zonder watermerk per mail.'
             : '  2. Zodra de betaling binnen is, regel ik de print en stuur ik je een update.',
           '',
           'Mocht je vragen hebben, beantwoord deze mail dan gewoon.',

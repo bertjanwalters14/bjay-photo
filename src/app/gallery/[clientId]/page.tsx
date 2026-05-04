@@ -337,7 +337,7 @@ export default function GalleryPage() {
                   {[
                     { n: '1', t: 'Selecteer', d: 'Tik op de + knop bij elke foto die je wilt' },
                     { n: '2', t: 'Checkout', d: 'Klik onderin op de groene checkout-knop' },
-                    { n: '3', t: 'Per mail', d: 'Na betaling ontvang je de foto(s) zonder watermerk per mail' },
+                    { n: '3', t: 'Per mail', d: 'Na betaling ontvang je de foto(s) in hoge resolutie zonder watermerk per mail' },
                   ].map(step => (
                     <div key={step.n} className="flex gap-3 items-start">
                       <div
