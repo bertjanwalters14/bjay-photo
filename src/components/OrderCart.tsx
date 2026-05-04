@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Photo } from '@/lib/types'
-import { calculatePriceForCount, priceForUnlimited, PRICE_CATALOG } from '@/lib/eventPackages'
+import { calculatePriceForCount, PRICE_CATALOG } from '@/lib/eventPackages'
 import { apiUrl } from '@/lib/apiUrl'
 
 interface Props {
@@ -15,8 +15,6 @@ interface Props {
   onPlaced: () => void
 }
 
-type CheckoutMode = 'custom' | 'unlimited'
-
 export default function OrderCart({
   photos,
   selectedIds,
@@ -27,7 +25,6 @@ export default function OrderCart({
   onPlaced,
 }: Props) {
   const [showCheckout, setShowCheckout] = useState(false)
-  const [mode, setMode] = useState<CheckoutMode>('custom')
   const [customerName, setCustomerName] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
   const [placing, setPlacing] = useState(false)
@@ -48,32 +45,28 @@ export default function OrderCart({
     [photos, selectedIds]
   )
 
-  const customBreakdown = useMemo(
+  const breakdown = useMemo(
     () => calculatePriceForCount(selectedIds.length),
     [selectedIds.length]
   )
 
-  const unlimitedBreakdown = useMemo(() => priceForUnlimited(), [])
-
-  const activeBreakdown = mode === 'unlimited' ? unlimitedBreakdown : customBreakdown
-
-  // Sluit checkout wanneer cart leeg wordt en niet in unlimited mode
+  // Sluit checkout wanneer cart leeg wordt
   useEffect(() => {
-    if (mode !== 'unlimited' && selectedIds.length === 0) setShowCheckout(false)
-  }, [selectedIds.length, mode])
+    if (selectedIds.length === 0) setShowCheckout(false)
+  }, [selectedIds.length])
 
   async function placeOrder() {
     setError('')
+    if (selectedIds.length === 0) {
+      setError('Selecteer minstens 1 foto')
+      return
+    }
     if (!customerName.trim()) {
       setError('Vul je naam in')
       return
     }
     if (!customerEmail.trim() || !/^\S+@\S+\.\S+$/.test(customerEmail)) {
       setError('Vul een geldig e-mailadres in')
-      return
-    }
-    if (mode === 'custom' && selectedIds.length === 0) {
-      setError('Selecteer minstens 1 foto')
       return
     }
 
@@ -86,8 +79,8 @@ export default function OrderCart({
         clientName: clientName || clientId,
         customerName: customerName.trim(),
         customerEmail: customerEmail.trim(),
-        packageType: mode,
-        photoUrls: mode === 'unlimited' ? [] : selectedPhotos.map(p => p.url),
+        packageType: 'custom',
+        photoUrls: selectedPhotos.map(p => p.url),
       }),
     })
     setPlacing(false)
@@ -96,7 +89,6 @@ export default function OrderCart({
       setTimeout(() => {
         setShowCheckout(false)
         setOrderSent(false)
-        setMode('custom')
         onClear()
         onPlaced()
       }, 2500)
@@ -104,6 +96,10 @@ export default function OrderCart({
       const data = await res.json().catch(() => ({}))
       setError(data?.error || 'Bestelling kon niet verstuurd worden, probeer opnieuw.')
     }
+  }
+
+  if (selectedIds.length === 0 && !showCheckout) {
+    return null
   }
 
   return (
@@ -121,11 +117,13 @@ export default function OrderCart({
           <div className="max-w-4xl mx-auto flex flex-wrap items-center gap-3">
             <div className="flex flex-col">
               <span className="text-sm" style={{ color: '#c8a96e' }}>
-                {selectedIds.length} foto{selectedIds.length !== 1 ? "'s" : ''} - {customBreakdown.priceLabel}
+                {selectedIds.length === 0
+                  ? "Selecteer foto's voor een digitale download"
+                  : `${selectedIds.length} foto${selectedIds.length !== 1 ? "'s" : ''} - ${breakdown.priceLabel}`}
               </span>
-              {customBreakdown.tip && (
+              {breakdown.tip && (
                 <span className="text-[11px]" style={{ color: 'rgba(200,169,110,0.7)' }}>
-                  {customBreakdown.tip}
+                  {breakdown.tip}
                 </span>
               )}
             </div>
@@ -140,27 +138,14 @@ export default function OrderCart({
             )}
             <div className="flex-1" />
             <button
-              onClick={() => {
-                setMode('unlimited')
-                setShowCheckout(true)
-              }}
-              className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase"
-              style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#c8a96e' }}
-            >
-              Onbeperkt - {unlimitedBreakdown.priceLabel}
-            </button>
-            <button
-              onClick={() => {
-                setMode('custom')
-                setShowCheckout(true)
-              }}
+              onClick={() => setShowCheckout(true)}
               disabled={selectedIds.length === 0}
               className="px-4 py-2 text-xs font-medium tracking-widest uppercase transition disabled:opacity-30 disabled:cursor-not-allowed"
               style={{ backgroundColor: '#c8a96e', color: '#053221' }}
             >
               {selectedIds.length === 0
-                ? 'Selecteer foto\'s'
-                : `Naar checkout - ${customBreakdown.priceLabel}`}
+                ? "Selecteer foto's"
+                : `Naar checkout - ${breakdown.priceLabel}`}
             </button>
           </div>
         </div>
@@ -200,54 +185,25 @@ export default function OrderCart({
                   </button>
                 </div>
 
-                {/* Mode toggle */}
-                <div className="grid grid-cols-2 gap-2 mb-5">
-                  <button
-                    type="button"
-                    onClick={() => setMode('custom')}
-                    disabled={selectedIds.length === 0}
-                    className="py-2 text-xs tracking-widest uppercase transition disabled:opacity-30"
-                    style={{
-                      backgroundColor: mode === 'custom' ? '#053221' : '#fff',
-                      color: mode === 'custom' ? '#c8a96e' : '#053221',
-                      border: '1px solid rgba(200,169,110,0.4)',
-                    }}
-                  >
-                    Mijn selectie ({selectedIds.length}) - {customBreakdown.priceLabel}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMode('unlimited')}
-                    className="py-2 text-xs tracking-widest uppercase transition"
-                    style={{
-                      backgroundColor: mode === 'unlimited' ? '#053221' : '#fff',
-                      color: mode === 'unlimited' ? '#c8a96e' : '#053221',
-                      border: '1px solid rgba(200,169,110,0.4)',
-                    }}
-                  >
-                    Onbeperkt - {unlimitedBreakdown.priceLabel}
-                  </button>
-                </div>
-
                 {/* Samenvatting */}
                 <div className="mb-5 rounded p-3" style={{ backgroundColor: 'rgba(200,169,110,0.08)' }}>
                   <p className="text-sm font-medium" style={{ color: '#053221' }}>
-                    Totaal: {activeBreakdown.priceLabel}
+                    {selectedIds.length} foto{selectedIds.length !== 1 ? "'s" : ''} - {breakdown.priceLabel}
                   </p>
-                  {activeBreakdown.parts.length > 0 && (
+                  {breakdown.parts.length > 0 && (
                     <p className="text-xs mt-1" style={{ color: '#4a6358' }}>
-                      {activeBreakdown.parts.join(' + ')}
+                      {breakdown.parts.join(' + ')}
                     </p>
                   )}
-                  {customBreakdown.tip && mode === 'custom' && (
+                  {breakdown.tip && (
                     <p className="text-xs mt-2" style={{ color: '#c8a96e' }}>
-                      {customBreakdown.tip}
+                      {breakdown.tip}
                     </p>
                   )}
                 </div>
 
-                {/* Selectie thumbnails (alleen custom) */}
-                {mode === 'custom' && selectedPhotos.length > 0 && (
+                {/* Selectie thumbnails */}
+                {selectedPhotos.length > 0 && (
                   <div className="mb-5">
                     <label
                       className="block text-xs tracking-widest uppercase mb-2"
@@ -278,7 +234,7 @@ export default function OrderCart({
                   </div>
                 )}
 
-                {/* Tarieven (uitklapbaar info) */}
+                {/* Tarieven info */}
                 <details className="mb-5">
                   <summary className="text-xs cursor-pointer" style={{ color: '#4a6358' }}>
                     Hoe werkt de prijs?
@@ -335,7 +291,7 @@ export default function OrderCart({
                   className="w-full py-3 text-xs font-medium tracking-widest uppercase transition disabled:opacity-40"
                   style={{ backgroundColor: '#053221', color: '#c8a96e' }}
                 >
-                  {placing ? 'Versturen...' : `Plaats bestelling - ${activeBreakdown.priceLabel}`}
+                  {placing ? 'Versturen...' : `Plaats bestelling - ${breakdown.priceLabel}`}
                 </button>
 
                 <p className="text-xs mt-4" style={{ color: 'rgba(74,99,88,0.7)' }}>

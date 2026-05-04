@@ -336,7 +336,7 @@ export default function GalleryPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
                   {[
                     { n: '1', t: 'Selecteer', d: 'Tik op de + knop bij elke foto die je wilt' },
-                    { n: '2', t: 'Checkout', d: 'Klik onderin op de groene knop of kies onbeperkt' },
+                    { n: '2', t: 'Checkout', d: 'Klik onderin op de groene checkout-knop' },
                     { n: '3', t: 'Per mail', d: 'Na betaling ontvang je de foto(s) zonder watermerk per mail' },
                   ].map(step => (
                     <div key={step.n} className="flex gap-3 items-start">
@@ -370,7 +370,7 @@ export default function GalleryPage() {
                 >
                   <strong>Tarieven (digitale download):</strong>{' '}
                   <span style={{ color: '#4a6358' }}>
-                    1 foto €5 · 3 foto's €12 · 5 foto's €18 · onbeperkt €25
+                    1 foto €5 · 3 foto's €12 · 5 foto's €18
                   </span>
                 </div>
               </div>

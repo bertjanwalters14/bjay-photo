@@ -49,17 +49,6 @@ export function calculatePriceForCount(n: number): PriceBreakdown {
     parts.push(`${remaining}x losse foto`)
   }
 
-  // Vergelijk met onbeperkt
-  if (cents >= UNLIMITED_CENTS) {
-    return {
-      priceCents: UNLIMITED_CENTS,
-      priceLabel: formatEuro(UNLIMITED_CENTS),
-      isUnlimited: true,
-      parts: ['Onbeperkt pakket - alle foto\'s'],
-      tip: `Onbeperkt is goedkoper dan losse selectie van ${n} foto's`,
-    }
-  }
-
   // Upsell-tip: extra foto er bij voor (bijna) gratis?
   let tip: string | undefined
   if (n === 2) tip = 'Tip: voeg 1 foto toe voor pakket 3 - €12 (i.p.v. €10 + €2 = €12, dus extra foto gratis!)'
@@ -104,5 +93,4 @@ export const PRICE_CATALOG = [
   { label: '1 foto', price: formatEuro(SINGLE_CENTS) },
   { label: '3 foto\'s (pakket)', price: formatEuro(PACK3_CENTS) },
   { label: '5 foto\'s (pakket)', price: formatEuro(PACK5_CENTS) },
-  { label: 'Onbeperkt', price: formatEuro(UNLIMITED_CENTS) },
 ]
