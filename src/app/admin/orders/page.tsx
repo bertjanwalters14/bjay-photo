@@ -80,6 +80,37 @@ export default function AdminOrdersPage() {
     setUpdating(prev => ({ ...prev, [orderId]: false }))
   }
 
+  // Download alle hi-res foto's van een bestelling. Werkt voor single (photoUrl)
+  // en multi-foto orders (photoUrls).
+  async function downloadOrderPhotos(order: Order) {
+    const urls = (order.photoUrls && order.photoUrls.length > 0)
+      ? order.photoUrls
+      : (order.photoUrl ? [order.photoUrl] : [])
+    if (urls.length === 0) return
+
+    for (let i = 0; i < urls.length; i++) {
+      const url = urls[i]
+      try {
+        const res = await fetch(url)
+        const blob = await res.blob()
+        const objectUrl = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = objectUrl
+        // Filename: order-{id}-{n}.jpg met fallback naar laatste url segment
+        const segment = url.split('/').pop()?.split('?')[0] || `foto-${i + 1}.jpg`
+        a.download = `bjay-${order.id}-${segment}`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(objectUrl)
+        // Korte pauze tussen downloads om browser-blocking te voorkomen
+        if (i < urls.length - 1) await new Promise(r => setTimeout(r, 300))
+      } catch (err) {
+        console.error('Download mislukt voor', url, err)
+      }
+    }
+  }
+
   return (
     <main className="min-h-screen" style={{ backgroundColor: '#e8ede9' }}>
       <header className="px-6 py-4 flex items-center justify-between" style={{ backgroundColor: '#053221' }}>
@@ -283,6 +314,18 @@ export default function AdminOrdersPage() {
                         </option>
                       ))}
                     </select>
+                    <button
+                      onClick={() => downloadOrderPhotos(order)}
+                      className="text-xs px-2 py-1 transition hover:opacity-80"
+                      style={{
+                        backgroundColor: '#053221',
+                        color: '#c8a96e',
+                        border: '1px solid #053221',
+                      }}
+                      title="Download hi-res foto's om naar de klant te mailen"
+                    >
+                      Download hi-res
+                    </button>
                   </div>
                 </div>
               )

@@ -201,6 +201,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, orderId: order.id })
   } catch (err) {
     console.error('Orders route error:', err)
-    return NextResponse.json({ error: 'Server fout', detail: String(err) }, { status: 500 })
+    return NextResponse.json({ error: 'Server fout' }, { status: 500 })
   }
 }
