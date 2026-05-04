@@ -1,7 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import cloudinary from '@/lib/cloudinary'
-import { getClientSession, getAdminSession } from '@/lib/auth'
+import { getAdminSession, getClientOrPreviewSession } from '@/lib/auth'
 import { Photo } from '@/lib/types'
+
+const WATERMARK_PUBLIC_ID = 'watermerk_vir9aa'
+
+// Cloudinary URL met watermerk-overlay onderaan gecentreerd
+function watermarkedUrl(publicId: string, width: number, yOffset: number) {
+  return cloudinary.url(publicId, {
+    secure: true,
+    transformation: [
+      { width, crop: 'limit', quality: 'auto', fetch_format: 'auto' },
+      {
+        overlay: WATERMARK_PUBLIC_ID,
+        width: 0.3,
+        flags: 'relative',
+        gravity: 'south',
+        y: yOffset,
+      },
+    ],
+  })
+}
 
 export async function GET(
   req: NextRequest,
@@ -9,11 +28,19 @@ export async function GET(
 ) {
   const { clientId } = await params
 
-  const clientCode = await getClientSession()
   const isAdmin = await getAdminSession()
+  const clientCode = await getClientOrPreviewSession(req)
 
   if (!isAdmin && clientCode !== clientId) {
     return NextResponse.json({ error: 'Niet toegestaan' }, { status: 401 })
+  }
+
+  type CloudinaryResource = {
+    public_id: string
+    secure_url: string
+    width: number
+    height: number
+    created_at: string
   }
 
   const result = await cloudinary.search
@@ -23,15 +50,14 @@ export async function GET(
     .max_results(100)
     .execute()
 
-  const photos: Photo[] = result.resources.map((r: any) => ({
+  const photos: Photo[] = (result.resources as CloudinaryResource[]).map(r => ({
     publicId: r.public_id,
-    url: r.secure_url,
-    thumbnail: cloudinary.url(r.public_id, {
-      width: 400,
-      crop: 'scale',
-      quality: 'auto',
-      fetch_format: 'auto',
-    }),
+    // Gallery preview (modal-grootte): 1200px breed met watermerk
+    url: watermarkedUrl(r.public_id, 1200, 50),
+    // Grid thumbnail: 600px breed met watermerk (kleinere y-offset)
+    thumbnail: watermarkedUrl(r.public_id, 600, 25),
+    // Schoon origineel voor orders en admin downloads
+    originalUrl: r.secure_url,
     width: r.width,
     height: r.height,
     createdAt: r.created_at,

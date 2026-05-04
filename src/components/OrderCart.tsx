@@ -80,7 +80,7 @@ export default function OrderCart({
         customerName: customerName.trim(),
         customerEmail: customerEmail.trim(),
         packageType: 'custom',
-        photoUrls: selectedPhotos.map(p => p.url),
+        photoUrls: selectedPhotos.map(p => p.originalUrl),
       }),
     })
     setPlacing(false)
