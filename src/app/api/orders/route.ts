@@ -3,7 +3,13 @@ import { nanoid } from 'nanoid'
 import redis from '@/lib/redis'
 import { getAdminSession } from '@/lib/auth'
 import { calculatePriceForCount, priceForUnlimited } from '@/lib/eventPackages'
+import cloudinary from '@/lib/cloudinary'
 import type { Order } from '@/lib/types'
+
+// Bouw schone Cloudinary delivery URL uit publicId (geen transformaties)
+function cleanCloudinaryUrl(publicId: string): string {
+  return cloudinary.url(publicId, { secure: true })
+}
 
 const FROM_ADDRESS = 'Bjay.photo <info@bjay.photo>'
 const PHOTOGRAPHER_TO = 'bertjanwalters@gmail.com'
@@ -63,9 +69,18 @@ export async function POST(req: NextRequest) {
 
     if (isEventOrder) {
       const isUnlimited = body.packageType === 'unlimited'
-      const photoUrls: string[] = Array.isArray(body?.photoUrls)
-        ? body.photoUrls.filter((u: unknown) => typeof u === 'string')
-        : []
+      // Accepteer photoIds (nieuw) of photoUrls (legacy backwards-compat)
+      const photoIdsRaw: unknown = body?.photoIds
+      const photoUrlsLegacy: unknown = body?.photoUrls
+      let photoUrls: string[] = []
+      if (Array.isArray(photoIdsRaw)) {
+        photoUrls = photoIdsRaw
+          .filter((id: unknown): id is string => typeof id === 'string')
+          .map((id: string) => cleanCloudinaryUrl(id))
+      } else if (Array.isArray(photoUrlsLegacy)) {
+        // Legacy support: oude clients sturen direct photoUrls
+        photoUrls = photoUrlsLegacy.filter((u: unknown): u is string => typeof u === 'string')
+      }
 
       if (!isUnlimited && photoUrls.length === 0) {
         return NextResponse.json(
@@ -101,8 +116,11 @@ export async function POST(req: NextRequest) {
         updatedAt: now,
       }
     } else {
-      // Personal print order
-      const photoUrl: string = (body?.photoUrl || '').toString()
+      // Personal print order - accepteer photoId of photoUrl (legacy)
+      const photoIdInput: string = (body?.photoId || '').toString()
+      const photoUrl: string = photoIdInput
+        ? cleanCloudinaryUrl(photoIdInput)
+        : (body?.photoUrl || '').toString()
       const format: string = (body?.format || '').toString()
       const price: string = (body?.price || '').toString()
 

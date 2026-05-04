@@ -13,7 +13,6 @@ export interface Photo {
   publicId: string
   url: string
   thumbnail: string
-  originalUrl: string
   width: number
   height: number
   createdAt: string

@@ -56,8 +56,6 @@ export async function GET(
     url: watermarkedUrl(r.public_id, 1200, 50),
     // Grid thumbnail: 600px breed met watermerk (kleinere y-offset)
     thumbnail: watermarkedUrl(r.public_id, 600, 25),
-    // Schoon origineel voor orders en admin downloads
-    originalUrl: r.secure_url,
     width: r.width,
     height: r.height,
     createdAt: r.created_at,

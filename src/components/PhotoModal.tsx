@@ -109,7 +109,7 @@ export default function PhotoModal({
   }
 
   async function handleDownload() {
-    const res = await fetch(current.originalUrl)
+    const res = await fetch(current.url)
     const blob = await res.blob()
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -147,7 +147,7 @@ export default function PhotoModal({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        photoUrl: current.originalUrl,
+        photoId: current.publicId,
         format: selectedFormat.format,
         price: selectedFormat.price,
         clientName: clientName || clientId,
