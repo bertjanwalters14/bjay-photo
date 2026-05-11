@@ -1,5 +1,18 @@
 export type PortalType = 'personal' | 'event'
 
+// Configuratie voor de event-popup op bjay.photo.
+// Wanneer active=true wordt de popup getoond aan bezoekers van de website.
+export interface ActiveEvent {
+  active: boolean
+  label: string
+  name: string
+  description: string
+  password: string       // leeg als er geen wachtwoord getoond hoeft te worden
+  loginUrl: string
+  dismissKey: string     // unieke key per event (bezoeker die wegklikt onthoudt dit)
+  updatedAt: string
+}
+
 export interface Client {
   id: string
   name: string
