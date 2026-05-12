@@ -87,6 +87,16 @@ export default function LoginPage() {
             {loading ? 'Laden...' : "Bekijk mijn foto's"}
           </button>
         </form>
+
+        <div className="mt-6 text-center">
+          <a
+            href="https://bjay.photo/event-toegang.html"
+            className="text-xs tracking-widest uppercase transition hover:opacity-80"
+            style={{ color: '#c8a96e', opacity: 0.75, borderBottom: '1px solid rgba(200,169,110,0.4)', paddingBottom: '2px' }}
+          >
+            Wachtwoord aanvragen voor een event &rarr;
+          </a>
+        </div>
       </div>
     </main>
   )

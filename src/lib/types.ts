@@ -1,16 +1,36 @@
 export type PortalType = 'personal' | 'event'
 
-// Configuratie voor de event-popup op bjay.photo.
-// Wanneer active=true wordt de popup getoond aan bezoekers van de website.
-export interface ActiveEvent {
-  active: boolean
-  label: string
-  name: string
+// Evenement in de events-collectie. Een event kan tegelijk meerdere rollen
+// hebben: getoond als popup op bjay.photo (popupActive), aanvraagbaar voor
+// laatkomers die nog geen wachtwoord hebben (requestable), of geen van beide
+// (archief).
+export interface Event {
+  slug: string             // URL-vriendelijk en redis key suffix
+  name: string             // bv. "GLTB Open 2025"
+  label: string            // gouden labeltje bovenaan popup ("Live nu" etc.)
   description: string
-  password: string       // leeg als er geen wachtwoord getoond hoeft te worden
+  password: string         // leeg als er geen wachtwoord getoond hoeft te worden
   loginUrl: string
-  dismissKey: string     // unieke key per event (bezoeker die wegklikt onthoudt dit)
+  dismissKey: string       // localStorage key, uniek per event
+  popupActive: boolean     // true = wordt als popup getoond op bjay.photo
+  requestable: boolean     // true = mensen kunnen wachtwoord aanvragen
+  createdAt: string
   updatedAt: string
+}
+
+// Wachtwoord-aanvraag van een bezoeker die wel bij een event aanwezig was
+// maar geen wachtwoord heeft (kaartje of shirt gezien, geen contact gehad).
+export interface EventRequest {
+  id: string
+  eventSlug: string
+  eventName: string        // opgeslagen ter referentie ook als event verwijderd wordt
+  name: string
+  email: string
+  phone: string
+  message: string
+  context: string          // hoe ze BJAY tegenkwamen (kaartje, shirt, etc.)
+  handled: boolean
+  createdAt: string
 }
 
 export interface Client {
