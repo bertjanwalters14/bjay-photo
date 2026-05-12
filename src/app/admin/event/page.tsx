@@ -149,7 +149,7 @@ export default function AdminEventsListPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs mt-1 font-mono" style={{ color: '#4a6358' }}>
+                    <p className="text-xs mt-1 font-mono break-all" style={{ color: '#4a6358' }}>
                       {event.slug}
                       {event.password && <span> · wachtwoord: <strong style={{ color: '#c8a96e' }}>{event.password}</strong></span>}
                     </p>

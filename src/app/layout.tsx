@@ -17,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="nl">
-      <body className={`${jost.variable} ${inter.variable}`} style={{ margin: 0, padding: 0, backgroundColor: '#053221', fontFamily: 'var(--font-inter), sans-serif' }}>
+      <body className={`${jost.variable} ${inter.variable}`} style={{ margin: 0, padding: 0, backgroundColor: '#053221', fontFamily: 'var(--font-inter), sans-serif', overflowX: 'hidden' }}>
         {children}
       </body>
     </html>

@@ -153,12 +153,12 @@ function RequestRow({
           <p className="font-medium" style={{ color: '#053221' }}>
             {req.name} <span style={{ color: '#4a6358', fontWeight: 400 }}>· {req.eventName}</span>
           </p>
-          <p className="text-xs mt-1" style={{ color: '#4a6358' }}>
-            <a href={`mailto:${req.email}`} style={{ color: '#c8a96e' }}>{req.email}</a>
+          <p className="text-xs mt-1 break-words" style={{ color: '#4a6358' }}>
+            <a href={`mailto:${req.email}`} style={{ color: '#c8a96e', wordBreak: 'break-all' }}>{req.email}</a>
             {req.phone && <span> · {req.phone}</span>}
           </p>
           {(req.context || req.message) && (
-            <div className="mt-2 text-xs" style={{ color: '#053221' }}>
+            <div className="mt-2 text-xs break-words" style={{ color: '#053221' }}>
               {req.context && <p><strong>Context:</strong> {req.context}</p>}
               {req.message && <p><strong>Bericht:</strong> {req.message}</p>}
             </div>
