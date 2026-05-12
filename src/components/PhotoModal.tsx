@@ -16,10 +16,12 @@ interface Props {
   // Event mode: optionele like-counts per foto. Wanneer gezet rendert het hart
   // als 'Vind ik leuk - N' i.p.v. 'Favoriet'.
   likeCounts?: Record<string, number>
-  // Event mode: cart-selectie. Wanneer gezet wordt 'Bestellen' een directe
-  // toggle naar cart i.p.v. het bestelpaneel.
+  // Cart-selectie voor digitale bestelling. Wanneer gezet toont 'Bestellen' een
+  // toggle voor de cart i.p.v. (of naast) het print-paneel.
   selectedIds?: string[]
   onToggleSelection?: (photoId: string) => void
+  // Toon ook de print-knop naast cart (typisch voor personal portals).
+  showPrintOption?: boolean
 }
 
 export default function PhotoModal({
@@ -33,6 +35,7 @@ export default function PhotoModal({
   likeCounts,
   selectedIds,
   onToggleSelection,
+  showPrintOption = false,
 }: Props) {
   const [current, setCurrent] = useState(photo)
   const [feedback, setFeedback] = useState('')
@@ -50,7 +53,7 @@ export default function PhotoModal({
   const [orderError, setOrderError] = useState('')
   const imgElRef = useRef<HTMLImageElement | null>(null)
 
-  const eventMode = Boolean(onToggleSelection)
+  const cartMode = Boolean(onToggleSelection)
   const inCart = selectedIds?.includes(current.publicId) ?? false
 
   // Pre-fill customer naam vanuit localStorage 1x bij mount (alleen personal flow)
@@ -99,13 +102,17 @@ export default function PhotoModal({
     onToggleFavorite(current.publicId)
   }
 
-  function handleOrderButtonClick() {
-    if (eventMode) {
+  // Cart-knop: digitale toevoeging aan bestelling (toggle)
+  function handleCartButtonClick() {
+    if (cartMode) {
       onToggleSelection?.(current.publicId)
-    } else {
-      setShowOrder(!showOrder)
-      setShowShare(false)
     }
+  }
+
+  // Print-knop: opent het print-bestelpaneel (alleen voor personal)
+  function handlePrintButtonClick() {
+    setShowOrder(!showOrder)
+    setShowShare(false)
   }
 
   async function handleDownload() {
@@ -195,16 +202,26 @@ export default function PhotoModal({
             <ShareIcon />
             <span className="hidden sm:inline">Delen</span>
           </button>
-          <button onClick={handleOrderButtonClick}
-            className="flex items-center gap-2 text-sm transition hover:opacity-70"
-            style={{ color: (showOrder || inCart) ? '#c8a96e' : 'rgba(232,237,233,0.6)' }}>
-            <CartIcon />
-            <span className="hidden sm:inline">
-              {eventMode
-                ? (inCart ? 'In bestelling' : 'Bestellen')
-                : 'Bestellen'}
-            </span>
-          </button>
+          {cartMode && (
+            <button onClick={handleCartButtonClick}
+              className="flex items-center gap-2 text-sm transition hover:opacity-70"
+              style={{ color: inCart ? '#c8a96e' : 'rgba(232,237,233,0.6)' }}
+              title={inCart ? 'In bestelling' : (showPrintOption ? 'Digitaal bestellen' : 'Toevoegen aan bestelling')}>
+              <CartIcon />
+              <span className="hidden sm:inline">
+                {inCart ? 'In bestelling' : (showPrintOption ? 'Digitaal' : 'Bestellen')}
+              </span>
+            </button>
+          )}
+          {showPrintOption && (
+            <button onClick={handlePrintButtonClick}
+              className="flex items-center gap-2 text-sm transition hover:opacity-70"
+              style={{ color: showOrder ? '#c8a96e' : 'rgba(232,237,233,0.6)' }}
+              title="Afdruk bestellen">
+              <PrinterIcon />
+              <span className="hidden sm:inline">Afdruk</span>
+            </button>
+          )}
           <button onClick={handleDownload} className="flex items-center gap-2 text-sm transition hover:opacity-70"
             style={{ color: 'rgba(232,237,233,0.6)' }}>
             <DownloadIcon />
@@ -237,7 +254,7 @@ export default function PhotoModal({
       )}
 
       {/* Bestel panel - alleen voor personal (print) flow */}
-      {showOrder && !eventMode && (
+      {showOrder && showPrintOption && (
         <div className="flex-shrink-0 px-6 py-4"
           style={{ backgroundColor: '#0d1f18', borderBottom: '1px solid rgba(200,169,110,0.15)' }}>
           {orderSent ? (
@@ -371,6 +388,16 @@ function CartIcon() {
       stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
       <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+    </svg>
+  )
+}
+function PrinterIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 6 2 18 2 18 9" />
+      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+      <rect x="6" y="14" width="12" height="8" />
     </svg>
   )
 }

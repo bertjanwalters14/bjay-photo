@@ -431,8 +431,9 @@ export default function GalleryPage() {
           clientId={clientId}
           clientName={client?.name}
           likeCounts={isEvent ? likeCounts : undefined}
-          selectedIds={isEvent ? selectedIds : undefined}
-          onToggleSelection={isEvent ? toggleSelection : undefined}
+          selectedIds={selectedIds}
+          onToggleSelection={toggleSelection}
+          showPrintOption={!isEvent}
         />
       )}
 
