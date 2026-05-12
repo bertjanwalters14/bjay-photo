@@ -100,7 +100,7 @@ export default function EditEventPage() {
   return (
     <main className="min-h-screen" style={{ backgroundColor: '#e8ede9' }}>
       <header
-        className="px-6 py-4 flex items-center justify-between"
+        className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
         style={{ backgroundColor: '#053221' }}
       >
         <div className="flex items-center gap-3">
@@ -259,7 +259,7 @@ export default function EditEventPage() {
                 <p className="text-xs" style={{ color: '#c8a96e' }}>{error}</p>
               )}
 
-              <div className="flex gap-3 mt-2">
+              <div className="flex flex-col sm:flex-row gap-3 mt-2">
                 <button
                   type="submit"
                   disabled={saving}
@@ -272,7 +272,7 @@ export default function EditEventPage() {
                   type="button"
                   onClick={handleDelete}
                   disabled={saving}
-                  className="px-6 py-3 text-xs font-medium tracking-widest uppercase transition disabled:opacity-40"
+                  className="sm:px-6 py-3 text-xs font-medium tracking-widest uppercase transition disabled:opacity-40"
                   style={{ backgroundColor: '#fff', color: '#4a6358', border: '1px solid rgba(74,99,88,0.4)' }}
                 >
                   Verwijderen

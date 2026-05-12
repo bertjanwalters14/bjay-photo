@@ -83,7 +83,7 @@ export default function NewEventPage() {
   return (
     <main className="min-h-screen" style={{ backgroundColor: '#e8ede9' }}>
       <header
-        className="px-6 py-4 flex items-center justify-between"
+        className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
         style={{ backgroundColor: '#053221' }}
       >
         <div className="flex items-center gap-3">

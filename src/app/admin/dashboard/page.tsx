@@ -40,7 +40,7 @@ export default function AdminDashboard() {
   return (
     <main className="min-h-screen" style={{ backgroundColor: '#e8ede9' }}>
       {/* Header */}
-      <header className="px-6 py-4 flex items-center justify-between" style={{ backgroundColor: '#053221' }}>
+      <header className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" style={{ backgroundColor: '#053221' }}>
         <div className="flex items-center gap-3">
           <Image src="/logoBJAYv3.0-iconbackground.png" alt="Bjay.photo" width={32} height={32} />
           <h1 className="text-xl font-bold tracking-widest uppercase"
@@ -51,7 +51,7 @@ export default function AdminDashboard() {
             / Admin
           </span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <button
             onClick={() => router.push('/admin/event')}
             className="px-4 py-2 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"

@@ -48,7 +48,7 @@ export default function AdminEventsListPage() {
   return (
     <main className="min-h-screen" style={{ backgroundColor: '#e8ede9' }}>
       <header
-        className="px-6 py-4 flex items-center justify-between"
+        className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
         style={{ backgroundColor: '#053221' }}
       >
         <div className="flex items-center gap-3">
@@ -66,7 +66,7 @@ export default function AdminEventsListPage() {
             / Events
           </span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <button
             onClick={() => router.push('/admin/event/requests')}
             className="px-4 py-2 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
@@ -120,7 +120,7 @@ export default function AdminEventsListPage() {
                 className="rounded-lg p-4"
                 style={{ backgroundColor: '#fff', border: '1px solid rgba(200,169,110,0.3)' }}
               >
-                <div className="flex items-start justify-between gap-4 mb-3">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium" style={{ color: '#053221' }}>{event.name}</p>

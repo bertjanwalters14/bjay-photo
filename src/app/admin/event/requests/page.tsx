@@ -51,7 +51,7 @@ export default function AdminRequestsPage() {
   return (
     <main className="min-h-screen" style={{ backgroundColor: '#e8ede9' }}>
       <header
-        className="px-6 py-4 flex items-center justify-between"
+        className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
         style={{ backgroundColor: '#053221' }}
       >
         <div className="flex items-center gap-3">
@@ -148,7 +148,7 @@ function RequestRow({
         opacity: dim ? 0.6 : 1,
       }}
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div className="flex-1 min-w-0">
           <p className="font-medium" style={{ color: '#053221' }}>
             {req.name} <span style={{ color: '#4a6358', fontWeight: 400 }}>· {req.eventName}</span>
