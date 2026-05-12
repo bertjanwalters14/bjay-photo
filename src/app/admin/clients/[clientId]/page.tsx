@@ -121,18 +121,18 @@ export default function AdminClientPage() {
     <main className="min-h-screen" style={{ backgroundColor: '#e8ede9' }}>
 
       {/* Header */}
-      <header className="px-6 py-4 flex items-center justify-between" style={{ backgroundColor: '#053221' }}>
-        <div className="flex items-center gap-3">
-          <Image src="/logoBJAYv3.0-iconbackground.png" alt="Bjay.photo" width={32} height={32} />
-          <h1 className="text-xl font-bold tracking-widest uppercase"
+      <header className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" style={{ backgroundColor: '#053221' }}>
+        <div className="flex items-center gap-3 min-w-0">
+          <Image src="/logoBJAYv3.0-iconbackground.png" alt="Bjay.photo" width={32} height={32} className="flex-shrink-0" />
+          <h1 className="text-lg sm:text-xl font-bold tracking-widest uppercase flex-shrink-0"
             style={{ color: '#c8a96e', fontFamily: 'var(--font-jost), sans-serif' }}>
             Bjay.photo
           </h1>
-          <span className="text-xs tracking-widest uppercase" style={{ color: 'rgba(200,169,110,0.5)' }}>
+          <span className="text-xs tracking-widest uppercase truncate" style={{ color: 'rgba(200,169,110,0.5)' }}>
             / {client?.name}
           </span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <button
             onClick={handlePreview}
             className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
@@ -145,7 +145,7 @@ export default function AdminClientPage() {
             className="text-sm transition hover:opacity-70"
             style={{ color: 'rgba(232,237,233,0.6)' }}
           >
-            Dashboard
+            ← Dashboard
           </button>
         </div>
       </header>
@@ -169,7 +169,7 @@ export default function AdminClientPage() {
           {!isEvent && (
             <p className="text-sm" style={{ color: '#4a6358' }}>E-mail: {client?.email || 'Niet opgegeven'}</p>
           )}
-          <p className="text-sm mt-1" style={{ color: '#4a6358' }}>
+          <p className="text-sm mt-1 break-all" style={{ color: '#4a6358' }}>
             Inlogcode: <span className="font-mono tracking-widest" style={{ color: '#c8a96e' }}>{client?.code}</span>
           </p>
           <p className="text-sm mt-1" style={{ color: '#4a6358' }}>
