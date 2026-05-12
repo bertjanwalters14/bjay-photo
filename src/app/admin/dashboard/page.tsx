@@ -103,21 +103,21 @@ export default function AdminDashboard() {
             {clients.map(client => (
               <div
                 key={client.code}
-                className="rounded-lg p-4 flex items-center justify-between"
+                className="rounded-lg p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
                 style={{ backgroundColor: '#fff', border: '1px solid rgba(200,169,110,0.3)' }}
               >
                 {/* Avatar + info */}
-                <div className="flex items-center gap-4 cursor-pointer flex-1"
+                <div className="flex items-center gap-3 sm:gap-4 cursor-pointer flex-1 min-w-0"
                   onClick={() => router.push(`/admin/clients/${client.code}`)}>
                   <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
                     style={{ backgroundColor: '#053221', color: '#c8a96e' }}>
                     {client.name.charAt(0).toUpperCase()}
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium" style={{ color: '#053221' }}>{client.name}</p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium break-words" style={{ color: '#053221' }}>{client.name}</p>
                       <span
-                        className="text-[10px] px-2 py-0.5 tracking-widest uppercase rounded-full"
+                        className="text-[10px] px-2 py-0.5 tracking-widest uppercase rounded-full whitespace-nowrap"
                         style={{
                           backgroundColor:
                             (client.type ?? 'personal') === 'event'
@@ -134,27 +134,30 @@ export default function AdminDashboard() {
                         {(client.type ?? 'personal') === 'event' ? 'Event' : 'Personal'}
                       </span>
                     </div>
-                    <p className="text-xs mt-0.5" style={{ color: '#4a6358' }}>
+                    <p className="text-xs mt-0.5 break-words" style={{ color: '#4a6358' }}>
                       {client.email || 'Geen e-mail'}
+                    </p>
+                    <p className="text-xs mt-1 font-mono tracking-widest sm:hidden" style={{ color: '#c8a96e' }}>
+                      {client.code}
                     </p>
                   </div>
                 </div>
 
                 {/* Rechts */}
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
                   <p className="text-sm font-mono tracking-widest hidden sm:block" style={{ color: '#c8a96e' }}>
                     {client.code}
                   </p>
                   <button
                     onClick={() => window.open(`/gallery/${client.code}`, '_blank')}
-                    className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
+                    className="flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
                     style={{ border: '1px solid #c8a96e', color: '#c8a96e' }}
                   >
                     Preview
                   </button>
                   <button
                     onClick={() => router.push(`/admin/clients/${client.code}`)}
-                    className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
+                    className="flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
                     style={{ backgroundColor: '#053221', color: '#c8a96e' }}
                   >
                     Beheer
