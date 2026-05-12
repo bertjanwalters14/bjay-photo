@@ -315,8 +315,8 @@ export default function GalleryPage() {
         </div>
 
         <div className="mx-auto px-4" style={{ maxWidth: '80rem' }}>
-          {/* Bestel-uitleg banner (alleen events) */}
-          {isEvent && photos.length > 0 && (
+          {/* Bestel-uitleg banner */}
+          {photos.length > 0 && (
             <div className="mt-6">
               <div
                 className="rounded-lg p-4 sm:p-5"
@@ -334,11 +334,18 @@ export default function GalleryPage() {
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
-                  {[
-                    { n: '1', t: 'Selecteer', d: 'Tik op de + knop bij elke foto die je wilt' },
-                    { n: '2', t: 'Checkout', d: 'Klik onderin op de groene checkout-knop' },
-                    { n: '3', t: 'Per mail', d: 'Na betaling ontvang je de foto(s) in hoge resolutie zonder watermerk per mail' },
-                  ].map(step => (
+                  {(isEvent
+                    ? [
+                        { n: '1', t: 'Selecteer', d: 'Tik op de + knop bij elke foto die je wilt' },
+                        { n: '2', t: 'Checkout', d: 'Klik onderin op de groene checkout-knop' },
+                        { n: '3', t: 'Per mail', d: 'Na betaling ontvang je de foto(s) in hoge resolutie zonder watermerk per mail' },
+                      ]
+                    : [
+                        { n: '1', t: 'Selecteer', d: 'Tik op + voor digitale download, of klik een foto voor een afdruk' },
+                        { n: '2', t: 'Checkout', d: 'Digitaal: groene knop onderin. Afdruk: in de foto-weergave.' },
+                        { n: '3', t: 'Per mail of post', d: 'Digitale foto(s) in hoge resolutie per mail, afdrukken per post.' },
+                      ]
+                  ).map(step => (
                     <div key={step.n} className="flex gap-3 items-start">
                       <div
                         className="flex-shrink-0 flex items-center justify-center text-sm font-bold"
@@ -370,8 +377,15 @@ export default function GalleryPage() {
                 >
                   <strong>Tarieven (digitale download):</strong>{' '}
                   <span style={{ color: '#4a6358' }}>
-                    1 foto €5 · 3 foto's €12 · 5 foto's €18
+                    {isEvent
+                      ? "1 foto €5 · 3 foto's €12 · 5 foto's €18"
+                      : "1 foto €20 · 3 foto's €50 · 5 foto's €75"}
                   </span>
+                  {!isEvent && (
+                    <span style={{ color: 'rgba(74,99,88,0.7)' }}>
+                      {' '}· Afdrukken: zie foto-weergave
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -381,7 +395,7 @@ export default function GalleryPage() {
             style={{
               // Extra padding-bottom om sticky cart-balk niet over foto's heen te laten vallen
               paddingTop: '1.5rem',
-              paddingBottom: isEvent ? '28rem' : '24rem',
+              paddingBottom: '28rem',
               opacity: gridVisible ? 1 : 0,
               transform: gridVisible ? 'translateY(0)' : 'translateY(24px)',
               transition: 'opacity 0.7s ease, transform 0.7s ease',
@@ -398,8 +412,8 @@ export default function GalleryPage() {
                 onSelect={openPhoto}
                 onToggleFavorite={toggleFavorite}
                 likeCounts={isEvent ? likeCounts : undefined}
-                selectedIds={isEvent ? selectedIds : undefined}
-                onToggleSelection={isEvent ? toggleSelection : undefined}
+                selectedIds={selectedIds}
+                onToggleSelection={toggleSelection}
               />
             )}
           </div>
@@ -422,13 +436,14 @@ export default function GalleryPage() {
         />
       )}
 
-      {/* Cart bar + checkout (alleen events) */}
-      {isEvent && (
+      {/* Cart bar + checkout - voor events en personal */}
+      {client && (
         <OrderCart
           photos={photos}
           selectedIds={selectedIds}
           clientId={clientId}
           clientName={client?.name}
+          tier={isEvent ? 'event' : 'personal'}
           onRemove={(photoId) => setSelectedIds(prev => prev.filter(id => id !== photoId))}
           onClear={clearSelection}
           onPlaced={() => {

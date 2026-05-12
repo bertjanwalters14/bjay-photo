@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { nanoid } from 'nanoid'
 import redis from '@/lib/redis'
 import { getAdminSession } from '@/lib/auth'
-import { calculatePriceForCount, priceForUnlimited } from '@/lib/eventPackages'
+import { calculatePriceForCount, priceForUnlimited, type PriceTier } from '@/lib/eventPackages'
 import cloudinary from '@/lib/cloudinary'
+import type { Client } from '@/lib/types'
 import type { Order } from '@/lib/types'
 
 // Bouw schone Cloudinary delivery URL uit publicId (geen transformaties)
@@ -63,6 +64,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Ontbrekende clientCode' }, { status: 400 })
     }
 
+    // Tier bepalen vanuit client.type (server-side, klant kan dit niet manipuleren)
+    const clientRecord = await redis.get<Client>(`client:${clientCode}`)
+    const tier: PriceTier = clientRecord?.type === 'personal' ? 'personal' : 'event'
+
     const isEventOrder = body?.packageType === 'unlimited' || body?.packageType === 'custom'
 
     let order: Order
@@ -89,10 +94,11 @@ export async function POST(req: NextRequest) {
         )
       }
 
-      // Server-side prijsberekening (klant kan price niet manipuleren)
+      // Server-side prijsberekening (klant kan price niet manipuleren),
+      // gebruikt tier op basis van client.type
       const breakdown = isUnlimited
         ? priceForUnlimited()
-        : calculatePriceForCount(photoUrls.length)
+        : calculatePriceForCount(photoUrls.length, tier)
 
       const formatLabel = breakdown.isUnlimited
         ? 'Onbeperkt'

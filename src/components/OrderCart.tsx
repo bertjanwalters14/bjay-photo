@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Photo } from '@/lib/types'
-import { calculatePriceForCount, PRICE_CATALOG } from '@/lib/eventPackages'
+import { calculatePriceForCount, priceCatalog, type PriceTier } from '@/lib/eventPackages'
 import { apiUrl } from '@/lib/apiUrl'
 
 interface Props {
@@ -10,6 +10,8 @@ interface Props {
   selectedIds: string[]
   clientId: string
   clientName?: string
+  // Pricing tier: 'event' = volume / low price, 'personal' = curated / premium
+  tier?: PriceTier
   onRemove: (photoId: string) => void
   onClear: () => void
   onPlaced: () => void
@@ -20,6 +22,7 @@ export default function OrderCart({
   selectedIds,
   clientId,
   clientName,
+  tier = 'event',
   onRemove,
   onClear,
   onPlaced,
@@ -46,9 +49,11 @@ export default function OrderCart({
   )
 
   const breakdown = useMemo(
-    () => calculatePriceForCount(selectedIds.length),
-    [selectedIds.length]
+    () => calculatePriceForCount(selectedIds.length, tier),
+    [selectedIds.length, tier]
   )
+
+  const catalog = useMemo(() => priceCatalog(tier), [tier])
 
   // Sluit checkout wanneer cart leeg wordt
   useEffect(() => {
@@ -240,7 +245,7 @@ export default function OrderCart({
                     Hoe werkt de prijs?
                   </summary>
                   <ul className="text-xs mt-2 space-y-1" style={{ color: '#4a6358' }}>
-                    {PRICE_CATALOG.map(p => (
+                    {catalog.map(p => (
                       <li key={p.label}>
                         {p.label}: <span style={{ color: '#053221' }}>{p.price}</span>
                       </li>
