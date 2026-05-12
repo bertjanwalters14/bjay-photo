@@ -11,7 +11,7 @@ interface TierPrices {
 
 const TIER_PRICES: Record<PriceTier, TierPrices> = {
   event: { single: 500, pack3: 1200, pack5: 1800 },
-  personal: { single: 2000, pack3: 5000, pack5: 7500 },
+  personal: { single: 1000, pack3: 2500, pack5: 4000 },
 }
 
 const UNLIMITED_CENTS = 2500 // legacy: alleen via priceForLegacyPackage

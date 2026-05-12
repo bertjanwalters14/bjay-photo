@@ -379,7 +379,7 @@ export default function GalleryPage() {
                   <span style={{ color: '#4a6358' }}>
                     {isEvent
                       ? "1 foto €5 · 3 foto's €12 · 5 foto's €18"
-                      : "1 foto €20 · 3 foto's €50 · 5 foto's €75"}
+                      : "1 foto €10 · 3 foto's €25 · 5 foto's €40"}
                   </span>
                   {!isEvent && (
                     <span style={{ color: 'rgba(74,99,88,0.7)' }}>
