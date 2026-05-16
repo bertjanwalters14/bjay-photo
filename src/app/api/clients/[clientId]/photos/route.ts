@@ -63,3 +63,48 @@ export async function GET(
 
   return NextResponse.json({ photos })
 }
+
+// DELETE — foto verwijderen (alleen admin). Verwacht body { publicId }.
+// publicId moet onder bjay/clients/{clientId}/ vallen om kruis-tenant-fouten
+// te voorkomen.
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ clientId: string }> }
+) {
+  const isAdmin = await getAdminSession()
+  if (!isAdmin) {
+    return NextResponse.json({ error: 'Niet toegestaan' }, { status: 401 })
+  }
+
+  const { clientId } = await params
+  const body = await req.json()
+  const publicId: string | undefined = body?.publicId
+
+  if (!publicId || typeof publicId !== 'string') {
+    return NextResponse.json({ error: 'publicId is verplicht' }, { status: 400 })
+  }
+
+  // Sanity-check: publicId moet binnen deze client's folder vallen
+  const expectedPrefix = `bjay/clients/${clientId}/`
+  if (!publicId.startsWith(expectedPrefix)) {
+    return NextResponse.json(
+      { error: 'publicId hoort niet bij deze klant' },
+      { status: 400 }
+    )
+  }
+
+  try {
+    const result = await cloudinary.uploader.destroy(publicId)
+    if (result.result !== 'ok' && result.result !== 'not found') {
+      return NextResponse.json(
+        { error: 'Verwijderen mislukt', detail: result.result },
+        { status: 500 }
+      )
+    }
+  } catch (err) {
+    console.error('Cloudinary destroy error:', err)
+    return NextResponse.json({ error: 'Verwijderen mislukt' }, { status: 500 })
+  }
+
+  return NextResponse.json({ success: true })
+}

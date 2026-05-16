@@ -139,6 +139,26 @@ export default function AdminClientPage() {
     })
   }
 
+  async function deletePhoto(photo: Photo) {
+    if (!window.confirm(`Foto verwijderen?\n\n${photo.publicId.split('/').pop()}\n\nDit kan niet ongedaan worden gemaakt.`)) {
+      return
+    }
+    const res = await fetch(`/api/clients/${clientId}/photos`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ publicId: photo.publicId }),
+    })
+    if (res.ok) {
+      // Verwijder uit lokale state
+      setPhotos(prev => prev.filter(p => p.publicId !== photo.publicId))
+      // Als deze foto de cover was, leeg de coverUrl
+      if (coverUrl === photo.url) setCoverUrl(null)
+    } else {
+      const data = await res.json().catch(() => ({}))
+      window.alert(`Verwijderen mislukt: ${data?.error || 'Onbekende fout'}`)
+    }
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#e8ede9' }}>
@@ -303,6 +323,28 @@ export default function AdminClientPage() {
                         Stel in als cover
                       </button>
                     )}
+                    {/* Verwijder-knop, alleen zichtbaar bij hover, met z-index om over cover-knop te liggen */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deletePhoto(photo) }}
+                      className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition duration-200 z-10 hover:scale-110"
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(160,40,40,0.9)',
+                        color: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 14,
+                        fontWeight: 'bold',
+                        lineHeight: 1,
+                      }}
+                      title="Foto verwijderen"
+                      aria-label="Foto verwijderen"
+                    >
+                      ×
+                    </button>
                   </div>
                 )
               })}
