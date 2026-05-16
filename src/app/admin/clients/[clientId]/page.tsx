@@ -81,13 +81,43 @@ export default function AdminClientPage() {
     if (!files || files.length === 0) return
     setUploading(true)
     setUploadError('')
+
+    // Stap 1: vraag signed upload-signature aan bij backend (auth check)
+    const sigRes = await fetch('/api/upload/signature', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId }),
+    })
+    if (!sigRes.ok) {
+      setUploadError('Kon upload-toestemming niet ophalen. Log opnieuw in als admin.')
+      setUploading(false)
+      return
+    }
+    const { signature, timestamp, folder, apiKey, cloudName } = await sigRes.json()
+
+    // Stap 2: upload elk bestand direct naar Cloudinary (omzeilt Vercel 4.5MB limit)
+    let failed = 0
     for (const file of Array.from(files)) {
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('clientId', clientId)
-      const res = await fetch('/api/upload', { method: 'POST', body: formData })
-      if (!res.ok) setUploadError('Er ging iets mis bij het uploaden.')
+      formData.append('api_key', apiKey)
+      formData.append('timestamp', String(timestamp))
+      formData.append('signature', signature)
+      formData.append('folder', folder)
+      formData.append('use_filename', 'true')
+      formData.append('unique_filename', 'true')
+
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: 'POST',
+        body: formData,
+      })
+      if (!res.ok) failed += 1
     }
+    if (failed > 0) {
+      setUploadError(`${failed} bestand${failed !== 1 ? 'en' : ''} kon${failed !== 1 ? 'den' : ''} niet worden geupload.`)
+    }
+
+    // Stap 3: refresh foto-lijst
     const photosRes = await fetch(`/api/clients/${clientId}/photos`)
     const photosData = await photosRes.json()
     setPhotos(photosData.photos || [])
