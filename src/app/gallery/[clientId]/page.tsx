@@ -25,10 +25,37 @@ export default function GalleryPage() {
   const [gridVisible, setGridVisible] = useState(false)
   // Cart-selectie voor digital event-bestellingen
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  // Datum-filter: null = alle dagen, anders YYYY-MM-DD string
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
   const gridRef = useRef<HTMLDivElement>(null)
 
   const isEvent = client?.type === 'event'
+
+  // Unieke datums uit photos.createdAt, gesorteerd oudste → nieuwste
+  const uniqueDates = useMemo(() => {
+    const set = new Set<string>()
+    for (const p of photos) {
+      if (p.createdAt) set.add(p.createdAt.slice(0, 10)) // YYYY-MM-DD
+    }
+    return Array.from(set).sort()
+  }, [photos])
+
+  // Toon datum als 'za 17 mei' style label
+  function formatDateLabel(isoDate: string): string {
+    const d = new Date(isoDate + 'T12:00:00')
+    return d.toLocaleDateString('nl-NL', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    })
+  }
+
+  // Foto's gefilterd op selectedDate
+  const visiblePhotos = useMemo(() => {
+    if (!selectedDate) return photos
+    return photos.filter(p => p.createdAt?.slice(0, 10) === selectedDate)
+  }, [photos, selectedDate])
   const visitorStorageKey = useMemo(() => `bjay:visitor:${clientId}`, [clientId])
   const cartStorageKey = useMemo(() => `bjay:cart:${clientId}`, [clientId])
 
@@ -309,7 +336,10 @@ export default function GalleryPage() {
               {client?.name}
             </p>
             <p className="text-xs mt-0.5" style={{ color: 'rgba(232,237,233,0.4)' }}>
-              {photos.length} foto{photos.length !== 1 ? "'s" : ''}
+              {visiblePhotos.length} foto{visiblePhotos.length !== 1 ? "'s" : ''}
+              {selectedDate && photos.length !== visiblePhotos.length && (
+                <span> van {photos.length}</span>
+              )}
             </p>
           </div>
         </div>
@@ -391,6 +421,39 @@ export default function GalleryPage() {
             </div>
           )}
 
+          {/* Datum-filter chips (alleen bij 2+ unieke datums) */}
+          {uniqueDates.length >= 2 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedDate(null)}
+                className="px-3 py-1.5 text-xs tracking-widest uppercase transition"
+                style={{
+                  backgroundColor: selectedDate === null ? '#053221' : '#fff',
+                  color: selectedDate === null ? '#c8a96e' : '#053221',
+                  border: '1px solid rgba(200,169,110,0.4)',
+                  borderRadius: '999px',
+                }}
+              >
+                Alle dagen
+              </button>
+              {uniqueDates.map(date => (
+                <button
+                  key={date}
+                  onClick={() => setSelectedDate(date)}
+                  className="px-3 py-1.5 text-xs tracking-widest uppercase transition"
+                  style={{
+                    backgroundColor: selectedDate === date ? '#053221' : '#fff',
+                    color: selectedDate === date ? '#c8a96e' : '#053221',
+                    border: '1px solid rgba(200,169,110,0.4)',
+                    borderRadius: '999px',
+                  }}
+                >
+                  {formatDateLabel(date)}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div
             style={{
               // Extra padding-bottom om sticky cart-balk niet over foto's heen te laten vallen
@@ -401,13 +464,17 @@ export default function GalleryPage() {
               transition: 'opacity 0.7s ease, transform 0.7s ease',
             }}
           >
-            {photos.length === 0 ? (
+            {visiblePhotos.length === 0 ? (
               <div className="flex items-center justify-center h-64">
-                <p style={{ color: '#4a6358' }}>Er zijn nog geen foto's beschikbaar.</p>
+                <p style={{ color: '#4a6358' }}>
+                  {photos.length === 0
+                    ? "Er zijn nog geen foto's beschikbaar."
+                    : "Geen foto's op deze datum."}
+                </p>
               </div>
             ) : (
               <PhotoGrid
-                photos={photos}
+                photos={visiblePhotos}
                 favorites={favorites}
                 onSelect={openPhoto}
                 onToggleFavorite={toggleFavorite}
@@ -424,7 +491,7 @@ export default function GalleryPage() {
       {selectedPhoto && (
         <PhotoModal
           photo={selectedPhoto}
-          photos={photos}
+          photos={visiblePhotos}
           isFavorite={favorites.includes(selectedPhoto.publicId)}
           onClose={closePhoto}
           onToggleFavorite={toggleFavorite}
@@ -449,6 +516,86 @@ export default function GalleryPage() {
           onClear={clearSelection}
           onPlaced={() => {
             // Optioneel iets doen na succesvolle bestelling
+          }}
+        />
+      )}
+    </main>
+  )
+}
+                  style={{
+                    backgroundColor: selectedDate === date ? '#053221' : '#fff',
+                    color: selectedDate === date ? '#c8a96e' : '#053221',
+                    border: '1px solid rgba(200,169,110,0.4)',
+                    borderRadius: '999px',
+                  }}
+                >
+                  {formatDateLabel(date)}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div
+            style={{
+              paddingTop: '1.5rem',
+              paddingBottom: '28rem',
+              opacity: gridVisible ? 1 : 0,
+              transform: gridVisible ? 'translateY(0)' : 'translateY(24px)',
+              transition: 'opacity 0.7s ease, transform 0.7s ease',
+            }}
+          >
+            {visiblePhotos.length === 0 ? (
+              <div className="flex items-center justify-center h-64">
+                <p style={{ color: '#4a6358' }}>
+                  {photos.length === 0
+                    ? "Er zijn nog geen foto's beschikbaar."
+                    : "Geen foto's op deze datum."}
+                </p>
+              </div>
+            ) : (
+              <PhotoGrid
+                photos={visiblePhotos}
+                favorites={favorites}
+                onSelect={openPhoto}
+                onToggleFavorite={toggleFavorite}
+                likeCounts={isEvent ? likeCounts : undefined}
+                selectedIds={selectedIds}
+                onToggleSelection={toggleSelection}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Modal */}
+      {selectedPhoto && (
+        <PhotoModal
+          photo={selectedPhoto}
+          photos={visiblePhotos}
+          isFavorite={favorites.includes(selectedPhoto.publicId)}
+          onClose={closePhoto}
+          onToggleFavorite={toggleFavorite}
+          clientId={clientId}
+          clientName={client?.name}
+          likeCounts={isEvent ? likeCounts : undefined}
+          selectedIds={selectedIds}
+          onToggleSelection={toggleSelection}
+          showPrintOption={!isEvent}
+        />
+      )}
+
+      {/* Cart bar + checkout - voor events en personal */}
+      {client && (
+        <OrderCart
+          photos={photos}
+          selectedIds={selectedIds}
+          clientId={clientId}
+          clientName={client?.name}
+          tier={isEvent ? 'event' : 'personal'}
+          onRemove={(photoId) => setSelectedIds(prev => prev.filter(id => id !== photoId))}
+          onClear={clearSelection}
+          onPlaced={() => {
+            // niets te doen
           }}
         />
       )}
