@@ -24,6 +24,9 @@ export default function AdminClientPage() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
+  const [uploadTotal, setUploadTotal] = useState(0)
+  const [uploadDone, setUploadDone] = useState(0)
+  const [uploadFailed, setUploadFailed] = useState(0)
 
   const isEvent = client?.type === 'event'
 
@@ -77,10 +80,15 @@ export default function AdminClientPage() {
   }, [clientId])
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files
-    if (!files || files.length === 0) return
+    const fileList = e.target.files
+    if (!fileList || fileList.length === 0) return
+    const files = Array.from(fileList)
+
     setUploading(true)
     setUploadError('')
+    setUploadTotal(files.length)
+    setUploadDone(0)
+    setUploadFailed(0)
 
     // Stap 1: vraag signed upload-signature aan bij backend (auth check)
     const sigRes = await fetch('/api/upload/signature', {
@@ -95,29 +103,64 @@ export default function AdminClientPage() {
     }
     const { signature, timestamp, folder, apiKey, cloudName } = await sigRes.json()
 
-    // Stap 2: upload elk bestand direct naar Cloudinary (omzeilt Vercel 4.5MB limit)
-    let failed = 0
-    for (const file of Array.from(files)) {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('api_key', apiKey)
-      formData.append('timestamp', String(timestamp))
-      formData.append('signature', signature)
-      formData.append('folder', folder)
-      formData.append('use_filename', 'true')
-      formData.append('unique_filename', 'true')
+    // Upload een enkele file met 1x retry bij failure
+    async function uploadOne(file: File): Promise<boolean> {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('api_key', apiKey)
+        formData.append('timestamp', String(timestamp))
+        formData.append('signature', signature)
+        formData.append('folder', folder)
+        formData.append('use_filename', 'true')
+        formData.append('unique_filename', 'true')
 
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: 'POST',
-        body: formData,
-      })
-      if (!res.ok) failed += 1
-    }
-    if (failed > 0) {
-      setUploadError(`${failed} bestand${failed !== 1 ? 'en' : ''} kon${failed !== 1 ? 'den' : ''} niet worden geupload.`)
+        try {
+          const res = await fetch(
+            `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+            { method: 'POST', body: formData }
+          )
+          if (res.ok) return true
+        } catch {
+          // ignore — retry
+        }
+        // wacht 500ms voor 2e poging
+        if (attempt === 0) await new Promise(r => setTimeout(r, 500))
+      }
+      return false
     }
 
-    // Stap 3: refresh foto-lijst
+    // Concurrency-limited parallel uploads: 4 tegelijk
+    const CONCURRENCY = 4
+    let nextIndex = 0
+    let doneCount = 0
+    let failedCount = 0
+
+    async function worker() {
+      while (true) {
+        const i = nextIndex++
+        if (i >= files.length) return
+        const ok = await uploadOne(files[i])
+        if (ok) {
+          doneCount += 1
+          setUploadDone(doneCount)
+        } else {
+          failedCount += 1
+          setUploadFailed(failedCount)
+        }
+      }
+    }
+
+    const workers = Array.from({ length: Math.min(CONCURRENCY, files.length) }, () => worker())
+    await Promise.all(workers)
+
+    if (failedCount > 0) {
+      setUploadError(
+        `${failedCount} van ${files.length} foto${failedCount !== 1 ? "'s konden" : ' kon'} niet worden geupload.`
+      )
+    }
+
+    // Refresh foto-lijst
     const photosRes = await fetch(`/api/clients/${clientId}/photos`)
     const photosData = await photosRes.json()
     setPhotos(photosData.photos || [])
@@ -254,13 +297,52 @@ export default function AdminClientPage() {
           <h2 className="text-lg font-light mb-3" style={{ color: '#053221' }}>Foto's uploaden</h2>
           <label
             className="flex items-center justify-center rounded-lg p-8 cursor-pointer transition hover:opacity-80"
-            style={{ backgroundColor: '#fff', border: '2px dashed rgba(200,169,110,0.5)' }}
+            style={{
+              backgroundColor: '#fff',
+              border: '2px dashed rgba(200,169,110,0.5)',
+              opacity: uploading ? 0.7 : 1,
+              cursor: uploading ? 'not-allowed' : 'pointer',
+            }}
           >
-            <div className="text-center">
-              <p style={{ color: uploading ? '#c8a96e' : '#053221' }}>
-                {uploading ? 'Uploaden...' : "Klik om foto's te selecteren"}
-              </p>
-              <p className="text-sm mt-1" style={{ color: '#4a6358' }}>JPG, PNG, WEBP</p>
+            <div className="text-center w-full">
+              {uploading ? (
+                <>
+                  <p style={{ color: '#c8a96e' }} className="font-medium">
+                    {uploadDone + uploadFailed} van {uploadTotal} verwerkt
+                    {uploadFailed > 0 && (
+                      <span style={{ color: '#a05a5a' }}> ({uploadFailed} mislukt)</span>
+                    )}
+                  </p>
+                  {/* Voortgangsbalk */}
+                  <div className="mt-3 mx-auto" style={{ maxWidth: 400 }}>
+                    <div
+                      style={{
+                        height: 6,
+                        backgroundColor: 'rgba(200,169,110,0.2)',
+                        borderRadius: 999,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: '100%',
+                          width: `${uploadTotal ? Math.round(((uploadDone + uploadFailed) / uploadTotal) * 100) : 0}%`,
+                          backgroundColor: '#c8a96e',
+                          transition: 'width 0.3s ease',
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs mt-2" style={{ color: '#4a6358' }}>
+                    4 foto's tegelijk uploaden — laat dit tabblad open staan tot het klaar is.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p style={{ color: '#053221' }}>Klik om foto's te selecteren</p>
+                  <p className="text-sm mt-1" style={{ color: '#4a6358' }}>JPG, PNG, WEBP — meerdere tegelijk OK</p>
+                </>
+              )}
             </div>
             <input type="file" accept="image/*" multiple className="hidden"
               onChange={handleUpload} disabled={uploading} />
