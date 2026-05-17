@@ -43,11 +43,14 @@ export async function GET(
     created_at: string
   }
 
+  // Sorteer op public_id ASC. Dat geeft camera-bestandsnaam volgorde
+  // (DSC_2031 voor DSC_2032), wat chronologisch klopt bij sequentiele
+  // camera-bestanden. Niet beinvloed door upload-quirks van parallel uploads.
   const result = await cloudinary.search
     .expression(`folder:bjay/clients/${clientId}`)
-    .sort_by('created_at', 'desc')
+    .sort_by('public_id', 'asc')
     .with_field('context')
-    .max_results(100)
+    .max_results(500)
     .execute()
 
   const photos: Photo[] = (result.resources as CloudinaryResource[]).map(r => ({
@@ -99,6 +102,15 @@ export async function DELETE(
       return NextResponse.json(
         { error: 'Verwijderen mislukt', detail: result.result },
         { status: 500 }
+      )
+    }
+  } catch (err) {
+    console.error('Cloudinary destroy error:', err)
+    return NextResponse.json({ error: 'Verwijderen mislukt' }, { status: 500 })
+  }
+
+  return NextResponse.json({ success: true })
+}
       )
     }
   } catch (err) {
