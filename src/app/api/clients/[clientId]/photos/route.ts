@@ -41,11 +41,13 @@ export async function GET(
     width: number
     height: number
     created_at: string
+    display_name?: string
+    filename?: string
   }
 
-  // Sorteer op public_id ASC. Dat geeft camera-bestandsnaam volgorde
-  // (DSC_2031 voor DSC_2032), wat chronologisch klopt bij sequentiele
-  // camera-bestanden. Niet beinvloed door upload-quirks van parallel uploads.
+  // We vragen display_name op (Cloudinary's veld voor de originele
+  // bestandsnaam wanneer use_filename: true gebruikt is). Dat is veel
+  // betrouwbaarder dan het strippen van de _xyz suffix uit de public_id.
   const result = await cloudinary.search
     .expression(`folder:bjay/clients/${clientId}`)
     .sort_by('public_id', 'asc')
@@ -53,7 +55,20 @@ export async function GET(
     .max_results(500)
     .execute()
 
-  const photos: Photo[] = (result.resources as CloudinaryResource[]).map(r => ({
+  type PhotoWithSortKey = Photo & { _sortKey: string }
+
+  // Bepaal sorteer-key per foto. Prioriteit:
+  // 1. display_name (originele upload-naam, bv. "DSC_2031")
+  // 2. filename veld als display_name niet beschikbaar is
+  // 3. public_id basename met _xyz suffix gestript als laatste vangnet
+  function sortKeyFor(r: CloudinaryResource): string {
+    if (r.display_name && r.display_name.trim()) return r.display_name.trim()
+    if (r.filename && r.filename.trim()) return r.filename.trim()
+    const base = r.public_id.split('/').pop() || ''
+    return base.replace(/_[a-z0-9]{4,10}$/i, '')
+  }
+
+  const photosWithKeys: PhotoWithSortKey[] = (result.resources as CloudinaryResource[]).map(r => ({
     publicId: r.public_id,
     // Gallery preview (modal-grootte): 1200px breed met watermerk
     url: watermarkedUrl(r.public_id, 1200, 50),
@@ -62,19 +77,19 @@ export async function GET(
     width: r.width,
     height: r.height,
     createdAt: r.created_at,
+    _sortKey: sortKeyFor(r),
   }))
 
-  // Client-side robuuste sortering op basename. Cloudinary's sort_by op
-  // public_id is onbetrouwbaar vanwege de random unique-filename suffix.
-  // We pakken de filename-portie (zonder folder), strippen de _xyz suffix
-  // en sorteren met natural compare zodat DSC_2 voor DSC_10 komt.
-  photos.sort((a, b) => {
-    const baseA = a.publicId.split('/').pop() || ''
-    const baseB = b.publicId.split('/').pop() || ''
-    // Strip Cloudinary's _abcdef suffix (laatste underscore + 6 chars meestal)
-    const cleanA = baseA.replace(/_[a-z0-9]{6,8}$/i, '')
-    const cleanB = baseB.replace(/_[a-z0-9]{6,8}$/i, '')
-    return cleanA.localeCompare(cleanB, 'nl', { numeric: true, sensitivity: 'base' })
+  // Natural sort: DSC_2 voor DSC_10. Op de sleutel die zo dicht mogelijk
+  // bij de originele camera-bestandsnaam ligt.
+  photosWithKeys.sort((a, b) =>
+    a._sortKey.localeCompare(b._sortKey, 'nl', { numeric: true, sensitivity: 'base' })
+  )
+
+  // Strip de interne _sortKey weg voordat we naar de client sturen.
+  const photos: Photo[] = photosWithKeys.map(({ _sortKey, ...rest }) => {
+    void _sortKey
+    return rest
   })
 
   return NextResponse.json({ photos })
