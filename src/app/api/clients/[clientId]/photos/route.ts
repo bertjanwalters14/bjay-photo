@@ -64,6 +64,19 @@ export async function GET(
     createdAt: r.created_at,
   }))
 
+  // Client-side robuuste sortering op basename. Cloudinary's sort_by op
+  // public_id is onbetrouwbaar vanwege de random unique-filename suffix.
+  // We pakken de filename-portie (zonder folder), strippen de _xyz suffix
+  // en sorteren met natural compare zodat DSC_2 voor DSC_10 komt.
+  photos.sort((a, b) => {
+    const baseA = a.publicId.split('/').pop() || ''
+    const baseB = b.publicId.split('/').pop() || ''
+    // Strip Cloudinary's _abcdef suffix (laatste underscore + 6 chars meestal)
+    const cleanA = baseA.replace(/_[a-z0-9]{6,8}$/i, '')
+    const cleanB = baseB.replace(/_[a-z0-9]{6,8}$/i, '')
+    return cleanA.localeCompare(cleanB, 'nl', { numeric: true, sensitivity: 'base' })
+  })
+
   return NextResponse.json({ photos })
 }
 
@@ -102,15 +115,6 @@ export async function DELETE(
       return NextResponse.json(
         { error: 'Verwijderen mislukt', detail: result.result },
         { status: 500 }
-      )
-    }
-  } catch (err) {
-    console.error('Cloudinary destroy error:', err)
-    return NextResponse.json({ error: 'Verwijderen mislukt' }, { status: 500 })
-  }
-
-  return NextResponse.json({ success: true })
-}
       )
     }
   } catch (err) {
