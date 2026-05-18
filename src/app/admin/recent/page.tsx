@@ -239,20 +239,6 @@ export default function AdminRecentPage() {
                       />
                     </div>
 
-                    <div>
-                      <label className="text-[10px] tracking-widest uppercase block mb-1" style={{ color: '#4a6358' }}>
-                        Doelpagina bij klik (optioneel)
-                      </label>
-                      <input
-                        type="text"
-                        value={slot.href}
-                        onChange={e => updateSlot(idx, { href: e.target.value })}
-                        placeholder="Bijv. /sportfotograaf-hyrox of /sportfotograaf"
-                        className="w-full px-3 py-2 text-sm"
-                        style={{ border: '1px solid rgba(5,50,33,0.18)', backgroundColor: '#fff' }}
-                      />
-                    </div>
-
                     {slot.url && (
                       <p className="text-[10px] break-all" style={{ color: '#c8a96e' }}>
                         {slot.url}
