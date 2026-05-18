@@ -8,6 +8,7 @@ import { Client } from '@/lib/types'
 export default function AdminDashboard() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
+  const [deletingCode, setDeletingCode] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -35,6 +36,34 @@ export default function AdminDashboard() {
       body: JSON.stringify({ role: 'admin' }),
     })
     router.push('/admin/login')
+  }
+
+  async function handleDelete(client: Client) {
+    const confirmed = window.confirm(
+      `Weet je zeker dat je "${client.name}" wilt verwijderen?\n\n` +
+        `Dit verwijdert PERMANENT:\n` +
+        `• Alle foto's uit Cloudinary\n` +
+        `• Likes, favorieten en feedback\n` +
+        `• De klant-toegangscode (${client.code})\n\n` +
+        `Dit kan niet ongedaan worden gemaakt.`
+    )
+    if (!confirmed) return
+
+    setDeletingCode(client.code)
+    try {
+      const res = await fetch(`/api/clients/${client.code}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        alert(data?.error || 'Verwijderen mislukt')
+        return
+      }
+      setClients(prev => prev.filter(c => c.code !== client.code))
+    } catch (err) {
+      console.error('Delete client error:', err)
+      alert('Verwijderen mislukt — probeer opnieuw')
+    } finally {
+      setDeletingCode(null)
+    }
   }
 
   return (
@@ -168,6 +197,26 @@ export default function AdminDashboard() {
                     style={{ backgroundColor: '#053221', color: '#c8a96e' }}
                   >
                     Beheer
+                  </button>
+                  <button
+                    onClick={() => handleDelete(client)}
+                    disabled={deletingCode === client.code}
+                    title="Klant verwijderen"
+                    aria-label={`Klant ${client.name} verwijderen`}
+                    className="flex items-center justify-center w-8 h-8 rounded transition hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{ color: '#b54545' }}
+                  >
+                    {deletingCode === client.code ? (
+                      <span className="text-xs">...</span>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                        <path d="M10 11v6"></path>
+                        <path d="M14 11v6"></path>
+                        <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                    )}
                   </button>
                 </div>
               </div>
