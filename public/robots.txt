@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /gallery/
+Disallow: /api/
+Disallow: /login
