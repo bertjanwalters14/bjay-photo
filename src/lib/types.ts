@@ -33,6 +33,15 @@ export interface EventRequest {
   createdAt: string
 }
 
+// "Meest recente momenten" tegels op de homepage van bjay.photo. Beheer via
+// /admin/recent, publiek opvraagbaar via /api/recent (met CORS).
+export interface RecentPhoto {
+  url: string       // Cloudinary URL (https://res.cloudinary.com/.../upload/.../v.../bjay/home/xxx.jpg)
+  alt: string       // alt-tekst voor toegankelijkheid + SEO
+  href: string      // doel-link als bezoeker klikt (bv. /sportfotograaf-hyrox)
+  publicId: string  // Cloudinary public_id, gebruikt voor delete-acties
+}
+
 export interface Client {
   id: string
   name: string
