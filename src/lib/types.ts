@@ -49,6 +49,12 @@ export interface Client {
   code: string
   type: PortalType
   createdAt: string
+  // Review-flow velden. Workflow: BJAY markeert klant als opgeleverd ->
+  // 3 dagen later stuurt cron automatisch een review-vraag per e-mail.
+  // BJAY kan handmatig markeren dat er een review binnen is.
+  deliveredAt?: string | null         // ISO datum waarop foto's zijn opgeleverd
+  reviewRequestedAt?: string | null   // ISO datum waarop review-mail is verstuurd
+  reviewReceived?: boolean            // BJAY vinkt aan als hij de review op Google ziet
 }
 
 export interface Photo {

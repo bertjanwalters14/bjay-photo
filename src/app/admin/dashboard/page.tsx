@@ -82,6 +82,13 @@ export default function AdminDashboard() {
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <button
+            onClick={() => router.push('/admin/reviews')}
+            className="px-4 py-2 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
+            style={{ border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }}
+          >
+            Reviews
+          </button>
+          <button
             onClick={() => router.push('/admin/recent')}
             className="px-4 py-2 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
             style={{ border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }}

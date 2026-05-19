@@ -173,6 +173,41 @@ export default function AdminClientPage() {
     window.open(`/gallery/${clientId}?preview=${data.token}`, '_blank')
   }
 
+  // Review-flow: markeer klant als opgeleverd (start de 3-daagse countdown)
+  // of haal de markering weer weg.
+  async function toggleDelivered() {
+    if (!client) return
+    const newValue = client.deliveredAt ? null : new Date().toISOString()
+    const res = await fetch(`/api/clients/${clientId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        deliveredAt: newValue,
+        // bij opnieuw markeren reset ook reviewRequestedAt zodat de mail
+        // opnieuw kan worden verstuurd
+        reviewRequestedAt: newValue ? client.reviewRequestedAt ?? null : null,
+      }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setClient(data.client)
+    }
+  }
+
+  // Markeer dat er een review is binnengekomen op Google (handmatig vink)
+  async function toggleReviewReceived() {
+    if (!client) return
+    const res = await fetch(`/api/clients/${clientId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reviewReceived: !client.reviewReceived }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setClient(data.client)
+    }
+  }
+
   async function setCover(photo: Photo) {
     setCoverUrl(photo.url)
     await fetch(`/api/clients/${clientId}/cover`, {
@@ -269,6 +304,92 @@ export default function AdminClientPage() {
             Aangemaakt: {client ? new Date(client.createdAt).toLocaleDateString('nl-NL') : ''}
           </p>
         </div>
+
+        {/* Review-flow (alleen voor personal-klanten met e-mail) */}
+        {!isEvent && client?.email && (
+          <div className="rounded-lg p-4" style={{ backgroundColor: '#fff', border: '1px solid rgba(200,169,110,0.3)' }}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-medium tracking-widest uppercase" style={{ color: '#c8a96e' }}>
+                Review-flow
+              </h3>
+              {client.reviewReceived && (
+                <span
+                  className="text-[10px] px-2 py-0.5 tracking-widest uppercase rounded-full"
+                  style={{ backgroundColor: '#c8a96e', color: '#053221' }}
+                >
+                  ★ Review ontvangen
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-1 text-sm mb-3" style={{ color: '#4a6358' }}>
+              <p>
+                Status oplevering:{' '}
+                {client.deliveredAt ? (
+                  <span style={{ color: '#053221' }}>
+                    Opgeleverd op {new Date(client.deliveredAt).toLocaleDateString('nl-NL')}
+                  </span>
+                ) : (
+                  <span style={{ color: '#4a6358', fontStyle: 'italic' }}>Nog niet opgeleverd</span>
+                )}
+              </p>
+              <p>
+                Review-mail:{' '}
+                {client.reviewRequestedAt ? (
+                  <span style={{ color: '#053221' }}>
+                    Verzonden op {new Date(client.reviewRequestedAt).toLocaleDateString('nl-NL')}
+                  </span>
+                ) : client.deliveredAt ? (
+                  <span style={{ color: '#c8a96e', fontStyle: 'italic' }}>
+                    Wordt 3 dagen na oplevering automatisch verzonden
+                  </span>
+                ) : (
+                  <span style={{ color: '#4a6358', fontStyle: 'italic' }}>
+                    Markeer eerst de klant als opgeleverd
+                  </span>
+                )}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={toggleDelivered}
+                className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
+                style={
+                  client.deliveredAt
+                    ? { border: '1px solid rgba(74,99,88,0.4)', color: '#4a6358' }
+                    : { backgroundColor: '#053221', color: '#c8a96e' }
+                }
+              >
+                {client.deliveredAt ? 'Oplevering ongedaan maken' : '✓ Markeer als opgeleverd'}
+              </button>
+
+              <button
+                onClick={toggleReviewReceived}
+                className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
+                style={
+                  client.reviewReceived
+                    ? { border: '1px solid rgba(74,99,88,0.4)', color: '#4a6358' }
+                    : { border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }
+                }
+              >
+                {client.reviewReceived ? 'Review-vinkje weghalen' : '★ Markeer review als ontvangen'}
+              </button>
+
+              {client.deliveredAt && (
+                <a
+                  href={`mailto:${client.email}?subject=${encodeURIComponent('Bedankt voor de fotoshoot bij BJAY Fotografie')}&body=${encodeURIComponent(
+                    `Hoi ${client.name.split(' ')[0]},\n\nHopelijk ben je blij met de foto's. Ik vond het zelf heel tof om jullie verhaal vast te leggen!\n\nMocht je een momentje hebben: zou je een korte Google-review willen achterlaten? Voor mij als zelfstandig fotograaf helpt dat enorm om gevonden te worden door andere atleten en clubs.\n\nhttps://g.page/r/CZc1CoEHfp4HEAE/review\n\nOok als je niet kunt: dank dat ik er voor je mocht zijn!\n\nBert-Jan\nBJAY Fotografie\ninfo@bjay.photo`
+                  )}`}
+                  className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
+                  style={{ border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }}
+                >
+                  Mail nu handmatig
+                </a>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Statistieken (verschillen per type) */}
         <div className="grid grid-cols-3 gap-3">

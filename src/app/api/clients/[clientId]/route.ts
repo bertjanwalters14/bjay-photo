@@ -29,6 +29,42 @@ export async function GET(
   return NextResponse.json({ client: normalized })
 }
 
+// PATCH — Specifieke velden op een klant updaten (alleen admin).
+// Gebruikt voor de review-flow: deliveredAt, reviewRequestedAt, reviewReceived.
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ clientId: string }> }
+) {
+  const isAdmin = await getAdminSession()
+  if (!isAdmin) {
+    return NextResponse.json({ error: 'Niet toegestaan' }, { status: 401 })
+  }
+
+  const { clientId } = await params
+  const client = await redis.get<Client>(`client:${clientId}`)
+  if (!client) {
+    return NextResponse.json({ error: 'Klant niet gevonden' }, { status: 404 })
+  }
+
+  const body = await req.json()
+  const updates: Partial<Client> = {}
+
+  if ('deliveredAt' in body) {
+    updates.deliveredAt = body.deliveredAt || null
+  }
+  if ('reviewRequestedAt' in body) {
+    updates.reviewRequestedAt = body.reviewRequestedAt || null
+  }
+  if ('reviewReceived' in body) {
+    updates.reviewReceived = Boolean(body.reviewReceived)
+  }
+
+  const updated: Client = { ...client, ...updates }
+  await redis.set(`client:${clientId}`, updated)
+
+  return NextResponse.json({ client: updated })
+}
+
 // DELETE — klant volledig verwijderen (alleen admin).
 // Ruimt op: Cloudinary foto-folder, alle redis keys voor deze klant,
 // en haalt de code uit de clients:all set.
