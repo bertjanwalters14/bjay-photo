@@ -29,6 +29,7 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<OrderStatus | 'all'>('all')
   const [updating, setUpdating] = useState<Record<string, boolean>>({})
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -78,6 +79,33 @@ export default function AdminOrdersPage() {
       setOrders(prev => prev.map(o => (o.id === orderId ? data.order : o)))
     }
     setUpdating(prev => ({ ...prev, [orderId]: false }))
+  }
+
+  async function deleteOrder(order: Order) {
+    const confirmed = window.confirm(
+      `Bestelling van ${order.customerName || '(geen naam)'} verwijderen?\n\n` +
+        `Pakket: ${order.format}\n` +
+        `Prijs: ${order.price}\n` +
+        `Status: ${STATUS_LABELS[order.status]}\n\n` +
+        `Dit kan niet ongedaan worden gemaakt.`
+    )
+    if (!confirmed) return
+
+    setDeletingId(order.id)
+    try {
+      const res = await fetch(`/api/orders/${order.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        alert(data?.error || 'Verwijderen mislukt')
+        return
+      }
+      setOrders(prev => prev.filter(o => o.id !== order.id))
+    } catch (err) {
+      console.error('Delete order error:', err)
+      alert('Verwijderen mislukt — probeer opnieuw')
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   // Download alle hi-res foto's van een bestelling. Werkt voor single (photoUrl)
@@ -314,18 +342,40 @@ export default function AdminOrdersPage() {
                         </option>
                       ))}
                     </select>
-                    <button
-                      onClick={() => downloadOrderPhotos(order)}
-                      className="text-xs px-2 py-1 transition hover:opacity-80"
-                      style={{
-                        backgroundColor: '#053221',
-                        color: '#c8a96e',
-                        border: '1px solid #053221',
-                      }}
-                      title="Download hi-res foto's om naar de klant te mailen"
-                    >
-                      Download hi-res
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => downloadOrderPhotos(order)}
+                        className="text-xs px-2 py-1 transition hover:opacity-80"
+                        style={{
+                          backgroundColor: '#053221',
+                          color: '#c8a96e',
+                          border: '1px solid #053221',
+                        }}
+                        title="Download hi-res foto's om naar de klant te mailen"
+                      >
+                        Download hi-res
+                      </button>
+                      <button
+                        onClick={() => deleteOrder(order)}
+                        disabled={deletingId === order.id}
+                        title="Bestelling verwijderen"
+                        aria-label="Bestelling verwijderen"
+                        className="flex items-center justify-center w-7 h-7 rounded transition hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
+                        style={{ color: '#b54545' }}
+                      >
+                        {deletingId === order.id ? (
+                          <span className="text-xs">...</span>
+                        ) : (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                            <path d="M10 11v6"></path>
+                            <path d="M14 11v6"></path>
+                            <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+                          </svg>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )
