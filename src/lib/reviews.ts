@@ -65,13 +65,13 @@ function buildReviewMessage(name: string): string {
 
   return `Hoi ${firstName},
 
-Hopelijk ben je blij met de foto's. Ik vond het zelf heel tof om jullie verhaal vast te leggen!
+Hopelijk geniet je inmiddels van de foto's!
 
 Mocht je een momentje hebben: zou je een korte Google-review willen achterlaten? Voor mij als zelfstandig fotograaf helpt dat enorm om gevonden te worden door andere atleten en clubs.
 
 ${GOOGLE_REVIEW_URL}
 
-Ook als je niet kunt: dank dat ik er voor je mocht zijn!
+Het is zeker niet verplicht, ik vond het echt een toffe shoot en hopelijk kun je nog lang van de beelden genieten.
 
 Bert-Jan
 BJAY Fotografie
@@ -101,9 +101,8 @@ export async function sendReviewRequest(client: PendingReviewClient): Promise<bo
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'BJAY Fotografie <info@bjay.photo>',
+          from: 'Bjay.photo <info@bjay.photo>',
           to: client.email,
-          reply_to: 'info@bjay.photo',
           subject,
           text: message,
         }),
