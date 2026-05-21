@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSession } from '@/lib/auth'
+import { adminLoginLimiter, getClientIp } from '@/lib/ratelimit'
 
 export async function POST(req: NextRequest) {
+  // Eerst rate limit checken op basis van IP. Voorkomt dat een aanvaller
+  // ongelimiteerd wachtwoorden kan proberen.
+  const ip = getClientIp(req)
+  const { success, reset } = await adminLoginLimiter.limit(ip)
+  if (!success) {
+    const secondsLeft = Math.ceil((reset - Date.now()) / 1000)
+    return NextResponse.json(
+      { error: `Te veel pogingen. Probeer over ${secondsLeft} seconden opnieuw.` },
+      { status: 429, headers: { 'Retry-After': String(secondsLeft) } },
+    )
+  }
+
   const { password } = await req.json()
 
   if (!password) {
