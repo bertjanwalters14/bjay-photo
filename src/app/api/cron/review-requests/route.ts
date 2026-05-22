@@ -7,7 +7,7 @@ import {
 
 // Dagelijkse cron-endpoint. Wordt aangeroepen door cron-job.org (of een
 // vergelijkbare gratis service) met:
-//   GET https://bjay-photo.vercel.app/api/cron/review-requests?token=XXX
+//   GET https://app.bjay.photo/api/cron/review-requests?token=XXX
 //
 // Token wordt vergeleken met env var CRON_SECRET. Zonder match: 401.
 //

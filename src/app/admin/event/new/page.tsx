@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 
-const DEFAULT_LOGIN_URL = 'https://bjay-photo.vercel.app/login'
+const DEFAULT_LOGIN_URL = 'https://app.bjay.photo/login'
 
 function slugify(input: string): string {
   return input

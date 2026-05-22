@@ -2,7 +2,7 @@ import redis from '@/lib/redis'
 import { Event, EventRequest } from '@/lib/types'
 import { nanoid } from 'nanoid'
 
-const DEFAULT_LOGIN_URL = 'https://bjay-photo.vercel.app/login'
+const DEFAULT_LOGIN_URL = 'https://app.bjay.photo/login'
 
 // ---------- Redis keys ----------
 
