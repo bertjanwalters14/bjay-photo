@@ -112,6 +112,18 @@ export default function GalleryPage() {
       setClient(clientData.client || null)
       setCoverUrl(coverData.cover || null)
       setLoading(false)
+
+      // Visit-tracking — fire-and-forget. Eenmaal per tab-sessie via
+      // sessionStorage, anders inflate-en F5's de teller.
+      try {
+        const visitKey = `bjay:visit:${clientId}`
+        if (!sessionStorage.getItem(visitKey)) {
+          sessionStorage.setItem(visitKey, '1')
+          fetch(apiUrl(`/api/clients/${clientId}/visit`), { method: 'POST' }).catch(() => {})
+        }
+      } catch {
+        // sessionStorage kan falen (private mode etc.); negeer
+      }
     }
 
     load()

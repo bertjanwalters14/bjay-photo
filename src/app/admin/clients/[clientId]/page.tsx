@@ -10,6 +10,24 @@ type LikesByPhoto = Record<
   { count: number; names: { name: string; createdAt: string }[] }
 >
 
+// Toont "5 min geleden", "3 uur geleden", "2 dagen geleden", etc. — leesbaarder
+// dan een absolute datum voor de portaal-bezoek-stat.
+function formatRelativeTime(iso: string): string {
+  const then = new Date(iso).getTime()
+  if (isNaN(then)) return 'onbekend'
+  const diffSec = Math.floor((Date.now() - then) / 1000)
+  if (diffSec < 60) return 'zojuist'
+  const min = Math.floor(diffSec / 60)
+  if (min < 60) return `${min} min geleden`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `${hr} uur geleden`
+  const days = Math.floor(hr / 24)
+  if (days < 7) return `${days} ${days === 1 ? 'dag' : 'dagen'} geleden`
+  const weeks = Math.floor(days / 7)
+  if (weeks < 5) return `${weeks} ${weeks === 1 ? 'week' : 'weken'} geleden`
+  return new Date(iso).toLocaleDateString('nl-NL')
+}
+
 export default function AdminClientPage() {
   const { clientId } = useParams<{ clientId: string }>()
   const router = useRouter()
@@ -21,6 +39,10 @@ export default function AdminClientPage() {
   const [likes, setLikes] = useState<LikesByPhoto>({})
   const [likesTotal, setLikesTotal] = useState(0)
   const [coverUrl, setCoverUrl] = useState<string | null>(null)
+  const [visitStats, setVisitStats] = useState<{ lastVisit: string | null; visitCount: number }>({
+    lastVisit: null,
+    visitCount: 0,
+  })
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
@@ -71,6 +93,12 @@ export default function AdminClientPage() {
         setCoverUrl(coverData.cover || null)
         setLikes(likesData.likes || {})
         setLikesTotal(likesData.total || 0)
+        if (clientData.stats) {
+          setVisitStats({
+            lastVisit: clientData.stats.lastVisit || null,
+            visitCount: clientData.stats.visitCount || 0,
+          })
+        }
       } catch (err) {
         console.error('Laad fout:', err)
       }
@@ -302,6 +330,25 @@ export default function AdminClientPage() {
           </p>
           <p className="text-sm mt-1" style={{ color: '#4a6358' }}>
             Aangemaakt: {client ? new Date(client.createdAt).toLocaleDateString('nl-NL') : ''}
+          </p>
+          {/* Visit-stats — toont of klant het portaal heeft geopend */}
+          <p className="text-sm mt-1" style={{ color: '#4a6358' }}>
+            Portaalbezoek:{' '}
+            {visitStats.visitCount === 0 ? (
+              <span style={{ color: '#a05a5a' }}>nog niet geopend</span>
+            ) : (
+              <>
+                <span style={{ color: '#053221' }}>{visitStats.visitCount}x</span>
+                {visitStats.lastVisit && (
+                  <>
+                    {' · laatst '}
+                    <span style={{ color: '#053221' }}>
+                      {formatRelativeTime(visitStats.lastVisit)}
+                    </span>
+                  </>
+                )}
+              </>
+            )}
           </p>
         </div>
 

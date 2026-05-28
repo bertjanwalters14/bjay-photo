@@ -26,6 +26,26 @@ export async function GET(
   // Backwards-compat: oude records zonder type krijgen 'personal'
   const normalized: Client = { ...client, type: client.type ?? ('personal' as PortalType) }
 
+  // Visit-stats alleen tonen aan admin. Klant zelf hoeft z'n eigen
+  // bezoek-stats niet te zien.
+  const isAdmin = await getAdminSession()
+  if (isAdmin) {
+    const [lastVisit, visitCountRaw] = await Promise.all([
+      redis.get<string>(`client:${clientId}:lastVisit`),
+      redis.get<string | number>(`client:${clientId}:visitCount`),
+    ])
+    const visitCount =
+      typeof visitCountRaw === 'number'
+        ? visitCountRaw
+        : visitCountRaw
+          ? parseInt(String(visitCountRaw), 10) || 0
+          : 0
+    return NextResponse.json({
+      client: normalized,
+      stats: { lastVisit: lastVisit || null, visitCount },
+    })
+  }
+
   return NextResponse.json({ client: normalized })
 }
 
@@ -107,6 +127,8 @@ export async function DELETE(
       redis.del(`client:${clientId}:favorites`),
       redis.del(`client:${clientId}:feedback`),
       redis.del(`client:${clientId}:likes`),
+      redis.del(`client:${clientId}:lastVisit`),
+      redis.del(`client:${clientId}:visitCount`),
     ])
     await redis.srem('clients:all', clientId)
   } catch (err) {
