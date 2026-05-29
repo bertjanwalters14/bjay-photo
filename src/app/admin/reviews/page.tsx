@@ -22,6 +22,8 @@ export default function AdminReviewsPage() {
   const router = useRouter()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
+  const [running, setRunning] = useState(false)
+  const [lastRun, setLastRun] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -45,6 +47,45 @@ export default function AdminReviewsPage() {
   const sent = clients.filter(c => getReviewState(c) === 'sent')
   const awaiting = clients.filter(c => getReviewState(c) === 'awaiting')
   const notDelivered = clients.filter(c => getReviewState(c) === 'not-delivered')
+
+  // Klanten die nu daadwerkelijk zouden moeten triggeren (deliveredAt > 3 dagen)
+  const readyToTrigger = awaiting.filter(
+    c => c.deliveredAt && daysSince(c.deliveredAt) >= 3
+  )
+
+  async function runCronNow() {
+    if (!confirm(
+      `Cron handmatig uitvoeren?\n\n${readyToTrigger.length} klant(en) staan klaar voor een review-mail.`
+    )) return
+
+    setRunning(true)
+    try {
+      const res = await fetch('/api/cron/review-requests', { cache: 'no-store' })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        setLastRun(
+          `${new Date().toLocaleTimeString('nl-NL')} - ${data.sent || 0} verstuurd` +
+            (data.failed ? `, ${data.failed} mislukt` : '')
+        )
+        // Klanten herladen om bijgewerkte reviewRequestedAt te zien
+        const refreshed = await fetch('/api/clients', { cache: 'no-store' })
+        if (refreshed.ok) {
+          const d = await refreshed.json()
+          const personalClients: Client[] = (d.clients || []).filter(
+            (c: Client) => (c.type ?? 'personal') === 'personal' && c.email,
+          )
+          setClients(personalClients)
+        }
+      } else {
+        setLastRun(`fout: ${data?.error || res.statusText}`)
+      }
+    } catch (err) {
+      console.error('Cron trigger fout:', err)
+      setLastRun('netwerkfout')
+    } finally {
+      setRunning(false)
+    }
+  }
 
   return (
     <main className="min-h-screen" style={{ backgroundColor: '#e8ede9' }}>
@@ -84,12 +125,45 @@ export default function AdminReviewsPage() {
         </p>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
           <StatCard label="Ontvangen" value={received.length} color="#c8a96e" />
           <StatCard label="Mail verzonden" value={sent.length} color="#053221" />
           <StatCard label="Wacht op cron" value={awaiting.length} color="#4a6358" />
           <StatCard label="Nog niet opgeleverd" value={notDelivered.length} color="#4a6358" muted />
         </div>
+
+        {/* Handmatige trigger — voor als de cron hangt of als je niet wilt wachten */}
+        {readyToTrigger.length > 0 && (
+          <div
+            className="rounded-lg p-4 mb-8 flex flex-col sm:flex-row sm:items-center gap-3"
+            style={{
+              backgroundColor: '#fff',
+              border: '1px solid rgba(200,169,110,0.4)',
+            }}
+          >
+            <div className="flex-1">
+              <p className="text-sm font-medium" style={{ color: '#053221' }}>
+                {readyToTrigger.length} klant{readyToTrigger.length !== 1 ? 'en' : ''} klaar voor review-mail
+              </p>
+              <p className="text-xs mt-1" style={{ color: '#4a6358' }}>
+                Trigger de cron handmatig als de dagelijkse run nog niet is geweest.
+              </p>
+              {lastRun && (
+                <p className="text-xs mt-1" style={{ color: '#c8a96e' }}>
+                  Laatste run: {lastRun}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={runCronNow}
+              disabled={running}
+              className="px-4 py-2 text-xs font-medium tracking-widest uppercase transition hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ backgroundColor: '#053221', color: '#c8a96e' }}
+            >
+              {running ? 'Bezig...' : 'Trigger nu'}
+            </button>
+          </div>
+        )}
 
         {loading ? (
           <p style={{ color: '#4a6358' }}>Laden...</p>
