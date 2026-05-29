@@ -67,7 +67,7 @@ function buildReviewMessage(name: string): string {
 
 Hopelijk geniet je inmiddels van de foto's!
 
-Mocht je een momentje hebben: zou je een korte Google-review willen achterlaten? Voor mij als zelfstandig fotograaf helpt dat enorm om gevonden te worden door andere atleten en clubs.
+Mocht je een momentje hebben: zou je een korte Google-review willen achterlaten? Dat helpt me enorm om beter gevonden te worden en meer mensen blij te maken met gave fotoshoots.
 
 ${GOOGLE_REVIEW_URL}
 

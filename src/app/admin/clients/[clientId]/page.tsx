@@ -426,7 +426,7 @@ export default function AdminClientPage() {
               {client.deliveredAt && (
                 <a
                   href={`mailto:${client.email}?subject=${encodeURIComponent('Bedankt voor de fotoshoot bij BJAY Fotografie')}&body=${encodeURIComponent(
-                    `Hoi ${client.name.split(' ')[0]},\n\nHopelijk ben je blij met de foto's. Ik vond het zelf heel tof om jullie verhaal vast te leggen!\n\nMocht je een momentje hebben: zou je een korte Google-review willen achterlaten? Voor mij als zelfstandig fotograaf helpt dat enorm om gevonden te worden door andere atleten en clubs.\n\nhttps://g.page/r/CZc1CoEHfp4HEAE/review\n\nOok als je niet kunt: dank dat ik er voor je mocht zijn!\n\nBert-Jan\nBJAY Fotografie\ninfo@bjay.photo`
+                    `Hoi ${client.name.split(' ')[0]},\n\nHopelijk ben je blij met de foto's. Ik vond het zelf heel tof om jullie verhaal vast te leggen!\n\nMocht je een momentje hebben: zou je een korte Google-review willen achterlaten? Dat helpt me enorm om beter gevonden te worden en meer mensen blij te maken met gave fotoshoots.\n\nhttps://g.page/r/CZc1CoEHfp4HEAE/review\n\nOok als je niet kunt: dank dat ik er voor je mocht zijn!\n\nBert-Jan\nBJAY Fotografie\ninfo@bjay.photo`
                   )}`}
                   className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
                   style={{ border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }}
