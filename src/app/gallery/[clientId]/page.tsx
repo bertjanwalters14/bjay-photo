@@ -375,19 +375,29 @@ export default function GalleryPage() {
                   Zo bestel je foto's
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
+                <div
+                  className={`grid grid-cols-1 gap-3 sm:gap-4 mb-4 ${
+                    isEvent ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-3'
+                  }`}
+                >
                   {(isEvent
                     ? [
                         { n: '1', t: 'Selecteer', d: 'Tik op de + knop bij elke foto die je wilt' },
                         { n: '2', t: 'Checkout', d: 'Klik onderin op de groene checkout-knop' },
                         { n: '3', t: 'Per mail', d: 'Na betaling ontvang je de foto(s) in hoge resolutie zonder watermerk per mail' },
+                        {
+                          n: '4',
+                          t: 'Tevreden?',
+                          d: 'Laat een korte Google-review achter — helpt me enorm.',
+                          href: 'https://g.page/r/CZc1CoEHfp4HEAE/review',
+                        },
                       ]
                     : [
                         { n: '1', t: 'Selecteer', d: 'Tik op + voor digitale download, of klik een foto voor een afdruk' },
                         { n: '2', t: 'Checkout', d: 'Digitaal: groene knop onderin. Afdruk: in de foto-weergave.' },
                         { n: '3', t: 'Per mail of post', d: 'Digitale foto(s) in hoge resolutie per mail, afdrukken per post.' },
                       ]
-                  ).map(step => (
+                  ).map((step: { n: string; t: string; d: string; href?: string }) => (
                     <div key={step.n} className="flex gap-3 items-start">
                       <div
                         className="flex-shrink-0 flex items-center justify-center text-sm font-bold"
@@ -395,19 +405,34 @@ export default function GalleryPage() {
                           width: 28,
                           height: 28,
                           borderRadius: '50%',
-                          backgroundColor: '#053221',
-                          color: '#c8a96e',
+                          backgroundColor: step.href ? '#c8a96e' : '#053221',
+                          color: step.href ? '#053221' : '#c8a96e',
                         }}
                       >
-                        {step.n}
+                        {step.href ? '★' : step.n}
                       </div>
                       <div>
                         <p className="text-sm font-medium" style={{ color: '#053221' }}>
                           {step.t}
                         </p>
-                        <p className="text-xs mt-0.5" style={{ color: '#4a6358' }}>
-                          {step.d}
-                        </p>
+                        {step.href ? (
+                          <p className="text-xs mt-0.5" style={{ color: '#4a6358' }}>
+                            {step.d}{' '}
+                            <a
+                              href={step.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline font-medium whitespace-nowrap"
+                              style={{ color: '#c8a96e' }}
+                            >
+                              Schrijf review →
+                            </a>
+                          </p>
+                        ) : (
+                          <p className="text-xs mt-0.5" style={{ color: '#4a6358' }}>
+                            {step.d}
+                          </p>
+                        )}
                       </div>
                     </div>
                   ))}
