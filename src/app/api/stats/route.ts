@@ -6,9 +6,25 @@ import {
   getPageviewsTimeseries,
   getSessions,
   getStats,
-  getStatsMultiCountry,
+  type SupportedCountry,
+  type UmamiMetric,
   type UmamiSession,
 } from '@/lib/umami'
+
+// Som de visitors op uit /metrics?type=country voor onze drie landen.
+// Umami's /stats endpoint respecteert de country-filter onbetrouwbaar,
+// daarom rollen we de KPI's op via de country-breakdown.
+function sumFilteredVisitors(breakdown: UmamiMetric[]): number {
+  return breakdown
+    .filter(m => COUNTRIES.includes(m.x as SupportedCountry))
+    .reduce((s, m) => s + (m.y || 0), 0)
+}
+
+function sumRestVisitors(breakdown: UmamiMetric[]): number {
+  return breakdown
+    .filter(m => !COUNTRIES.includes(m.x as SupportedCountry))
+    .reduce((s, m) => s + (m.y || 0), 0)
+}
 
 // Helper: bepaal start/end timestamps voor een aantal "vandaag" / "X dagen geleden"
 function rangeForDays(days: number, now = Date.now()) {
@@ -37,30 +53,32 @@ export async function GET(_req: NextRequest) {
   const thirtyStart = now - 30 * 24 * 60 * 60 * 1000
 
   try {
-    // Parallel ophalen — Umami v1 API endpoint paths.
+    // Parallel ophalen. We gebruiken /stats voor totale visitors+pageviews
+    // en prev-period (voor trend), en /metrics?type=country voor de
+    // per-land breakdown (waaruit we de NL+BE+DE filter berekenen).
     const [
-      statsToday,
-      stats7d,
-      stats30d,
-      statsAll30d,
+      statsTodayAll,
+      stats7dAll,
+      stats30dAll,
+      countryToday,
+      country7d,
+      country30d,
       pageviewsTs,
       sessionsResp,
       events30d,
     ] = await Promise.all([
-      getStatsMultiCountry(todayStart, now, COUNTRIES),
-      getStatsMultiCountry(sevenStart, now, COUNTRIES),
-      getStatsMultiCountry(thirtyStart, now, COUNTRIES),
-      // Voor spookverkeer-tegel: ongefilterd totaal
+      getStats(todayStart, now),
+      getStats(sevenStart, now),
       getStats(thirtyStart, now),
-      // Grafiek: dagelijkse pageviews/sessies, 30 dagen, NL only (Umami pageviews
-      // ondersteunt 1 country tegelijk; we tonen alleen NL als grootste signaal).
-      // Voor multi-country graph zouden 3 calls + merge nodig zijn.
+      getMetrics(todayStart, now, 'country', undefined, 50),
+      getMetrics(sevenStart, now, 'country', undefined, 50),
+      getMetrics(thirtyStart, now, 'country', undefined, 50),
+      // Grafiek: dagelijkse pageviews. NL only (Umami /pageviews accepteert
+      // 1 land tegelijk en NL is verreweg de grootste bron).
       getPageviewsTimeseries(thirtyStart, now, 'NL', 'day'),
-      // 50 nieuwste sessies (NL+BE+DE). Helaas filtert /sessions maar op 1 country
-      // tegelijk; we trekken 3 keer en mergen client-side.
+      // 50 nieuwste sessies per land, samengevoegd na call
       Promise.all(COUNTRIES.map(c => getSessions(sevenStart, now, { country: c, pageSize: 50 }))),
-      // Events-overzicht (30d, ongefilterd op land — events zijn user-actions,
-      // dus we willen ze juist ongeacht waar de visitor vandaan kwam zien)
+      // Events 30d ongefilterd op land
       getMetrics(thirtyStart, now, 'event', undefined, 30),
     ])
 
@@ -73,36 +91,37 @@ export async function GET(_req: NextRequest) {
     })
     const recentSessions = allSessions.slice(0, 50)
 
-    // Spookverkeer: totaal_visitors_30d - filtered_visitors_30d
-    const ghostVisitors = Math.max(
-      0,
-      (statsAll30d.visitors?.value || 0) - (stats30d.visitors?.value || 0),
-    )
-    const ghostPageviews = Math.max(
-      0,
-      (statsAll30d.pageviews?.value || 0) - (stats30d.pageviews?.value || 0),
-    )
+    // Per-periode: filtered visitors (NL+BE+DE) uit metrics, totaal en prev uit /stats
+    function buildKpi(stats: typeof statsTodayAll, breakdown: UmamiMetric[]) {
+      const filteredVisitors = sumFilteredVisitors(breakdown)
+      return {
+        filteredVisitors,
+        totalVisitors: stats.visitors?.value || 0,
+        prevVisitors: stats.visitors?.prev || 0,
+        totalPageviews: stats.pageviews?.value || 0,
+        prevPageviews: stats.pageviews?.prev || 0,
+        rest: sumRestVisitors(breakdown),
+      }
+    }
 
     return NextResponse.json({
       generatedAt: new Date().toISOString(),
       kpi: {
-        today: statsToday,
-        sevenDays: stats7d,
-        thirtyDays: stats30d,
+        today: buildKpi(statsTodayAll, countryToday),
+        sevenDays: buildKpi(stats7dAll, country7d),
+        thirtyDays: buildKpi(stats30dAll, country30d),
       },
       chart: {
-        // Dagelijkse buckets voor de grafiek
         pageviews: pageviewsTs.pageviews || [],
         sessions: pageviewsTs.sessions || [],
         note: 'Grafiek toont alleen NL (grootste publiek). BE+DE samen <10% van traffic.',
       },
       sessions: recentSessions,
       events: events30d,
+      countryBreakdown30d: country30d,
       ghost: {
-        visitors: ghostVisitors,
-        pageviews: ghostPageviews,
-        totalVisitors: statsAll30d.visitors?.value || 0,
-        totalPageviews: statsAll30d.pageviews?.value || 0,
+        visitors: sumRestVisitors(country30d),
+        totalVisitors: stats30dAll.visitors?.value || 0,
       },
     })
   } catch (err) {

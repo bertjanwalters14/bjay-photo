@@ -4,13 +4,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 
-type MetricDelta = { value: number; prev: number }
-type StatsBlock = {
-  pageviews: MetricDelta
-  visitors: MetricDelta
-  visits: MetricDelta
-  bouncerate: MetricDelta
-  totaltime: MetricDelta
+type KpiBlock = {
+  filteredVisitors: number
+  totalVisitors: number
+  prevVisitors: number
+  totalPageviews: number
+  prevPageviews: number
+  rest: number
 }
 type Session = {
   id: string
@@ -32,9 +32,9 @@ type ChartPoint = { x: string; y: number }
 type StatsData = {
   generatedAt: string
   kpi: {
-    today: StatsBlock
-    sevenDays: StatsBlock
-    thirtyDays: StatsBlock
+    today: KpiBlock
+    sevenDays: KpiBlock
+    thirtyDays: KpiBlock
   }
   chart: {
     pageviews: ChartPoint[]
@@ -43,11 +43,10 @@ type StatsData = {
   }
   sessions: Session[]
   events: Metric[]
+  countryBreakdown30d: Metric[]
   ghost: {
     visitors: number
-    pageviews: number
     totalVisitors: number
-    totalPageviews: number
   }
 }
 
@@ -111,13 +110,14 @@ function TrendArrow({ value, prev }: { value: number; prev: number }) {
 
 function KpiTile({
   label,
-  stats,
+  kpi,
   highlight,
 }: {
   label: string
-  stats: StatsBlock
+  kpi: KpiBlock
   highlight?: boolean
 }) {
+  const dim = highlight ? 'rgba(200,169,110,0.7)' : COLORS.gray
   return (
     <div
       className="rounded-lg p-4 flex flex-col gap-2"
@@ -127,10 +127,7 @@ function KpiTile({
         border: `1px solid ${highlight ? COLORS.green : 'rgba(200,169,110,0.3)'}`,
       }}
     >
-      <p
-        className="text-[10px] tracking-widest uppercase"
-        style={{ color: highlight ? 'rgba(200,169,110,0.7)' : COLORS.gray }}
-      >
+      <p className="text-[10px] tracking-widest uppercase" style={{ color: dim }}>
         {label}
       </p>
       <div className="flex items-baseline gap-2">
@@ -138,24 +135,30 @@ function KpiTile({
           className="text-3xl font-light"
           style={{ fontFamily: 'var(--font-jost), sans-serif' }}
         >
-          {stats.visitors?.value || 0}
+          {kpi.filteredVisitors}
         </span>
-        <span className="text-xs" style={{ color: highlight ? 'rgba(200,169,110,0.7)' : COLORS.gray }}>
-          bezoekers
+        <span className="text-xs" style={{ color: dim }}>
+          bezoekers NL/BE/DE
         </span>
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-xs" style={{ color: highlight ? 'rgba(200,169,110,0.7)' : COLORS.gray }}>
-          {stats.pageviews?.value || 0} pageviews
+        <span className="text-xs" style={{ color: dim }}>
+          {kpi.totalPageviews} pageviews tot.
         </span>
-        <TrendArrow value={stats.visitors?.value || 0} prev={stats.visitors?.prev || 0} />
+        <TrendArrow value={kpi.totalVisitors} prev={kpi.prevVisitors} />
       </div>
+      {kpi.totalVisitors > kpi.filteredVisitors && (
+        <p className="text-[10px]" style={{ color: dim }}>
+          {kpi.totalVisitors} ongefilterd · {kpi.rest} buiten NL/BE/DE
+        </p>
+      )}
     </div>
   )
 }
 
-// SVG bargrafiek voor dagelijkse pageviews. Geen library, alles native.
-function BarChart({ points, height = 140 }: { points: ChartPoint[]; height?: number }) {
+// HTML bargrafiek (geen SVG-stretching meer). Bars als flex divs,
+// hoogte in percentage. Labels onder eens in de zoveel bars, mobiel-vriendelijk.
+function BarChart({ points }: { points: ChartPoint[] }) {
   if (points.length === 0) {
     return (
       <div
@@ -168,59 +171,50 @@ function BarChart({ points, height = 140 }: { points: ChartPoint[]; height?: num
   }
 
   const max = Math.max(...points.map(p => p.y), 1)
-  const barWidthPct = 100 / points.length
-  const labelEvery = Math.ceil(points.length / 6)
+  // Toon ongeveer 5 labels onder de grafiek (begin, 25%, 50%, 75%, eind)
+  const labelEvery = Math.max(1, Math.ceil(points.length / 5))
 
   return (
     <div
       className="rounded-lg p-4"
       style={{ backgroundColor: COLORS.white, border: `1px solid rgba(200,169,110,0.3)` }}
     >
-      <svg
-        viewBox={`0 0 100 ${height}`}
-        preserveAspectRatio="none"
-        className="w-full"
-        style={{ height: `${height}px` }}
+      <div
+        className="flex items-end gap-[2px]"
+        style={{ height: '140px' }}
       >
-        {points.map((p, i) => {
-          const barH = (p.y / max) * (height - 20)
-          const x = i * barWidthPct
-          const y = height - 20 - barH
+        {points.map(p => {
+          const heightPct = max > 0 ? (p.y / max) * 100 : 0
+          const dateLabel = new Date(p.x).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })
           return (
-            <g key={p.x}>
-              <rect
-                x={x + barWidthPct * 0.1}
-                y={y}
-                width={barWidthPct * 0.8}
-                height={barH}
-                fill={COLORS.gold}
-                opacity={0.85}
-              >
-                <title>{`${new Date(p.x).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}: ${p.y} pageviews`}</title>
-              </rect>
-            </g>
+            <div
+              key={p.x}
+              className="flex-1 rounded-t"
+              style={{
+                height: `${Math.max(heightPct, 1)}%`,
+                backgroundColor: COLORS.gold,
+                opacity: p.y > 0 ? 0.85 : 0.15,
+                minHeight: p.y > 0 ? '2px' : '1px',
+              }}
+              title={`${dateLabel}: ${p.y} pageviews`}
+            />
           )
         })}
-        {/* X-axis labels (alleen elke N) */}
+      </div>
+      <div className="flex gap-[2px] mt-2">
         {points.map((p, i) => {
-          if (i % labelEvery !== 0 && i !== points.length - 1) return null
-          const x = i * barWidthPct + barWidthPct / 2
-          const date = new Date(p.x)
+          const showLabel = i % labelEvery === 0 || i === points.length - 1
           return (
-            <text
-              key={`lbl-${p.x}`}
-              x={x}
-              y={height - 6}
-              fontSize="4"
-              textAnchor="middle"
-              fill={COLORS.gray}
-              fontFamily="var(--font-inter), sans-serif"
-            >
-              {date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}
-            </text>
+            <div key={`l-${p.x}`} className="flex-1 text-center">
+              {showLabel && (
+                <span className="text-[10px]" style={{ color: COLORS.gray }}>
+                  {new Date(p.x).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}
+                </span>
+              )}
+            </div>
           )
         })}
-      </svg>
+      </div>
     </div>
   )
 }
@@ -372,9 +366,9 @@ export default function AdminStatsPage() {
 
             {/* KPI-tegels */}
             <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <KpiTile label="Vandaag" stats={data.kpi.today} highlight />
-              <KpiTile label="Laatste 7 dagen" stats={data.kpi.sevenDays} />
-              <KpiTile label="Laatste 30 dagen" stats={data.kpi.thirtyDays} />
+              <KpiTile label="Vandaag" kpi={data.kpi.today} highlight />
+              <KpiTile label="Laatste 7 dagen" kpi={data.kpi.sevenDays} />
+              <KpiTile label="Laatste 30 dagen" kpi={data.kpi.thirtyDays} />
             </section>
 
             {/* 30-dagen grafiek */}
@@ -474,7 +468,7 @@ export default function AdminStatsPage() {
                   </p>
                 </div>
                 <div className="text-xs text-right" style={{ color: COLORS.gray }}>
-                  <p>{data.ghost.pageviews} pageviews</p>
+                  <p>{data.ghost.totalVisitors} totaal (alle landen)</p>
                   <p className="opacity-70">
                     {data.ghost.totalVisitors > 0
                       ? Math.round((data.ghost.visitors / data.ghost.totalVisitors) * 100)
