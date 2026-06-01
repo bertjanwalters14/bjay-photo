@@ -54,12 +54,31 @@ export interface UmamiPageviews {
   sessions: UmamiMetric[]
 }
 
+// Umami /stats geeft afhankelijk van versie / parameters twee shapes:
+//   1. { pageviews: 100, visitors: 50, ... }       (plat, geen prev)
+//   2. { pageviews: { value: 100, prev: 80 }, ... } (met comparison)
+// We normaliseren naar nummers in de route handler.
+export type StatsField = number | { value: number; prev: number }
 export interface UmamiStats {
-  pageviews: { value: number; prev: number }
-  visitors: { value: number; prev: number }
-  visits: { value: number; prev: number }
-  bouncerate: { value: number; prev: number }
-  totaltime: { value: number; prev: number }
+  pageviews: StatsField
+  visitors: StatsField
+  visits: StatsField
+  bouncerate: StatsField
+  totaltime: StatsField
+}
+
+// Pak het huidige getal uit een StatsField (werkt voor beide shapes).
+export function statValue(v: StatsField | undefined): number {
+  if (v === undefined || v === null) return 0
+  if (typeof v === 'number') return v
+  if (typeof v === 'object' && 'value' in v && typeof v.value === 'number') return v.value
+  return 0
+}
+
+// Pak het vorige-periode getal uit een StatsField (alleen aanwezig in shape 2).
+export function statPrev(v: StatsField | undefined): number {
+  if (v && typeof v === 'object' && 'prev' in v && typeof v.prev === 'number') return v.prev
+  return 0
 }
 
 class UmamiError extends Error {
@@ -179,28 +198,3 @@ export async function getSessionActivity(
   return umamiFetch<UmamiSessionActivity[]>(`/sessions/${sessionId}/activity`, { startAt, endAt })
 }
 
-// Helper: parallel ophalen voor meerdere landen en optellen.
-export async function getStatsMultiCountry(
-  startAt: number,
-  endAt: number,
-  countries: readonly string[],
-): Promise<UmamiStats> {
-  const results = await Promise.all(countries.map(c => getStats(startAt, endAt, c)))
-  const sum: UmamiStats = {
-    pageviews: { value: 0, prev: 0 },
-    visitors: { value: 0, prev: 0 },
-    visits: { value: 0, prev: 0 },
-    bouncerate: { value: 0, prev: 0 },
-    totaltime: { value: 0, prev: 0 },
-  }
-  for (const r of results) {
-    sum.pageviews.value += r.pageviews?.value || 0
-    sum.pageviews.prev += r.pageviews?.prev || 0
-    sum.visitors.value += r.visitors?.value || 0
-    sum.visitors.prev += r.visitors?.prev || 0
-    sum.visits.value += r.visits?.value || 0
-    sum.visits.prev += r.visits?.prev || 0
-    // bouncerate en totaltime middelen we niet, niet zinvol om op te tellen
-  }
-  return sum
-}

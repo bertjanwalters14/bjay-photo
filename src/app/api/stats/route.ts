@@ -6,6 +6,8 @@ import {
   getPageviewsTimeseries,
   getSessions,
   getStats,
+  statPrev,
+  statValue,
   type SupportedCountry,
   type UmamiMetric,
   type UmamiSession,
@@ -96,10 +98,10 @@ export async function GET(_req: NextRequest) {
       const filteredVisitors = sumFilteredVisitors(breakdown)
       return {
         filteredVisitors,
-        totalVisitors: stats.visitors?.value || 0,
-        prevVisitors: stats.visitors?.prev || 0,
-        totalPageviews: stats.pageviews?.value || 0,
-        prevPageviews: stats.pageviews?.prev || 0,
+        totalVisitors: statValue(stats.visitors),
+        prevVisitors: statPrev(stats.visitors),
+        totalPageviews: statValue(stats.pageviews),
+        prevPageviews: statPrev(stats.pageviews),
         rest: sumRestVisitors(breakdown),
       }
     }
@@ -121,7 +123,7 @@ export async function GET(_req: NextRequest) {
       countryBreakdown30d: country30d,
       ghost: {
         visitors: sumRestVisitors(country30d),
-        totalVisitors: stats30dAll.visitors?.value || 0,
+        totalVisitors: statValue(stats30dAll.visitors),
       },
     })
   } catch (err) {

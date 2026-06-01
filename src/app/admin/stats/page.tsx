@@ -219,9 +219,47 @@ function BarChart({ points }: { points: ChartPoint[] }) {
   )
 }
 
+type Activity = {
+  createdAt: string
+  urlPath?: string
+  urlQuery?: string | null
+  referrerDomain?: string | null
+  eventName?: string | null
+}
+
 function SessionCard({ s }: { s: Session }) {
   const [expanded, setExpanded] = useState(false)
+  const [activity, setActivity] = useState<Activity[] | null>(null)
+  const [activityLoading, setActivityLoading] = useState(false)
+  const [activityError, setActivityError] = useState('')
   const locale = [s.city, s.country].filter(Boolean).join(', ') || 'onbekend'
+
+  async function toggleExpand() {
+    const next = !expanded
+    setExpanded(next)
+    // Lazy load: alleen ophalen bij eerste keer openklappen
+    if (next && activity === null && !activityLoading) {
+      setActivityLoading(true)
+      setActivityError('')
+      try {
+        const res = await fetch(`/api/stats/sessions/${s.id}`, { cache: 'no-store' })
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}))
+          setActivityError(d?.error || `Fout ${res.status}`)
+          setActivity([])
+        } else {
+          const json = await res.json()
+          setActivity(json.activity || [])
+        }
+      } catch (err) {
+        setActivityError(err instanceof Error ? err.message : 'Onbekende fout')
+        setActivity([])
+      } finally {
+        setActivityLoading(false)
+      }
+    }
+  }
+
   return (
     <div
       className="rounded-lg p-3"
@@ -229,7 +267,7 @@ function SessionCard({ s }: { s: Session }) {
     >
       <button
         type="button"
-        onClick={() => setExpanded(v => !v)}
+        onClick={toggleExpand}
         className="w-full flex items-center justify-between gap-3 text-left"
       >
         <div className="min-w-0 flex-1">
@@ -243,15 +281,59 @@ function SessionCard({ s }: { s: Session }) {
             {s.totaltime !== undefined && s.totaltime > 0 && ` · ${formatDuration(s.totaltime)}`}
           </p>
         </div>
-        <span
-          className="text-xs flex-shrink-0"
-          style={{ color: COLORS.gold }}
-        >
+        <span className="text-xs flex-shrink-0" style={{ color: COLORS.gold }}>
           {expanded ? '−' : '+'}
         </span>
       </button>
       {expanded && (
-        <div className="mt-3 pt-3 text-xs space-y-1" style={{ borderTop: '1px solid rgba(200,169,110,0.2)', color: COLORS.gray }}>
+        <div
+          className="mt-3 pt-3 text-xs"
+          style={{ borderTop: '1px solid rgba(200,169,110,0.2)', color: COLORS.gray }}
+        >
+          {/* Activity-timeline (pageviews + events op volgorde) */}
+          {activityLoading ? (
+            <p className="mb-3">Activiteit laden...</p>
+          ) : activityError ? (
+            <p className="mb-3" style={{ color: COLORS.alert }}>
+              Kon activiteit niet laden: {activityError}
+            </p>
+          ) : activity && activity.length > 0 ? (
+            <div className="mb-3">
+              <p className="mb-2 font-medium" style={{ color: COLORS.green }}>
+                Bezocht:
+              </p>
+              <ol className="space-y-1">
+                {activity.map((a, i) => {
+                  const time = new Date(a.createdAt).toLocaleTimeString('nl-NL', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                  })
+                  const isEvent = Boolean(a.eventName)
+                  return (
+                    <li key={i} className="flex gap-2">
+                      <span className="font-mono opacity-60 flex-shrink-0">{time}</span>
+                      {isEvent ? (
+                        <span style={{ color: COLORS.gold }}>
+                          → event: <strong>{a.eventName}</strong>
+                          {a.urlPath && <span className="opacity-70"> op {a.urlPath}</span>}
+                        </span>
+                      ) : (
+                        <span style={{ color: COLORS.green }}>
+                          {a.urlPath || '(geen pad)'}
+                          {a.urlQuery && <span className="opacity-50">?{a.urlQuery}</span>}
+                        </span>
+                      )}
+                    </li>
+                  )
+                })}
+              </ol>
+            </div>
+          ) : activity && activity.length === 0 ? (
+            <p className="mb-3 opacity-60">Geen activiteit-detail beschikbaar.</p>
+          ) : null}
+
+          {/* Meta-info */}
           <p>
             <strong style={{ color: COLORS.green }}>Apparaat:</strong>{' '}
             {[s.device, s.browser, s.os].filter(Boolean).join(' · ') || 'onbekend'}
@@ -261,13 +343,6 @@ function SessionCard({ s }: { s: Session }) {
               <strong style={{ color: COLORS.green }}>Regio:</strong> {s.region}
             </p>
           )}
-          <p>
-            <strong style={{ color: COLORS.green }}>Sessie-ID:</strong>{' '}
-            <span className="font-mono">{s.id.slice(0, 12)}...</span>
-          </p>
-          <p className="opacity-60">
-            Voor de volledige pagina-volgorde van deze sessie, open Umami zelf.
-          </p>
         </div>
       )}
     </div>
@@ -478,7 +553,7 @@ export default function AdminStatsPage() {
                 </div>
               </div>
               <p className="text-[10px] mt-2" style={{ color: COLORS.gray }}>
-                Meestal bots en scrapers. Hou dit in de gaten — als het ineens spikes, dan zit er wat scheef.
+                Meestal bots en scrapers. Hou dit in de gaten - als het ineens spikes, dan zit er wat scheef.
               </p>
             </section>
 
