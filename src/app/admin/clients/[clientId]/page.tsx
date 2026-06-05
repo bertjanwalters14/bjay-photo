@@ -43,6 +43,10 @@ export default function AdminClientPage() {
     lastVisit: null,
     visitCount: 0,
   })
+  const [editing, setEditing] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
@@ -201,6 +205,25 @@ export default function AdminClientPage() {
     window.open(`/gallery/${clientId}?preview=${data.token}`, '_blank')
   }
 
+  // Inline-bewerken voor naam + e-mail. Gebruik je vooral als je een klant
+  // hebt aangemaakt zonder e-mail en die later toevoegt.
+  async function saveClientEdit(updates: { name?: string; email?: string }) {
+    const res = await fetch(`/api/clients/${clientId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setClient(data.client)
+      return true
+    } else {
+      const data = await res.json().catch(() => ({}))
+      alert(data?.error || 'Bewerken mislukt')
+      return false
+    }
+  }
+
   // Review-flow: markeer klant als opgeleverd (start de 3-daagse countdown)
   // of haal de markering weer weg.
   async function toggleDelivered() {
@@ -310,7 +333,7 @@ export default function AdminClientPage() {
 
         {/* Klantinfo */}
         <div className="rounded-lg p-4" style={{ backgroundColor: '#fff', border: '1px solid rgba(200,169,110,0.3)' }}>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center justify-between gap-2 mb-2">
             <span
               className="text-[10px] px-2 py-0.5 tracking-widest uppercase rounded-full"
               style={{
@@ -321,9 +344,78 @@ export default function AdminClientPage() {
             >
               {isEvent ? 'Event' : 'Personal'}
             </span>
+            {!editing && (
+              <button
+                onClick={() => {
+                  setEditName(client?.name || '')
+                  setEditEmail(client?.email || '')
+                  setEditing(true)
+                }}
+                className="text-xs underline transition hover:opacity-70"
+                style={{ color: '#c8a96e' }}
+              >
+                Bewerk
+              </button>
+            )}
           </div>
-          {!isEvent && (
-            <p className="text-sm" style={{ color: '#4a6358' }}>E-mail: {client?.email || 'Niet opgegeven'}</p>
+          {editing ? (
+            <div className="flex flex-col gap-2 mb-2">
+              <label className="text-xs" style={{ color: '#4a6358' }}>
+                Naam
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  className="w-full mt-1 px-2 py-1.5 text-sm focus:outline-none"
+                  style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221' }}
+                />
+              </label>
+              {!isEvent && (
+                <label className="text-xs" style={{ color: '#4a6358' }}>
+                  E-mail
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={e => setEditEmail(e.target.value)}
+                    placeholder="naam@voorbeeld.nl"
+                    className="w-full mt-1 px-2 py-1.5 text-sm focus:outline-none"
+                    style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221' }}
+                  />
+                </label>
+              )}
+              <div className="flex gap-2 mt-1">
+                <button
+                  onClick={async () => {
+                    setSavingEdit(true)
+                    const ok = await saveClientEdit({
+                      name: editName,
+                      email: isEvent ? undefined : editEmail,
+                    })
+                    setSavingEdit(false)
+                    if (ok) setEditing(false)
+                  }}
+                  disabled={savingEdit || !editName.trim()}
+                  className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80 disabled:opacity-50"
+                  style={{ backgroundColor: '#053221', color: '#c8a96e' }}
+                >
+                  {savingEdit ? 'Bezig...' : 'Opslaan'}
+                </button>
+                <button
+                  onClick={() => setEditing(false)}
+                  disabled={savingEdit}
+                  className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
+                  style={{ border: '1px solid rgba(74,99,88,0.4)', color: '#4a6358' }}
+                >
+                  Annuleer
+                </button>
+              </div>
+            </div>
+          ) : (
+            !isEvent && (
+              <p className="text-sm" style={{ color: '#4a6358' }}>
+                E-mail: {client?.email || <span style={{ color: '#a05a5a' }}>Niet opgegeven</span>}
+              </p>
+            )
           )}
           <p className="text-sm mt-1 break-all" style={{ color: '#4a6358' }}>
             Inlogcode: <span className="font-mono tracking-widest" style={{ color: '#c8a96e' }}>{client?.code}</span>

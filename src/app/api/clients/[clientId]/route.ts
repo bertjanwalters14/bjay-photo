@@ -78,6 +78,21 @@ export async function PATCH(
   if ('reviewReceived' in body) {
     updates.reviewReceived = Boolean(body.reviewReceived)
   }
+  if (typeof body.name === 'string') {
+    const trimmed = body.name.trim().slice(0, 80)
+    if (trimmed.length === 0) {
+      return NextResponse.json({ error: 'Naam mag niet leeg zijn' }, { status: 400 })
+    }
+    updates.name = trimmed
+  }
+  if (typeof body.email === 'string') {
+    const trimmed = body.email.trim().slice(0, 120)
+    // Lege string is OK (mailadres verwijderen). Niet-leeg moet geldig zijn.
+    if (trimmed.length > 0 && !/^\S+@\S+\.\S+$/.test(trimmed)) {
+      return NextResponse.json({ error: 'Ongeldig e-mailadres' }, { status: 400 })
+    }
+    updates.email = trimmed
+  }
 
   const updated: Client = { ...client, ...updates }
   await redis.set(`client:${clientId}`, updated)
