@@ -15,14 +15,29 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: corsHeaders })
 }
 
+// Defensieve helper: ook bij oude/migrated records een leesbare naam pakken.
+// Kijkt naar alternatieve veldnamen en valt terug op een slug-gebaseerde
+// titel als laatste vangnet. Voorkomt lege dropdown-opties op bjay.photo.
+function readableName(e: Record<string, unknown>): string {
+  const candidates = [e.name, e.title, e.eventName, e.label]
+  for (const c of candidates) {
+    if (typeof c === 'string' && c.trim()) return c.trim()
+  }
+  if (typeof e.slug === 'string' && e.slug) {
+    return e.slug.replace(/-/g, ' ').replace(/^./, c => c.toUpperCase())
+  }
+  return '(naamloos event)'
+}
+
 export async function GET() {
   try {
     const events = await getRequestableEvents()
     // Alleen veilige velden teruggeven; wachtwoord absoluut NIET.
+    // 'name' valt terug op slug-derived als hij om wat voor reden ook leeg is.
     const slimmed = events.map(e => ({
       slug: e.slug,
-      name: e.name,
-      description: e.description,
+      name: readableName(e as unknown as Record<string, unknown>),
+      description: e.description || '',
     }))
     return NextResponse.json({ events: slimmed }, { headers: corsHeaders })
   } catch (err) {
