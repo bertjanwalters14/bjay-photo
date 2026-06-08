@@ -509,20 +509,24 @@ export default function GalleryPage() {
                   <div
                     className="max-w-md text-center rounded-lg p-6"
                     style={{
-                      backgroundColor: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(200,169,110,0.3)',
+                      backgroundColor: '#fff',
+                      border: '1px solid rgba(200,169,110,0.4)',
                     }}
                   >
-                    <p className="text-lg font-medium mb-2" style={{ color: '#c8a96e' }}>
+                    <p
+                      className="text-lg font-medium mb-3"
+                      style={{ color: '#053221', fontFamily: 'var(--font-jost), sans-serif' }}
+                    >
                       Foto&apos;s zijn niet meer beschikbaar
                     </p>
-                    <p className="text-sm leading-relaxed" style={{ color: 'rgba(232,237,233,0.8)' }}>
+                    <p className="text-sm leading-relaxed" style={{ color: '#4a6358' }}>
                       De foto&apos;s van dit event zijn na de bewaartermijn van 30 dagen
                       uit het portaal gehaald. Wil je een foto alsnog ontvangen?
                       Stuur even een mail naar{' '}
                       <a
                         href="mailto:info@bjay.photo?subject=Foto%20aanvraag%20uit%20event"
-                        style={{ color: '#c8a96e', textDecoration: 'underline' }}
+                        className="underline font-medium"
+                        style={{ color: '#053221' }}
                       >
                         info@bjay.photo
                       </a>{' '}
