@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import cloudinary from '@/lib/cloudinary'
+import redis from '@/lib/redis'
 import { getAdminSession } from '@/lib/auth'
+import type { Client } from '@/lib/types'
 
 // Genereert een signed Cloudinary upload-signature. De browser kan vervolgens
 // direct naar Cloudinary uploaden, wat de 4.5MB Vercel function payload-limit
@@ -15,6 +17,23 @@ export async function POST(req: NextRequest) {
   const clientId: string = (body?.clientId || '').toString().trim()
   if (!clientId) {
     return NextResponse.json({ error: 'clientId is verplicht' }, { status: 400 })
+  }
+
+  // Heractiveer een eerder gearchiveerde client zodra er nieuwe foto's
+  // ge-upload gaan worden. archiveWarningAt ook resetten zodat de cron
+  // bij een volgende archief-ronde gewoon weer een warning kan sturen.
+  try {
+    const client = await redis.get<Client>(`client:${clientId}`)
+    if (client && (client.archivedAt || client.archiveWarningAt)) {
+      await redis.set(`client:${clientId}`, {
+        ...client,
+        archivedAt: null,
+        archiveWarningAt: null,
+      })
+    }
+  } catch (err) {
+    console.error('Unarchive bij upload mislukt:', err)
+    // Ga gewoon door, signature mag wel verstrekt worden
   }
 
   const timestamp = Math.round(Date.now() / 1000)
