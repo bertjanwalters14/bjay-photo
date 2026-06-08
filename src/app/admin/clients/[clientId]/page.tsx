@@ -476,39 +476,47 @@ export default function AdminClientPage() {
             )}
           </p>
 
-          {/* Archief-status voor event-klanten. Auto-cleanup na 30 dagen, maar
-              hier kun je 'm ook handmatig nu archiveren. */}
-          {isEvent && (
-            <div
-              className="mt-3 pt-3 flex flex-col sm:flex-row sm:items-center gap-2"
-              style={{ borderTop: '1px solid rgba(200,169,110,0.2)' }}
-            >
-              {client?.archivedAt ? (
-                <p className="text-sm" style={{ color: '#4a6358' }}>
-                  Foto&apos;s gearchiveerd op{' '}
-                  <span style={{ color: '#053221' }}>
-                    {new Date(client.archivedAt).toLocaleDateString('nl-NL')}
-                  </span>
+          {/* Archief-status. Bij Event: auto-cleanup 30 dagen + handmatige knop.
+              Bij Personal: alleen handmatige knop (geen auto-cleanup, want klant
+              wil mogelijk nog maanden later kijken). */}
+          <div
+            className="mt-3 pt-3 flex flex-col sm:flex-row sm:items-center gap-2"
+            style={{ borderTop: '1px solid rgba(200,169,110,0.2)' }}
+          >
+            {client?.archivedAt ? (
+              <p className="text-sm" style={{ color: '#4a6358' }}>
+                Foto&apos;s gearchiveerd op{' '}
+                <span style={{ color: '#053221' }}>
+                  {new Date(client.archivedAt).toLocaleDateString('nl-NL')}
+                </span>
+              </p>
+            ) : (
+              <>
+                <p className="text-xs flex-1" style={{ color: '#4a6358' }}>
+                  {isEvent ? (
+                    <>
+                      Auto-cleanup 30 dagen na aanmaken.{' '}
+                      {client?.archiveWarningAt &&
+                        `Waarschuwingsmail verstuurd op ${new Date(client.archiveWarningAt).toLocaleDateString('nl-NL')}.`}
+                    </>
+                  ) : (
+                    <>
+                      Archiveer handmatig wanneer de klant de foto&apos;s heeft binnen.
+                      Bespaart Cloudinary-opslag.
+                    </>
+                  )}
                 </p>
-              ) : (
-                <>
-                  <p className="text-xs flex-1" style={{ color: '#4a6358' }}>
-                    Auto-cleanup 30 dagen na aanmaken.{' '}
-                    {client?.archiveWarningAt &&
-                      `Waarschuwingsmail verstuurd op ${new Date(client.archiveWarningAt).toLocaleDateString('nl-NL')}.`}
-                  </p>
-                  <button
-                    onClick={handleArchive}
-                    disabled={archiving}
-                    className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80 disabled:opacity-50"
-                    style={{ border: '1px solid #b54545', color: '#b54545' }}
-                  >
-                    {archiving ? 'Bezig...' : 'Archiveer nu'}
-                  </button>
-                </>
-              )}
-            </div>
-          )}
+                <button
+                  onClick={handleArchive}
+                  disabled={archiving}
+                  className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80 disabled:opacity-50"
+                  style={{ border: '1px solid #b54545', color: '#b54545' }}
+                >
+                  {archiving ? 'Bezig...' : 'Archiveer nu'}
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Review-flow (alleen voor personal-klanten met e-mail) */}
