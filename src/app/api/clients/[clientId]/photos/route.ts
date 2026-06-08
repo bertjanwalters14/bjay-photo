@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import cloudinary from '@/lib/cloudinary'
+import redis from '@/lib/redis'
 import { getAdminSession, getClientOrPreviewSession } from '@/lib/auth'
-import { Photo } from '@/lib/types'
+import { Photo, type Client } from '@/lib/types'
 
 const WATERMARK_PUBLIC_ID = 'watermerk_vir9aa'
 
@@ -34,6 +35,20 @@ export async function GET(
   if (!isAdmin && clientCode !== clientId) {
     return NextResponse.json({ error: 'Niet toegestaan' }, { status: 401 })
   }
+
+  // Bepaal portal-type: bij Personal mag de klant hoger-resolutie zien
+  // (ze hebben de shoot al betaald). Bij Event is het preview-kwaliteit
+  // tot er afgerekend is.
+  const client = await redis.get<Client>(`client:${clientId}`)
+  const isPersonal = client?.type === 'personal'
+
+  // Resolutie-preset per type. Watermerk blijft op beide (branding).
+  // Y-offset schaalt mee met de breedte zodat het watermerk visueel
+  // op dezelfde plek staat.
+  const PREVIEW_WIDTH = isPersonal ? 2000 : 1200
+  const THUMB_WIDTH = isPersonal ? 800 : 600
+  const PREVIEW_Y = isPersonal ? 83 : 50
+  const THUMB_Y = isPersonal ? 33 : 25
 
   type CloudinaryResource = {
     public_id: string
@@ -70,10 +85,11 @@ export async function GET(
 
   const photosWithKeys: PhotoWithSortKey[] = (result.resources as CloudinaryResource[]).map(r => ({
     publicId: r.public_id,
-    // Gallery preview (modal-grootte): 1200px breed met watermerk
-    url: watermarkedUrl(r.public_id, 1200, 50),
-    // Grid thumbnail: 600px breed met watermerk (kleinere y-offset)
-    thumbnail: watermarkedUrl(r.public_id, 600, 25),
+    // Gallery preview (modal-grootte) + grid thumbnail. Personal portals
+    // krijgen hogere resolutie omdat de klant de shoot al heeft betaald
+    // en mooi groot wil kunnen kijken op het portaal.
+    url: watermarkedUrl(r.public_id, PREVIEW_WIDTH, PREVIEW_Y),
+    thumbnail: watermarkedUrl(r.public_id, THUMB_WIDTH, THUMB_Y),
     width: r.width,
     height: r.height,
     createdAt: r.created_at,
