@@ -65,17 +65,46 @@ export async function GET(
     created_at: string
     display_name?: string
     filename?: string
+    image_metadata?: {
+      DateTimeOriginal?: string  // EXIF: tijdstip waarop foto is genomen
+      DateTime?: string          // EXIF: laatste wijziging van bestand
+    }
   }
 
-  // We vragen display_name op (Cloudinary's veld voor de originele
-  // bestandsnaam wanneer use_filename: true gebruikt is). Dat is veel
-  // betrouwbaarder dan het strippen van de _xyz suffix uit de public_id.
+  // We vragen display_name + image_metadata op. image_metadata bevat de EXIF
+  // van de foto, waaronder DateTimeOriginal (de echte opname-datum). Zonder
+  // dit veld zou de datum-filter in de gallery alleen op upload-tijd werken,
+  // wat nutteloos is bij events die over meerdere dagen lopen maar in 1 batch
+  // ge-upload worden.
   const result = await cloudinary.search
     .expression(`folder:bjay/clients/${clientId}`)
     .sort_by('public_id', 'asc')
     .with_field('context')
+    .with_field('image_metadata')
     .max_results(500)
     .execute()
+
+  // EXIF DateTimeOriginal heeft format "YYYY:MM:DD HH:MM:SS" (kolons als
+  // datum-scheider, anders dan ISO). Converteer naar ISO of geef null bij
+  // onbekende vorm.
+  function parseExifDate(raw: string | undefined): string | null {
+    if (!raw) return null
+    const m = raw.match(/^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/)
+    if (!m) return null
+    return `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}`
+  }
+
+  // Bepaal de "echte" datum van een foto. Prioriteit:
+  // 1. EXIF DateTimeOriginal (camera-tijdstip, ideaal)
+  // 2. EXIF DateTime (file mtime, soms gelijk aan opname)
+  // 3. Cloudinary upload-tijd (laatste vangnet)
+  function photoDateFor(r: CloudinaryResource): string {
+    return (
+      parseExifDate(r.image_metadata?.DateTimeOriginal) ||
+      parseExifDate(r.image_metadata?.DateTime) ||
+      r.created_at
+    )
+  }
 
   type PhotoWithSortKey = Photo & { _sortKey: string }
 
@@ -99,7 +128,9 @@ export async function GET(
     thumbnail: watermarkedUrl(r.public_id, THUMB_WIDTH, THUMB_Y),
     width: r.width,
     height: r.height,
-    createdAt: r.created_at,
+    // createdAt = de "echte" opname-datum uit EXIF, met upload-tijd als fallback.
+    // Cruciaal voor de datum-filter bij meerdaagse events.
+    createdAt: photoDateFor(r),
     _sortKey: sortKeyFor(r),
   }))
 
