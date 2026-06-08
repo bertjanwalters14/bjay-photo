@@ -10,6 +10,28 @@ import OrderCart from '@/components/OrderCart'
 import { Photo, Client } from '@/lib/types'
 import { apiUrl } from '@/lib/apiUrl'
 
+// Tijdslot-indeling voor de fijnmazige filter onder een geselecteerde dag.
+// Tennistoernooien spelen meestal 09-12 ochtend, 13-18 middag, 18-22 avond.
+type TimeSlot = 'ochtend' | 'middag' | 'avond'
+
+const TIME_SLOT_LABELS: Record<TimeSlot, string> = {
+  ochtend: 'Ochtend',
+  middag: 'Middag',
+  avond: 'Avond',
+}
+
+// 06-12 = ochtend, 12-18 = middag, 18-23 = avond. Foto's buiten dit
+// (nachtdienst, sterrenfoto's etc.) krijgen geen slot — die vallen wel
+// nog onder de juiste dag, alleen niet onder een specifiek slot.
+function timeSlotFor(iso: string | undefined): TimeSlot | null {
+  if (!iso) return null
+  const hour = new Date(iso).getHours()
+  if (hour >= 6 && hour < 12) return 'ochtend'
+  if (hour >= 12 && hour < 18) return 'middag'
+  if (hour >= 18 && hour < 23) return 'avond'
+  return null
+}
+
 export default function GalleryPage() {
   const { clientId } = useParams<{ clientId: string }>()
   const router = useRouter()
@@ -28,6 +50,8 @@ export default function GalleryPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   // Datum-filter: null = alle dagen, anders YYYY-MM-DD string
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  // Tijdslot binnen een dag: null = hele dag, anders 'ochtend' | 'middag' | 'avond'
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(null)
 
   const gridRef = useRef<HTMLDivElement>(null)
 
@@ -52,11 +76,37 @@ export default function GalleryPage() {
     })
   }
 
-  // Foto's gefilterd op selectedDate
+  // Foto's gefilterd op selectedDate + optioneel een tijdslot
   const visiblePhotos = useMemo(() => {
-    if (!selectedDate) return photos
-    return photos.filter(p => p.createdAt?.slice(0, 10) === selectedDate)
+    let filtered = photos
+    if (selectedDate) {
+      filtered = filtered.filter(p => p.createdAt?.slice(0, 10) === selectedDate)
+    }
+    if (selectedTimeSlot) {
+      filtered = filtered.filter(p => timeSlotFor(p.createdAt) === selectedTimeSlot)
+    }
+    return filtered
+  }, [photos, selectedDate, selectedTimeSlot])
+
+  // Welke tijdsloten bevatten foto's binnen de huidige geselecteerde dag?
+  // Toont alleen chips voor slots die echt foto's hebben, anders is het ruis.
+  const availableTimeSlots = useMemo<TimeSlot[]>(() => {
+    if (!selectedDate) return []
+    const set = new Set<TimeSlot>()
+    for (const p of photos) {
+      if (p.createdAt?.slice(0, 10) !== selectedDate) continue
+      const slot = timeSlotFor(p.createdAt)
+      if (slot) set.add(slot)
+    }
+    // Behoud volgorde ochtend → middag → avond
+    const order: TimeSlot[] = ['ochtend', 'middag', 'avond']
+    return order.filter(s => set.has(s))
   }, [photos, selectedDate])
+
+  // Reset tijdslot zodra je een andere dag kiest (of alle dagen).
+  useEffect(() => {
+    setSelectedTimeSlot(null)
+  }, [selectedDate])
   const visitorStorageKey = useMemo(() => `bjay:visitor:${clientId}`, [clientId])
   const cartStorageKey = useMemo(() => `bjay:cart:${clientId}`, [clientId])
 
@@ -488,6 +538,41 @@ export default function GalleryPage() {
                   }}
                 >
                   {formatDateLabel(date)}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Tijdslot-chips: alleen tonen als er een dag is geselecteerd en
+              er 2+ tijdsloten foto's hebben (anders nutteloos). Helpt
+              tennissers hun specifieke match-moment snel terug te vinden. */}
+          {selectedDate && availableTimeSlots.length >= 2 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedTimeSlot(null)}
+                className="px-2.5 py-1 text-[11px] tracking-widest uppercase transition"
+                style={{
+                  backgroundColor: selectedTimeSlot === null ? '#c8a96e' : '#fff',
+                  color: selectedTimeSlot === null ? '#053221' : '#4a6358',
+                  border: '1px solid rgba(200,169,110,0.4)',
+                  borderRadius: '999px',
+                }}
+              >
+                Hele dag
+              </button>
+              {availableTimeSlots.map(slot => (
+                <button
+                  key={slot}
+                  onClick={() => setSelectedTimeSlot(slot)}
+                  className="px-2.5 py-1 text-[11px] tracking-widest uppercase transition"
+                  style={{
+                    backgroundColor: selectedTimeSlot === slot ? '#c8a96e' : '#fff',
+                    color: selectedTimeSlot === slot ? '#053221' : '#4a6358',
+                    border: '1px solid rgba(200,169,110,0.4)',
+                    borderRadius: '999px',
+                  }}
+                >
+                  {TIME_SLOT_LABELS[slot]}
                 </button>
               ))}
             </div>
