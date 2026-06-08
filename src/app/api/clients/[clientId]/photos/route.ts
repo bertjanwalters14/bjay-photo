@@ -42,6 +42,13 @@ export async function GET(
   const client = await redis.get<Client>(`client:${clientId}`)
   const isPersonal = client?.type === 'personal'
 
+  // Als de client gearchiveerd is (auto-cleanup voor events na 30d), geven
+  // we een lege lijst terug met een archived-flag zodat de gallery netjes
+  // kan tonen "foto's zijn niet meer beschikbaar".
+  if (client?.archivedAt) {
+    return NextResponse.json({ photos: [], archived: true, archivedAt: client.archivedAt })
+  }
+
   // Resolutie-preset per type. Watermerk blijft op beide (branding).
   // Y-offset schaalt mee met de breedte zodat het watermerk visueel
   // op dezelfde plek staat.

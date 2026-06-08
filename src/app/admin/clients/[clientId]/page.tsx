@@ -47,6 +47,7 @@ export default function AdminClientPage() {
   const [editName, setEditName] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
+  const [archiving, setArchiving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
@@ -203,6 +204,38 @@ export default function AdminClientPage() {
     const res = await fetch(`/api/clients/${clientId}/preview-token`)
     const data = await res.json()
     window.open(`/gallery/${clientId}?preview=${data.token}`, '_blank')
+  }
+
+  // Handmatig archiveren: verwijdert alle Cloudinary-foto's en zet
+  // archivedAt. Voor wanneer je niet wilt wachten op de dagelijkse cron.
+  async function handleArchive() {
+    if (!client) return
+    const confirmed = window.confirm(
+      `Foto's van "${client.name}" nu permanent verwijderen?\n\n` +
+        `Dit verwijdert ALLE foto's uit Cloudinary. Likes, feedback en` +
+        `\nbestellingen blijven bewaard.\n\nDit kan niet ongedaan worden gemaakt.`,
+    )
+    if (!confirmed) return
+
+    setArchiving(true)
+    try {
+      const res = await fetch(`/api/clients/${clientId}/archive`, { method: 'POST' })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        alert(d?.error || 'Archiveren mislukt')
+        return
+      }
+      const data = await res.json()
+      if (data.client) {
+        setClient(data.client)
+        setPhotos([])
+      }
+    } catch (err) {
+      console.error('Archive error:', err)
+      alert('Archiveren mislukt - probeer opnieuw')
+    } finally {
+      setArchiving(false)
+    }
   }
 
   // Inline-bewerken voor naam + e-mail. Gebruik je vooral als je een klant
@@ -442,6 +475,40 @@ export default function AdminClientPage() {
               </>
             )}
           </p>
+
+          {/* Archief-status voor event-klanten. Auto-cleanup na 30 dagen, maar
+              hier kun je 'm ook handmatig nu archiveren. */}
+          {isEvent && (
+            <div
+              className="mt-3 pt-3 flex flex-col sm:flex-row sm:items-center gap-2"
+              style={{ borderTop: '1px solid rgba(200,169,110,0.2)' }}
+            >
+              {client?.archivedAt ? (
+                <p className="text-sm" style={{ color: '#4a6358' }}>
+                  Foto&apos;s gearchiveerd op{' '}
+                  <span style={{ color: '#053221' }}>
+                    {new Date(client.archivedAt).toLocaleDateString('nl-NL')}
+                  </span>
+                </p>
+              ) : (
+                <>
+                  <p className="text-xs flex-1" style={{ color: '#4a6358' }}>
+                    Auto-cleanup 30 dagen na aanmaken.{' '}
+                    {client?.archiveWarningAt &&
+                      `Waarschuwingsmail verstuurd op ${new Date(client.archiveWarningAt).toLocaleDateString('nl-NL')}.`}
+                  </p>
+                  <button
+                    onClick={handleArchive}
+                    disabled={archiving}
+                    className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80 disabled:opacity-50"
+                    style={{ border: '1px solid #b54545', color: '#b54545' }}
+                  >
+                    {archiving ? 'Bezig...' : 'Archiveer nu'}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Review-flow (alleen voor personal-klanten met e-mail) */}

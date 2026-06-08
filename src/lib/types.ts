@@ -55,6 +55,11 @@ export interface Client {
   deliveredAt?: string | null         // ISO datum waarop foto's zijn opgeleverd
   reviewRequestedAt?: string | null   // ISO datum waarop review-mail is verstuurd
   reviewReceived?: boolean            // BJAY vinkt aan als hij de review op Google ziet
+  // Archief-flow (alleen voor event-portals): foto's worden 30 dagen na
+  // aanmaken automatisch uit Cloudinary verwijderd. archiveWarningAt = mail
+  // is verstuurd 7 dagen vooraf. archivedAt = foto's zijn daadwerkelijk weg.
+  archiveWarningAt?: string | null
+  archivedAt?: string | null
 }
 
 export interface Photo {

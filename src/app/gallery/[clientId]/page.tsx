@@ -15,6 +15,7 @@ export default function GalleryPage() {
   const router = useRouter()
 
   const [photos, setPhotos] = useState<Photo[]>([])
+  const [archived, setArchived] = useState(false)
   const [favorites, setFavorites] = useState<string[]>([])
   const [likeCounts, setLikeCounts] = useState<Record<string, number>>({})
   const [visitorName, setVisitorName] = useState<string | null>(null)
@@ -109,6 +110,7 @@ export default function GalleryPage() {
       const coverData = await coverRes.json()
 
       setPhotos(photosData.photos || [])
+      setArchived(Boolean(photosData.archived))
       setClient(clientData.client || null)
       setCoverUrl(coverData.cover || null)
       setLoading(false)
@@ -502,12 +504,38 @@ export default function GalleryPage() {
             }}
           >
             {visiblePhotos.length === 0 ? (
-              <div className="flex items-center justify-center h-64">
-                <p style={{ color: '#4a6358' }}>
-                  {photos.length === 0
-                    ? "Er zijn nog geen foto's beschikbaar."
-                    : "Geen foto's op deze datum."}
-                </p>
+              <div className="flex items-center justify-center px-4 py-12">
+                {archived ? (
+                  <div
+                    className="max-w-md text-center rounded-lg p-6"
+                    style={{
+                      backgroundColor: 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(200,169,110,0.3)',
+                    }}
+                  >
+                    <p className="text-lg font-medium mb-2" style={{ color: '#c8a96e' }}>
+                      Foto&apos;s zijn niet meer beschikbaar
+                    </p>
+                    <p className="text-sm leading-relaxed" style={{ color: 'rgba(232,237,233,0.8)' }}>
+                      De foto&apos;s van dit event zijn na de bewaartermijn van 30 dagen
+                      uit het portaal gehaald. Wil je een foto alsnog ontvangen?
+                      Stuur even een mail naar{' '}
+                      <a
+                        href="mailto:info@bjay.photo?subject=Foto%20aanvraag%20uit%20event"
+                        style={{ color: '#c8a96e', textDecoration: 'underline' }}
+                      >
+                        info@bjay.photo
+                      </a>{' '}
+                      met de naam van het event, dan kijk ik wat er nog mogelijk is.
+                    </p>
+                  </div>
+                ) : (
+                  <p style={{ color: '#4a6358' }}>
+                    {photos.length === 0
+                      ? "Er zijn nog geen foto's beschikbaar."
+                      : "Geen foto's op deze datum."}
+                  </p>
+                )}
               </div>
             ) : (
               <PhotoGrid
