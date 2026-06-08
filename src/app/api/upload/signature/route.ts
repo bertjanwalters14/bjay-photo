@@ -41,12 +41,15 @@ export async function POST(req: NextRequest) {
 
   // Cloudinary verifieert dat browser-uploads exact deze params gebruiken.
   // Browser moet bij upload: file, api_key, timestamp, signature, folder,
-  // use_filename, unique_filename meesturen.
+  // use_filename, unique_filename, image_metadata meesturen.
+  // image_metadata=true zorgt dat Cloudinary de EXIF parseert en bewaart,
+  // anders strippen ze 'm standaard. Nodig voor datum/tijdslot-filter.
   const paramsToSign = {
     timestamp,
     folder,
     use_filename: 'true',
     unique_filename: 'true',
+    image_metadata: 'true',
   }
 
   const signature = cloudinary.utils.api_sign_request(

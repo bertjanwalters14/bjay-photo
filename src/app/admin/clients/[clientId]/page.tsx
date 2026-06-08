@@ -147,6 +147,8 @@ export default function AdminClientPage() {
         formData.append('folder', folder)
         formData.append('use_filename', 'true')
         formData.append('unique_filename', 'true')
+        // EXIF behouden zodat de datum/tijdslot-filter in de gallery werkt
+        formData.append('image_metadata', 'true')
 
         try {
           const res = await fetch(
