@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Client } from '@/lib/types'
@@ -9,6 +9,14 @@ export default function AdminDashboard() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [deletingCode, setDeletingCode] = useState<string | null>(null)
+  // Filter: 'active' = nog niet gearchiveerd, 'archived' = afgehandeld.
+  const [filter, setFilter] = useState<'active' | 'archived'>('active')
+
+  // Klanten gefilterd op de actieve tab.
+  const visibleClients = useMemo(
+    () => clients.filter(c => (filter === 'archived' ? c.archivedAt : !c.archivedAt)),
+    [clients, filter],
+  )
   const router = useRouter()
 
   useEffect(() => {
@@ -124,9 +132,37 @@ export default function AdminDashboard() {
       </header>
 
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <h2 className="text-lg font-light mb-6 tracking-wide" style={{ color: '#053221' }}>
+        <h2 className="text-lg font-light mb-3 tracking-wide" style={{ color: '#053221' }}>
           Klanten ({clients.length})
         </h2>
+
+        {/* Filter-chips: actief vs afgehandeld (gearchiveerd) */}
+        {!loading && clients.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-6">
+            {(['active', 'archived'] as const).map(key => {
+              const count = clients.filter(c =>
+                key === 'archived' ? c.archivedAt : !c.archivedAt,
+              ).length
+              const label = key === 'active' ? 'Actief' : 'Afgehandeld'
+              const isActive = filter === key
+              return (
+                <button
+                  key={key}
+                  onClick={() => setFilter(key)}
+                  className="px-3 py-1.5 text-xs tracking-widest uppercase transition"
+                  style={{
+                    backgroundColor: isActive ? '#053221' : '#fff',
+                    color: isActive ? '#c8a96e' : '#053221',
+                    border: '1px solid rgba(200,169,110,0.4)',
+                    borderRadius: '999px',
+                  }}
+                >
+                  {label} ({count})
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         {loading ? (
           <p style={{ color: '#4a6358' }}>Laden...</p>
@@ -141,9 +177,17 @@ export default function AdminDashboard() {
               Eerste klant aanmaken
             </button>
           </div>
+        ) : visibleClients.length === 0 ? (
+          <div className="rounded-lg p-8 text-center" style={{ backgroundColor: '#fff', border: '1px solid rgba(200,169,110,0.3)' }}>
+            <p style={{ color: '#4a6358' }}>
+              {filter === 'archived'
+                ? 'Nog geen afgehandelde klanten. Archiveer klanten via hun detail-pagina.'
+                : 'Geen actieve klanten.'}
+            </p>
+          </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {clients.map(client => (
+            {visibleClients.map(client => (
               <div
                 key={client.code}
                 className="rounded-lg p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
