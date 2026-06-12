@@ -48,6 +48,15 @@ export default function AdminClientPage() {
   const [editEmail, setEditEmail] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
   const [archiving, setArchiving] = useState(false)
+  // Verhaal-export: selectie van foto's die als webp-zip voor een
+  // verhaal-pagina op bjay.photo wordt gedownload. Volgorde van aanvinken
+  // bepaalt de nummering in de bestandsnamen.
+  const [exportMode, setExportMode] = useState(false)
+  const [exportSelection, setExportSelection] = useState<string[]>([])
+  const [exportSlug, setExportSlug] = useState('')
+  const [exporting, setExporting] = useState(false)
+  const [exportDone, setExportDone] = useState(0)
+  const [exportError, setExportError] = useState('')
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
@@ -320,6 +329,97 @@ export default function AdminClientPage() {
     } else {
       const data = await res.json().catch(() => ({}))
       window.alert(`Verwijderen mislukt: ${data?.error || 'Onbekende fout'}`)
+    }
+  }
+
+  function toggleExportSelect(publicId: string) {
+    setExportSelection(prev =>
+      prev.includes(publicId) ? prev.filter(p => p !== publicId) : [...prev, publicId]
+    )
+  }
+
+  // Snelkeuze: de 15 meest gelikete foto's (alleen zinvol bij events)
+  function selectTopLiked() {
+    const top = photosByLikes.slice(0, 15).map(x => x.photo.publicId)
+    setExportSelection(top)
+  }
+
+  function selectAllPhotos() {
+    setExportSelection(photos.map(p => p.publicId))
+  }
+
+  // Bouwt de zip in de browser: de foto's komen rechtstreeks van Cloudinary's
+  // CDN (Vercel-responses zijn max 4,5 MB, dus server-side zippen kan niet).
+  async function handleExport() {
+    if (exportSelection.length === 0 || exporting) return
+    const slug = exportSlug.trim().toLowerCase()
+
+    setExporting(true)
+    setExportError('')
+    setExportDone(0)
+
+    try {
+      const res = await fetch(`/api/clients/${clientId}/export`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publicIds: exportSelection, slug }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        setExportError(d?.error || 'Export voorbereiden mislukt')
+        return
+      }
+      const { files, snippet } = (await res.json()) as {
+        files: { url: string; filename: string }[]
+        snippet: string
+      }
+
+      const JSZip = (await import('jszip')).default
+      const zip = new JSZip()
+      zip.file('gallery-snippet.html', snippet)
+
+      // Concurrency-limited downloads: 4 tegelijk, zelfde patroon als upload
+      let nextIndex = 0
+      let doneCount = 0
+      let failed: string[] = []
+
+      async function worker() {
+        while (true) {
+          const i = nextIndex++
+          if (i >= files.length) return
+          const f = files[i]
+          try {
+            const imgRes = await fetch(f.url)
+            if (!imgRes.ok) throw new Error(`status ${imgRes.status}`)
+            zip.file(f.filename, await imgRes.blob())
+          } catch {
+            failed = [...failed, f.filename]
+          }
+          doneCount += 1
+          setExportDone(doneCount)
+        }
+      }
+      await Promise.all(
+        Array.from({ length: Math.min(4, files.length) }, () => worker())
+      )
+
+      if (failed.length > 0) {
+        setExportError(`${failed.length} van ${files.length} foto's konden niet worden gedownload. Probeer opnieuw.`)
+        return
+      }
+
+      const blob = await zip.generateAsync({ type: 'blob' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${slug}.zip`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Export error:', err)
+      setExportError('Export mislukt - probeer opnieuw')
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -690,19 +790,144 @@ export default function AdminClientPage() {
         {/* Foto grid */}
         {photos.length > 0 && (
           <div>
-            <h2 className="text-lg font-light mb-1" style={{ color: '#053221' }}>
-              Foto's ({photos.length})
-            </h2>
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <h2 className="text-lg font-light" style={{ color: '#053221' }}>
+                Foto's ({photos.length})
+              </h2>
+              <button
+                onClick={() => {
+                  setExportMode(!exportMode)
+                  setExportSelection([])
+                  setExportError('')
+                }}
+                className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
+                style={
+                  exportMode
+                    ? { backgroundColor: '#053221', color: '#c8a96e' }
+                    : { border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }
+                }
+              >
+                {exportMode ? 'Stop verhaal-export' : 'Verhaal-export'}
+              </button>
+            </div>
             <p className="text-sm mb-3" style={{ color: '#4a6358' }}>
-              Hover over een foto om deze als omslagfoto in te stellen.
+              {exportMode
+                ? 'Klik foto’s aan in de volgorde waarin ze in het verhaal moeten komen.'
+                : 'Hover over een foto om deze als omslagfoto in te stellen.'}
             </p>
+
+            {/* Verhaal-export paneel: slug + snelkeuzes + download */}
+            {exportMode && (
+              <div
+                className="rounded-lg p-4 mb-3 flex flex-col gap-3"
+                style={{ backgroundColor: '#fff', border: '1px solid rgba(200,169,110,0.3)' }}
+              >
+                <label className="text-xs" style={{ color: '#4a6358' }}>
+                  Verhaal-slug (wordt de mapnaam in images/verhalen/ en de bestandsnamen)
+                  <input
+                    type="text"
+                    value={exportSlug}
+                    onChange={e => setExportSlug(e.target.value)}
+                    placeholder="bv. feest-harkstede-2026"
+                    className="w-full mt-1 px-2 py-1.5 text-sm font-mono focus:outline-none"
+                    style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221' }}
+                  />
+                </label>
+                <div className="flex flex-wrap items-center gap-2">
+                  {isEvent && photosByLikes.length > 0 && (
+                    <button
+                      onClick={selectTopLiked}
+                      className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
+                      style={{ border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }}
+                    >
+                      Top {Math.min(15, photosByLikes.length)} meest geliket
+                    </button>
+                  )}
+                  <button
+                    onClick={selectAllPhotos}
+                    className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
+                    style={{ border: '1px solid rgba(74,99,88,0.4)', color: '#4a6358' }}
+                  >
+                    Selecteer alles
+                  </button>
+                  <button
+                    onClick={() => setExportSelection([])}
+                    disabled={exportSelection.length === 0}
+                    className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80 disabled:opacity-50"
+                    style={{ border: '1px solid rgba(74,99,88,0.4)', color: '#4a6358' }}
+                  >
+                    Leegmaken
+                  </button>
+                  <div className="flex-1" />
+                  <button
+                    onClick={handleExport}
+                    disabled={
+                      exporting ||
+                      exportSelection.length === 0 ||
+                      !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(exportSlug.trim().toLowerCase())
+                    }
+                    className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80 disabled:opacity-50"
+                    style={{ backgroundColor: '#053221', color: '#c8a96e' }}
+                  >
+                    {exporting
+                      ? `${exportDone} van ${exportSelection.length}...`
+                      : `Download zip (${exportSelection.length})`}
+                  </button>
+                </div>
+                {!exporting &&
+                  exportSlug.trim() !== '' &&
+                  !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(exportSlug.trim().toLowerCase()) && (
+                    <p className="text-xs" style={{ color: '#a05a5a' }}>
+                      Slug mag alleen kleine letters, cijfers en hyphens bevatten.
+                    </p>
+                  )}
+                {exportError && (
+                  <p className="text-xs" style={{ color: '#a05a5a' }}>{exportError}</p>
+                )}
+                <p className="text-xs" style={{ color: '#4a6358' }}>
+                  De zip bevat de foto&apos;s als webp (max 2000px, zonder watermerk) plus een
+                  gallery-snippet.html voor de verhaal-pagina. Uitpakken in images/verhalen/&lt;slug&gt;/.
+                </p>
+              </div>
+            )}
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
               {photos.map(photo => {
                 const isCover = coverUrl === photo.url
                 const likeCount = likes[photo.publicId]?.count || 0
+                const selectIndex = exportMode ? exportSelection.indexOf(photo.publicId) : -1
                 return (
-                  <div key={photo.publicId} className="relative overflow-hidden aspect-square group">
+                  <div
+                    key={photo.publicId}
+                    className="relative overflow-hidden aspect-square group"
+                    onClick={exportMode ? () => toggleExportSelect(photo.publicId) : undefined}
+                    style={exportMode ? { cursor: 'pointer' } : undefined}
+                  >
                     <Image src={photo.thumbnail} alt="" fill className="object-cover" />
+                    {/* Export-modus: selectie-overlay met volgordenummer */}
+                    {exportMode && (
+                      <div
+                        className="absolute inset-0 z-20 flex items-center justify-center"
+                        style={{
+                          backgroundColor: selectIndex >= 0 ? 'rgba(5,50,33,0.45)' : 'transparent',
+                          border: selectIndex >= 0 ? '3px solid #c8a96e' : '3px solid transparent',
+                        }}
+                      >
+                        {selectIndex >= 0 && (
+                          <span
+                            className="flex items-center justify-center text-sm font-bold"
+                            style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: '50%',
+                              backgroundColor: '#c8a96e',
+                              color: '#053221',
+                            }}
+                          >
+                            {selectIndex + 1}
+                          </span>
+                        )}
+                      </div>
+                    )}
                     {isCover && (
                       <div className="absolute top-1 left-1 text-xs px-2 py-0.5"
                         style={{ backgroundColor: '#c8a96e', color: '#053221' }}>
@@ -733,7 +958,7 @@ export default function AdminClientPage() {
                         <span className="font-medium">{likeCount}</span>
                       </div>
                     )}
-                    {!isCover && (
+                    {!isCover && !exportMode && (
                       <button
                         onClick={() => setCover(photo)}
                         className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-200 text-xs font-medium"
@@ -743,6 +968,7 @@ export default function AdminClientPage() {
                       </button>
                     )}
                     {/* Verwijder-knop, alleen zichtbaar bij hover, met z-index om over cover-knop te liggen */}
+                    {!exportMode && (
                     <button
                       onClick={(e) => { e.stopPropagation(); deletePhoto(photo) }}
                       className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition duration-200 z-10 hover:scale-110"
@@ -764,6 +990,7 @@ export default function AdminClientPage() {
                     >
                       ×
                     </button>
+                    )}
                   </div>
                 )
               })}
