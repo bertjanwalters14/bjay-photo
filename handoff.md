@@ -31,6 +31,7 @@ src/
         review-requests/   # dagelijks 10:00 UTC, review-mails 3d na opleveren
         archive-events/    # dagelijks 11:00 UTC, auto-cleanup event foto's na 30d
       upload/signature/    # signed Cloudinary upload (browser direct naar CDN)
+      clients/[id]/export/ # verhaal-export: URLs + gallery-snippet voor bjay.photo verhalen
       events/              # losstaande events-feature (popup + requestable)
       stats/               # Umami-aggregatie (verborgen)
     gallery/[clientId]/    # publieke klant-portal
@@ -116,9 +117,18 @@ Beide endpoints accepteren drie auth-paden:
 - Niet meer bereikbaar vanuit nav (Umami zette API achter Pro plan mid-2026)
 - Code blijft staan voor toekomstige self-hosted Umami
 
+**Verhaal-export (juni 2026)**
+- Brug tussen portal en de statische site bjay.photo: foto's van een event/shoot exporteren voor een verhaal-pagina
+- Admin-klantpagina: knop "Verhaal-export" zet selectie-modus aan; foto's aanklikken in gewenste volgorde (gouden rand + volgnummer), snelkeuzes "Top 15 meest geliket" en "Selecteer alles"
+- `POST /api/clients/[id]/export` (admin-only): valideert slug + publicId-prefix, geeft per foto een Cloudinary-URL (webp, max 2000px, q82, ZONDER watermerk) plus gallery-snippet.html in het formaat van optimize-photos.py op de website
+- Zip wordt client-side gebouwd met jszip (Vercel response-limiet is 4,5 MB, dus server-side zippen kan niet); browser fetcht direct van Cloudinary CDN, 4 tegelijk met voortgang
+- Bestandsnamen: `<slug>-01.webp` etc.; zip uitpakken in `images/verhalen/<slug>/` op de website, snippet in de verhaal-pagina plakken
+- Workflow-afspraak: verhalen tonen een selectie van 15-25 foto's (niet alles, dat kannibaliseert de foto-verkoop in het portal), met link naar het portal voor de volledige set
+
 **Andere**
 - Stripe-integratie gebouwd en weer teruggedraaid (KVK nodig voor live keys)
 - E-mail-filter advies voor Gmail (notificatie per bestelling)
+- App-favicon (`src/app/favicon.ico`) gelijkgetrokken met de website: groen BJAY-logo (bron `public/logo.png`) i.p.v. de oude gouden. Multi-size .ico via Pillow.
 
 ## Bekende issues en heads-ups
 
