@@ -19,6 +19,7 @@ Je inlogcode is: ${client.code}
 
 Veel plezier met de foto's. Vind je ze leuk? Tag me op Instagram @bjay.photo, dan deel ik je foto graag in mn story.
 
+Met lieve groeten,
 Bert-Jan
 BJAY Fotografie
 info@bjay.photo`
