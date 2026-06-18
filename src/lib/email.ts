@@ -42,7 +42,7 @@ bjay.photo`
 
 // Verpakt een body (HTML) in de groene huisstijl + handtekening.
 export function brandedHtml(bodyHtml: string): string {
-  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:${GREEN};line-height:1.6;">${bodyHtml}${signatureHtml()}</div>`
+  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:${GREEN};line-height:1.9;">${bodyHtml}${signatureHtml()}</div>`
 }
 
 // Verstuurt een klant-mail in huisstijl via Resend (HTML + plain-text fallback,
