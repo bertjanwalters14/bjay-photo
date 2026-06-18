@@ -1,7 +1,7 @@
 import redis from './redis'
 import type { Client } from './types'
+import { WEB3FORMS_ACCESS_KEY } from './web3forms'
 
-const WEB3FORMS_ACCESS_KEY = 'aa1038ea-0718-4fbc-a78b-9f0f4686c164'
 const GOOGLE_REVIEW_URL = 'https://g.page/r/CZc1CoEHfp4HEAE/review'
 
 // Hoeveel dagen na oplevering wordt de review-vraag verstuurd.

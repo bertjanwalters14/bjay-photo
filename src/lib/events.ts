@@ -1,6 +1,7 @@
 import redis from '@/lib/redis'
 import { Event, EventRequest } from '@/lib/types'
 import { nanoid } from 'nanoid'
+import { WEB3FORMS_ACCESS_KEY } from '@/lib/web3forms'
 
 const DEFAULT_LOGIN_URL = 'https://app.bjay.photo/login'
 
@@ -200,8 +201,6 @@ export async function deleteRequest(id: string): Promise<boolean> {
 }
 
 // ---------- Email notification via web3forms ----------
-
-const WEB3FORMS_ACCESS_KEY = 'aa1038ea-0718-4fbc-a78b-9f0f4686c164'
 
 export async function sendRequestNotification(request: EventRequest): Promise<void> {
   const subject = `Wachtwoord-aanvraag: ${request.eventName}`
