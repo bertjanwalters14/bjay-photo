@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 
@@ -9,6 +9,14 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+
+  // Code voorvullen uit ?code= (uit de toegangsmail-link), zodat de klant
+  // alleen nog op de knop hoeft te klikken.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const c = new URLSearchParams(window.location.search).get('code')
+    if (c) setCode(c)
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

@@ -63,6 +63,8 @@ export interface Client {
   // is verstuurd 7 dagen vooraf. archivedAt = foto's zijn daadwerkelijk weg.
   archiveWarningAt?: string | null
   archivedAt?: string | null
+  // Wanneer de toegangsmail (inloglink + code) naar de klant is verstuurd.
+  accessMailSentAt?: string | null
 }
 
 export interface Photo {

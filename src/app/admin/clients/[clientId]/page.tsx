@@ -53,6 +53,7 @@ export default function AdminClientPage() {
   const [editDate, setEditDate] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
   const [archiving, setArchiving] = useState(false)
+  const [sendingAccess, setSendingAccess] = useState(false)
   // Verhaal-export: selectie van foto's die als webp-zip voor een
   // verhaal-pagina op bjay.photo wordt gedownload. Volgorde van aanvinken
   // bepaalt de nummering in de bestandsnamen.
@@ -247,6 +248,23 @@ export default function AdminClientPage() {
     const res = await fetch(`/api/clients/${clientId}/preview-token`)
     const data = await res.json()
     window.open(`/gallery/${clientId}?preview=${data.token}`, '_blank')
+  }
+
+  // Stuurt de klant de toegangsmail (inloglink + code) via Resend.
+  async function handleSendAccessMail() {
+    setSendingAccess(true)
+    try {
+      const res = await fetch(`/api/clients/${clientId}/access-mail`, { method: 'POST' })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.client) setClient(data.client)
+      } else {
+        const d = await res.json().catch(() => ({}))
+        alert(d?.error || 'Toegangsmail versturen mislukt')
+      }
+    } finally {
+      setSendingAccess(false)
+    }
   }
 
   // Popup van het gekoppelde event direct aan/uit zetten.
@@ -668,6 +686,28 @@ export default function AdminClientPage() {
               </>
             )}
           </p>
+
+          {/* Toegangsmail: stuur de klant de inloglink + code (personal met e-mail) */}
+          {!isEvent && client?.email && (
+            <div
+              className="mt-3 pt-3 flex flex-col sm:flex-row sm:items-center gap-2"
+              style={{ borderTop: '1px solid rgba(200,169,110,0.2)' }}
+            >
+              <p className="text-xs flex-1" style={{ color: '#4a6358' }}>
+                {client?.accessMailSentAt
+                  ? `Toegangsmail verstuurd op ${new Date(client.accessMailSentAt).toLocaleDateString('nl-NL')}.`
+                  : "Stuur de klant een mail met de inloglink en code (zodra de foto's erop staan)."}
+              </p>
+              <button
+                onClick={handleSendAccessMail}
+                disabled={sendingAccess}
+                className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80 disabled:opacity-50"
+                style={{ backgroundColor: '#053221', color: '#c8a96e' }}
+              >
+                {sendingAccess ? 'Versturen...' : client?.accessMailSentAt ? 'Opnieuw sturen' : 'Stuur toegangsmail'}
+              </button>
+            </div>
+          )}
 
           {/* Archief-status. Bij Event: auto-cleanup 30 dagen + handmatige knop.
               Bij Personal: alleen handmatige knop (geen auto-cleanup, want klant
