@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Client, Photo, Feedback } from '@/lib/types'
+import { Client, Photo, Feedback, Event } from '@/lib/types'
 
 type LikesByPhoto = Record<
   string,
@@ -39,6 +39,10 @@ export default function AdminClientPage() {
   const [likes, setLikes] = useState<LikesByPhoto>({})
   const [likesTotal, setLikesTotal] = useState(0)
   const [coverUrl, setCoverUrl] = useState<string | null>(null)
+  // Bijbehorend event (voor popup-toggle + aanvragen-knop in de header).
+  const [linkedEvent, setLinkedEvent] = useState<Event | null>(null)
+  const [eventRequestCount, setEventRequestCount] = useState(0)
+  const [togglingPopup, setTogglingPopup] = useState(false)
   const [visitStats, setVisitStats] = useState<{ lastVisit: string | null; visitCount: number }>({
     lastVisit: null,
     visitCount: 0,
@@ -116,6 +120,33 @@ export default function AdminClientPage() {
       } catch (err) {
         console.error('Laad fout:', err)
       }
+
+      // Bijbehorend event opzoeken: matcht op wachtwoord === code, of slug
+      // zonder streepjes === code (bv. hyrox-2026-heerenveen ↔ hyrox2026heerenveen).
+      try {
+        const evRes = await fetch('/api/events', { cache: 'no-store' })
+        if (evRes.ok) {
+          const evData = await evRes.json()
+          const match = (evData.events || []).find(
+            (e: Event) => e.password === clientId || e.slug.replace(/-/g, '') === clientId,
+          )
+          if (match) {
+            setLinkedEvent(match)
+            const reqRes = await fetch('/api/events/requests', { cache: 'no-store' })
+            if (reqRes.ok) {
+              const reqData = await reqRes.json()
+              setEventRequestCount(
+                (reqData.requests || []).filter(
+                  (r: { eventSlug: string }) => r.eventSlug === match.slug,
+                ).length,
+              )
+            }
+          }
+        }
+      } catch {
+        // mag stil falen
+      }
+
       setLoading(false)
     }
     load()
@@ -215,6 +246,22 @@ export default function AdminClientPage() {
     const res = await fetch(`/api/clients/${clientId}/preview-token`)
     const data = await res.json()
     window.open(`/gallery/${clientId}?preview=${data.token}`, '_blank')
+  }
+
+  // Popup van het gekoppelde event direct aan/uit zetten.
+  async function togglePopup() {
+    if (!linkedEvent) return
+    const next = !linkedEvent.popupActive
+    setTogglingPopup(true)
+    const res = await fetch(`/api/events/${linkedEvent.slug}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ popupActive: next }),
+    })
+    if (res.ok) {
+      setLinkedEvent({ ...linkedEvent, popupActive: next })
+    }
+    setTogglingPopup(false)
   }
 
   // Handmatig archiveren: verwijdert alle Cloudinary-foto's en zet
@@ -447,6 +494,29 @@ export default function AdminClientPage() {
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          {isEvent && linkedEvent && (
+            <>
+              <button
+                onClick={togglePopup}
+                disabled={togglingPopup}
+                className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80 disabled:opacity-40"
+                style={
+                  linkedEvent.popupActive
+                    ? { backgroundColor: '#c8a96e', color: '#053221' }
+                    : { border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }
+                }
+              >
+                {togglingPopup ? 'Bezig...' : linkedEvent.popupActive ? 'Popup staat aan' : 'Popup aanzetten'}
+              </button>
+              <button
+                onClick={() => router.push('/admin/event/requests')}
+                className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
+                style={{ border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }}
+              >
+                Aanvragen{eventRequestCount > 0 ? ` (${eventRequestCount})` : ''}
+              </button>
+            </>
+          )}
           <button
             onClick={handlePreview}
             className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"

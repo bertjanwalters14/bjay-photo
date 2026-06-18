@@ -23,9 +23,6 @@ export default function EditEventPage() {
   const [dismissKey, setDismissKey] = useState('')
   const [popupActive, setPopupActive] = useState(false)
   const [requestable, setRequestable] = useState(false)
-  const [requestCount, setRequestCount] = useState(0)
-  const [openRequestCount, setOpenRequestCount] = useState(0)
-  const [togglingPopup, setTogglingPopup] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -48,22 +45,6 @@ export default function EditEventPage() {
       setDismissKey(event.dismissKey)
       setPopupActive(event.popupActive)
       setRequestable(event.requestable)
-
-      // Aanvragen voor dit event tellen (totaal + nog niet afgehandeld)
-      try {
-        const reqRes = await fetch('/api/events/requests', { cache: 'no-store' })
-        if (reqRes.ok) {
-          const reqData = await reqRes.json()
-          const mine = (reqData.requests || []).filter(
-            (r: { eventSlug: string }) => r.eventSlug === slug,
-          )
-          setRequestCount(mine.length)
-          setOpenRequestCount(mine.filter((r: { handled: boolean }) => !r.handled).length)
-        }
-      } catch {
-        // tellen mag stil falen
-      }
-
       setLoading(false)
     }
     if (slug) load()
@@ -108,24 +89,6 @@ export default function EditEventPage() {
     setSaving(true)
     await fetch(`/api/events/${slug}`, { method: 'DELETE' })
     router.push('/admin/event')
-  }
-
-  // Snel de popup aan/uit zetten zonder het hele formulier op te slaan.
-  async function togglePopup() {
-    const next = !popupActive
-    setTogglingPopup(true)
-    setError('')
-    const res = await fetch(`/api/events/${slug}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ popupActive: next }),
-    })
-    if (res.ok) {
-      setPopupActive(next)
-    } else {
-      setError('Popup wijzigen mislukt')
-    }
-    setTogglingPopup(false)
   }
 
   const inputStyle: React.CSSProperties = {
@@ -175,60 +138,6 @@ export default function EditEventPage() {
             <p className="text-xs mb-6 font-mono" style={{ color: '#4a6358' }}>
               {slug}
             </p>
-
-            {/* Snelacties: popup direct schakelen + zien of er aanvragen zijn */}
-            <div className="flex flex-col sm:flex-row gap-3 mb-6">
-              <div
-                className="flex-1 rounded-lg p-4 flex items-center justify-between gap-3"
-                style={{ backgroundColor: '#e8ede9', border: '1px solid rgba(200,169,110,0.3)' }}
-              >
-                <div>
-                  <p className="text-xs tracking-widest uppercase mb-1" style={{ color: '#4a6358' }}>
-                    Popup op bjay.photo
-                  </p>
-                  <p className="text-sm font-medium" style={{ color: popupActive ? '#053221' : '#a05a5a' }}>
-                    {popupActive ? 'Staat aan' : 'Staat uit'}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={togglePopup}
-                  disabled={togglingPopup}
-                  className="px-3 py-2 text-xs font-medium tracking-widest uppercase transition hover:opacity-80 disabled:opacity-40 flex-shrink-0"
-                  style={
-                    popupActive
-                      ? { border: '1px solid rgba(74,99,88,0.4)', color: '#4a6358', backgroundColor: '#fff' }
-                      : { backgroundColor: '#053221', color: '#c8a96e' }
-                  }
-                >
-                  {togglingPopup ? 'Bezig...' : popupActive ? 'Zet uit' : 'Zet aan'}
-                </button>
-              </div>
-
-              <div
-                className="flex-1 rounded-lg p-4 flex items-center justify-between gap-3"
-                style={{ backgroundColor: '#e8ede9', border: '1px solid rgba(200,169,110,0.3)' }}
-              >
-                <div>
-                  <p className="text-xs tracking-widest uppercase mb-1" style={{ color: '#4a6358' }}>
-                    Aanvragen
-                  </p>
-                  <p className="text-sm font-medium" style={{ color: '#053221' }}>
-                    {requestCount === 0
-                      ? 'Nog geen'
-                      : `${requestCount} totaal${openRequestCount > 0 ? ` · ${openRequestCount} nieuw` : ''}`}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => router.push('/admin/event/requests')}
-                  className="px-3 py-2 text-xs font-medium tracking-widest uppercase transition hover:opacity-80 flex-shrink-0"
-                  style={{ border: '1px solid rgba(74,99,88,0.4)', color: '#4a6358', backgroundColor: '#fff' }}
-                >
-                  Bekijk
-                </button>
-              </div>
-            </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-5">
               <div>
