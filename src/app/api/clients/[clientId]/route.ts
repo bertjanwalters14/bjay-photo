@@ -96,6 +96,9 @@ export async function PATCH(
   if ('date' in body) {
     updates.date = typeof body.date === 'string' && body.date.trim() ? body.date.trim() : undefined
   }
+  if ('contactName' in body) {
+    updates.contactName = typeof body.contactName === 'string' && body.contactName.trim() ? body.contactName.trim() : undefined
+  }
 
   const updated: Client = { ...client, ...updates }
   await redis.set(`client:${clientId}`, updated)

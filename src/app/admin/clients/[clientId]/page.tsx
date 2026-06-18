@@ -51,6 +51,7 @@ export default function AdminClientPage() {
   const [editName, setEditName] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [editDate, setEditDate] = useState('')
+  const [editContactName, setEditContactName] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
   const [archiving, setArchiving] = useState(false)
   const [sendingAccess, setSendingAccess] = useState(false)
@@ -317,7 +318,7 @@ export default function AdminClientPage() {
 
   // Inline-bewerken voor naam + e-mail. Gebruik je vooral als je een klant
   // hebt aangemaakt zonder e-mail en die later toevoegt.
-  async function saveClientEdit(updates: { name?: string; email?: string; date?: string }) {
+  async function saveClientEdit(updates: { name?: string; email?: string; date?: string; contactName?: string }) {
     const res = await fetch(`/api/clients/${clientId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -574,6 +575,7 @@ export default function AdminClientPage() {
                   setEditName(client?.name || '')
                   setEditEmail(client?.email || '')
                   setEditDate(client?.date || '')
+                  setEditContactName(client?.contactName || '')
                   setEditing(true)
                 }}
                 className="text-xs underline transition hover:opacity-70"
@@ -595,6 +597,19 @@ export default function AdminClientPage() {
                   style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221' }}
                 />
               </label>
+              {!isEvent && (
+                <label className="text-xs" style={{ color: '#4a6358' }}>
+                  Aanhef
+                  <input
+                    type="text"
+                    value={editContactName}
+                    onChange={e => setEditContactName(e.target.value)}
+                    placeholder="Bv. Mick & Marieke"
+                    className="w-full mt-1 px-2 py-1.5 text-sm focus:outline-none"
+                    style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221' }}
+                  />
+                </label>
+              )}
               <label className="text-xs" style={{ color: '#4a6358' }}>
                 {isEvent ? 'Datum event' : 'Datum shoot'}
                 <input
@@ -626,6 +641,7 @@ export default function AdminClientPage() {
                       name: editName,
                       email: isEvent ? undefined : editEmail,
                       date: editDate,
+                      contactName: isEvent ? undefined : editContactName,
                     })
                     setSavingEdit(false)
                     if (ok) setEditing(false)

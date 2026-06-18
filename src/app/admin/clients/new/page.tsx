@@ -11,6 +11,7 @@ export default function NewClientPage() {
   const [type, setType] = useState<PortalType>('personal')
   const [customCode, setCustomCode] = useState('')
   const [date, setDate] = useState('')
+  const [contactName, setContactName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
@@ -28,6 +29,7 @@ export default function NewClientPage() {
         email: type === 'personal' ? email : '',
         type,
         date: date || undefined,
+        contactName: contactName.trim() || undefined,
         customCode: customCode.trim() || undefined,
       }),
     })
@@ -162,6 +164,29 @@ export default function NewClientPage() {
                 style={inputStyle}
               />
             </div>
+
+            {/* Aanhef: voornaam/namen voor in de mail (personal) */}
+            {type === 'personal' && (
+              <div>
+                <label
+                  className="block text-xs tracking-widest uppercase mb-2"
+                  style={{ color: '#4a6358' }}
+                >
+                  Aanhef
+                </label>
+                <input
+                  type="text"
+                  value={contactName}
+                  onChange={e => setContactName(e.target.value)}
+                  placeholder="Bv. Mick & Marieke"
+                  className="w-full px-4 py-3 text-sm focus:outline-none transition"
+                  style={inputStyle}
+                />
+                <p className="text-xs mt-2" style={{ color: '#4a6358' }}>
+                  Hiermee begint de mail: &quot;Hoi ...&quot;. Leeg laten = ik gebruik de naam hierboven.
+                </p>
+              </div>
+            )}
 
             {/* Datum van het event/de shoot */}
             <div>
