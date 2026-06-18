@@ -25,6 +25,19 @@ export function slugifyEvent(input: string): string {
     .slice(0, 60)
 }
 
+// Geeft altijd een leesbare eventnaam terug, ook voor oude/onvolledige records
+// zonder `name`: valt terug op alternatieve velden en als laatste op de slug.
+export function readableEventName(e: Partial<Event>): string {
+  const rec = e as Record<string, unknown>
+  for (const c of [rec.name, rec.title, rec.eventName, rec.label]) {
+    if (typeof c === 'string' && c.trim()) return c.trim()
+  }
+  if (typeof e.slug === 'string' && e.slug) {
+    return e.slug.replace(/-/g, ' ').replace(/^./, ch => ch.toUpperCase())
+  }
+  return '(naamloos event)'
+}
+
 // ---------- Event CRUD ----------
 
 export async function getAllEvents(): Promise<Event[]> {

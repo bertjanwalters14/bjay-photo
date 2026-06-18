@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createEventRequest, getEvent, sendRequestNotification } from '@/lib/events'
+import { createEventRequest, getEvent, readableEventName, sendRequestNotification } from '@/lib/events'
 
 // POST — publiek (met CORS): bezoeker dient wachtwoord-aanvraag in.
 // Wordt aangeroepen vanaf bjay.photo/event-toegang.html.
@@ -55,7 +55,7 @@ export async function POST(
   try {
     const request = await createEventRequest({
       eventSlug: event.slug,
-      eventName: event.name,
+      eventName: readableEventName(event),
       name,
       email,
       phone: String(body?.phone || ''),
