@@ -55,8 +55,7 @@ function buildAccessHtml(client: Client): string {
   <p style="margin:24px 0;">
     <a href="${link}" style="display:inline-block;background:${GREEN};color:#c8a96e;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:bold;">Bekijk je foto's</a>
   </p>
-  <p>Of ga naar <a href="${link}" style="color:${GREEN};">${link}</a><br>
-  Je inlogcode is: <strong>${code}</strong></p>
+  <p>Je inlogcode is: <strong>${code}</strong></p>
   <p>Veel plezier met de foto's. Vind je ze leuk? Tag me gerust @bjay.photo, dan deel ik je foto graag in mn story.</p>
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:28px;">
     <tr>
