@@ -1,7 +1,7 @@
 import type { Client } from './types'
 
 const LOGIN_BASE = 'https://app.bjay.photo/login'
-const LOGO_URL = 'https://bjay.photo/images/bjaylogofooter.png'
+const LOGO_URL = 'https://bjay.photo/images/logoBJAYv3.0.png'
 const GREEN = '#053221'
 
 // Aanhef: contactName indien gezet, anders het eerste woord van de albumnaam.
@@ -58,9 +58,18 @@ function buildAccessHtml(client: Client): string {
   <p>Of ga naar <a href="${link}" style="color:${GREEN};">${link}</a><br>
   Je inlogcode is: <strong>${code}</strong></p>
   <p>Veel plezier met de foto's. Vind je ze leuk? Tag me gerust @bjay.photo, dan deel ik je foto graag in mn story.</p>
-  <p style="margin-top:28px;">Met lieve groeten,<br><strong>Bert-Jan Walters</strong></p>
-  <p style="margin:10px 0;"><img src="${LOGO_URL}" alt="BJAY Fotografie" width="200" style="display:block;border:0;outline:none;text-decoration:none;"></p>
-  <p style="font-size:13px;"><a href="https://bjay.photo" style="color:${GREEN};">bjay.photo</a></p>
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:28px;">
+    <tr>
+      <td style="vertical-align:middle;padding-right:24px;font-family:Arial,Helvetica,sans-serif;color:${GREEN};font-size:14px;line-height:1.5;">
+        Met lieve groeten,<br>
+        <strong style="font-size:15px;">Bert-Jan Walters</strong><br>
+        <a href="https://bjay.photo" style="color:${GREEN};">bjay.photo</a>
+      </td>
+      <td style="vertical-align:middle;">
+        <a href="https://bjay.photo"><img src="${LOGO_URL}" alt="BJAY Fotografie" width="180" style="display:block;border:0;outline:none;text-decoration:none;"></a>
+      </td>
+    </tr>
+  </table>
 </div>`
 }
 
