@@ -53,6 +53,89 @@ export default function PhotoModal({
   const [orderError, setOrderError] = useState('')
   const imgElRef = useRef<HTMLImageElement | null>(null)
 
+  // --- Zoom & pan: dubbelklik/dubbeltik om te zoomen, slepen om te schuiven,
+  // knijpen (pinch) op mobiel. Refs naast state om stale-closures te vermijden.
+  const [scale, setScale] = useState(1)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const scaleRef = useRef(1)
+  const panRef = useRef({ x: 0, y: 0 })
+  const gestureRef = useRef<
+    | { mode: 'drag' | 'pinch'; startX: number; startY: number; basePanX: number; basePanY: number; startDist: number; startScale: number }
+    | null
+  >(null)
+  const lastTapRef = useRef(0)
+
+  // Houdt de foto binnen z'n eigen vlak: max verschuiving = halve overgebleven breedte/hoogte.
+  function clampPan(px: number, py: number, s: number) {
+    const el = imgElRef.current
+    if (!el || s <= 1) return { x: 0, y: 0 }
+    const maxX = ((s - 1) * el.clientWidth) / 2
+    const maxY = ((s - 1) * el.clientHeight) / 2
+    return { x: Math.max(-maxX, Math.min(maxX, px)), y: Math.max(-maxY, Math.min(maxY, py)) }
+  }
+  function applyTransform(s: number, px: number, py: number) {
+    const c = clampPan(px, py, s)
+    scaleRef.current = s
+    panRef.current = c
+    setScale(s)
+    setPan(c)
+  }
+  function resetZoom() {
+    applyTransform(1, 0, 0)
+  }
+  function toggleZoom() {
+    if (scaleRef.current > 1) resetZoom()
+    else applyTransform(2.4, 0, 0)
+  }
+  function touchDist(a: React.Touch, b: React.Touch) {
+    return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
+  }
+  function onZoomMouseDown(e: React.MouseEvent) {
+    if (scaleRef.current <= 1) return
+    gestureRef.current = { mode: 'drag', startX: e.clientX, startY: e.clientY, basePanX: panRef.current.x, basePanY: panRef.current.y, startDist: 0, startScale: scaleRef.current }
+  }
+  function onZoomMouseMove(e: React.MouseEvent) {
+    const g = gestureRef.current
+    if (!g || g.mode !== 'drag') return
+    applyTransform(scaleRef.current, g.basePanX + (e.clientX - g.startX), g.basePanY + (e.clientY - g.startY))
+  }
+  function endGesture() {
+    gestureRef.current = null
+  }
+  function onZoomTouchStart(e: React.TouchEvent) {
+    if (e.touches.length === 2) {
+      gestureRef.current = { mode: 'pinch', startX: 0, startY: 0, basePanX: panRef.current.x, basePanY: panRef.current.y, startDist: touchDist(e.touches[0], e.touches[1]), startScale: scaleRef.current }
+    } else if (e.touches.length === 1) {
+      const now = Date.now()
+      if (now - lastTapRef.current < 300) {
+        toggleZoom()
+        lastTapRef.current = 0
+        return
+      }
+      lastTapRef.current = now
+      if (scaleRef.current > 1) {
+        const t = e.touches[0]
+        gestureRef.current = { mode: 'drag', startX: t.clientX, startY: t.clientY, basePanX: panRef.current.x, basePanY: panRef.current.y, startDist: 0, startScale: scaleRef.current }
+      }
+    }
+  }
+  function onZoomTouchMove(e: React.TouchEvent) {
+    const g = gestureRef.current
+    if (!g) return
+    if (g.mode === 'pinch' && e.touches.length === 2) {
+      const d = touchDist(e.touches[0], e.touches[1])
+      const s = Math.max(1, Math.min(4, g.startScale * (d / g.startDist)))
+      applyTransform(s, panRef.current.x, panRef.current.y)
+    } else if (g.mode === 'drag' && e.touches.length === 1 && scaleRef.current > 1) {
+      const t = e.touches[0]
+      applyTransform(scaleRef.current, g.basePanX + (t.clientX - g.startX), g.basePanY + (t.clientY - g.startY))
+    }
+  }
+  function onZoomTouchEnd(e: React.TouchEvent) {
+    if (gestureRef.current?.mode === 'pinch' && scaleRef.current <= 1.05) resetZoom()
+    if (e.touches.length === 0) endGesture()
+  }
+
   const cartMode = Boolean(onToggleSelection)
   const inCart = selectedIds?.includes(current.publicId) ?? false
 
@@ -71,8 +154,8 @@ export default function PhotoModal({
   const currentIsFav = favs.includes(current.publicId)
   const currentLikeCount = likeCounts?.[current.publicId] ?? 0
 
-  function prev() { if (hasPrev) { setCurrent(photos[idx - 1]); setShowOrder(false); setOrderSent(false); setOrderError('') } }
-  function next() { if (hasNext) { setCurrent(photos[idx + 1]); setShowOrder(false); setOrderSent(false); setOrderError('') } }
+  function prev() { if (hasPrev) { setCurrent(photos[idx - 1]); setShowOrder(false); setOrderSent(false); setOrderError(''); resetZoom() } }
+  function next() { if (hasNext) { setCurrent(photos[idx + 1]); setShowOrder(false); setOrderSent(false); setOrderError(''); resetZoom() } }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -325,13 +408,35 @@ export default function PhotoModal({
           <ChevronIcon dir="left" />
         </button>
 
-        <div className="relative" style={{ maxHeight: 'calc(100vh - 200px)', maxWidth: '100%' }}>
+        <div
+          className="relative"
+          style={{ maxHeight: 'calc(100vh - 200px)', maxWidth: '100%', touchAction: 'none' }}
+          onDoubleClick={toggleZoom}
+          onMouseDown={onZoomMouseDown}
+          onMouseMove={onZoomMouseMove}
+          onMouseUp={endGesture}
+          onMouseLeave={endGesture}
+          onTouchStart={onZoomTouchStart}
+          onTouchMove={onZoomTouchMove}
+          onTouchEnd={onZoomTouchEnd}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             ref={imgElRef}
             src={current.url}
             alt=""
-            style={{ maxHeight: 'calc(100vh - 200px)', maxWidth: '100%', display: 'block', objectFit: 'contain' }}
+            draggable={false}
+            style={{
+              maxHeight: 'calc(100vh - 200px)',
+              maxWidth: '100%',
+              display: 'block',
+              objectFit: 'contain',
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
+              transformOrigin: 'center center',
+              transition: gestureRef.current ? 'none' : 'transform 0.18s ease',
+              cursor: scale > 1 ? 'grab' : 'zoom-in',
+              willChange: 'transform',
+            }}
           />
         </div>
 
