@@ -720,6 +720,7 @@ export default function GalleryPage() {
           onToggleFavorite={toggleFavorite}
           clientId={clientId}
           clientName={client?.name}
+          clientEmail={client?.email}
           likeCounts={isEvent ? likeCounts : undefined}
           selectedIds={isEvent ? selectedIds : undefined}
           onToggleSelection={isEvent ? toggleSelection : undefined}

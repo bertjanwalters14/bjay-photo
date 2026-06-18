@@ -13,6 +13,9 @@ interface Props {
   onToggleFavorite: (photoId: string) => void
   clientId: string
   clientName?: string
+  // Personal: e-mailadres uit het klantprofiel. Wanneer gezet hoeven we het bij
+  // een afdruk-bestelling niet opnieuw te vragen.
+  clientEmail?: string
   // Event mode: optionele like-counts per foto. Wanneer gezet rendert het hart
   // als 'Vind ik leuk - N' i.p.v. 'Favoriet'.
   likeCounts?: Record<string, number>
@@ -32,6 +35,7 @@ export default function PhotoModal({
   onToggleFavorite,
   clientId,
   clientName,
+  clientEmail,
   likeCounts,
   selectedIds,
   onToggleSelection,
@@ -226,11 +230,16 @@ export default function PhotoModal({
 
   async function handleOrder() {
     setOrderError('')
-    if (!customerName.trim()) {
-      setOrderError('Vul je naam in')
+    // Personal: we kennen de klant al. Gebruik z'n naam + e-mail uit het
+    // profiel; alleen als er geen mailadres bekend is, valt 'ie terug op het
+    // ingevulde veld.
+    const orderName = (clientName || customerName).trim()
+    const orderEmail = (clientEmail || customerEmail).trim()
+    if (!orderName) {
+      setOrderError('Naam ontbreekt')
       return
     }
-    if (!customerEmail.trim() || !/^\S+@\S+\.\S+$/.test(customerEmail)) {
+    if (!orderEmail || !/^\S+@\S+\.\S+$/.test(orderEmail)) {
       setOrderError('Vul een geldig e-mailadres in')
       return
     }
@@ -244,8 +253,8 @@ export default function PhotoModal({
         price: selectedFormat.price,
         clientName: clientName || clientId,
         clientCode: clientId,
-        customerName: customerName.trim(),
-        customerEmail: customerEmail.trim(),
+        customerName: orderName,
+        customerEmail: orderEmail,
       }),
     })
     setOrdering(false)
@@ -348,26 +357,21 @@ export default function PhotoModal({
             </p>
           ) : (
             <div className="flex flex-col gap-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={e => setCustomerName(e.target.value)}
-                  placeholder="Jouw naam"
-                  maxLength={80}
-                  className="px-3 py-2 text-sm rounded-sm focus:outline-none"
-                  style={{ backgroundColor: '#0a1813', color: '#e8ede9', border: '1px solid rgba(200,169,110,0.25)' }}
-                />
+              {clientEmail ? (
+                <p className="text-xs" style={{ color: 'rgba(232,237,233,0.6)' }}>
+                  Je bestelt als <strong style={{ color: '#c8a96e' }}>{clientName}</strong>. De bevestiging en het betaalverzoek gaan naar <strong style={{ color: '#c8a96e' }}>{clientEmail}</strong>.
+                </p>
+              ) : (
                 <input
                   type="email"
                   value={customerEmail}
                   onChange={e => setCustomerEmail(e.target.value)}
-                  placeholder="Jouw e-mailadres"
+                  placeholder="Jouw e-mailadres (voor de bevestiging)"
                   maxLength={120}
                   className="px-3 py-2 text-sm rounded-sm focus:outline-none"
                   style={{ backgroundColor: '#0a1813', color: '#e8ede9', border: '1px solid rgba(200,169,110,0.25)' }}
                 />
-              </div>
+              )}
 
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-xs tracking-widest uppercase" style={{ color: 'rgba(200,169,110,0.7)' }}>Formaat</span>
