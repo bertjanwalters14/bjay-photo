@@ -1,7 +1,7 @@
 import type { Client } from './types'
 
 const LOGIN_BASE = 'https://app.bjay.photo/login'
-const LOGO_URL = 'https://bjay.photo/images/logoBJAYv3.0.png'
+const LOGO_URL = 'https://app.bjay.photo/logoBJAYv3.0.png'
 const GREEN = '#053221'
 
 // Aanhef: contactName indien gezet, anders het eerste woord van de albumnaam.
