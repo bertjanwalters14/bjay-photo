@@ -10,6 +10,7 @@ export default function NewClientPage() {
   const [email, setEmail] = useState('')
   const [type, setType] = useState<PortalType>('personal')
   const [customCode, setCustomCode] = useState('')
+  const [date, setDate] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
@@ -26,6 +27,7 @@ export default function NewClientPage() {
         name,
         email: type === 'personal' ? email : '',
         type,
+        date: date || undefined,
         customCode: customCode.trim() || undefined,
       }),
     })
@@ -159,6 +161,26 @@ export default function NewClientPage() {
                 className="w-full px-4 py-3 text-sm focus:outline-none transition"
                 style={inputStyle}
               />
+            </div>
+
+            {/* Datum van het event/de shoot */}
+            <div>
+              <label
+                className="block text-xs tracking-widest uppercase mb-2"
+                style={{ color: '#4a6358' }}
+              >
+                {type === 'event' ? 'Datum event' : 'Datum shoot'}
+              </label>
+              <input
+                type="date"
+                value={date}
+                onChange={e => setDate(e.target.value)}
+                className="w-full px-4 py-3 text-sm focus:outline-none transition"
+                style={inputStyle}
+              />
+              <p className="text-xs mt-2" style={{ color: '#4a6358' }}>
+                Voor de chronologische volgorde in het overzicht. Mag je later nog invullen.
+              </p>
             </div>
 
             {/* E-mail (alleen voor persoonlijk portaal) */}

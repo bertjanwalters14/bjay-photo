@@ -14,7 +14,15 @@ export default function AdminDashboard() {
 
   // Klanten gefilterd op de actieve tab.
   const visibleClients = useMemo(
-    () => clients.filter(c => (filter === 'archived' ? c.archivedAt : !c.archivedAt)),
+    () =>
+      clients
+        .filter(c => (filter === 'archived' ? c.archivedAt : !c.archivedAt))
+        .sort((a, b) => {
+          // Op event-/shootdatum, nieuwste eerst; val terug op createdAt.
+          const da = new Date(a.date || a.createdAt).getTime()
+          const db = new Date(b.date || b.createdAt).getTime()
+          return db - da
+        }),
     [clients, filter],
   )
   const router = useRouter()
@@ -224,6 +232,11 @@ export default function AdminDashboard() {
                     <p className="text-xs mt-0.5 break-words" style={{ color: '#4a6358' }}>
                       {client.email || 'Geen e-mail'}
                     </p>
+                    {client.date && (
+                      <p className="text-xs mt-0.5" style={{ color: '#4a6358' }}>
+                        {new Date(client.date).toLocaleDateString('nl-NL')}
+                      </p>
+                    )}
                     <p className="text-xs mt-1 font-mono tracking-widest sm:hidden" style={{ color: '#c8a96e' }}>
                       {client.code}
                     </p>

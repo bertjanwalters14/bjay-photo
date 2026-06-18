@@ -49,6 +49,9 @@ export interface Client {
   code: string
   type: PortalType
   createdAt: string
+  // Datum van het event/de shoot zelf (los van createdAt = aanmaakmoment).
+  // Optioneel; gebruikt om de klantenlijst chronologisch te sorteren.
+  date?: string
   // Review-flow velden. Workflow: BJAY markeert klant als opgeleverd ->
   // 3 dagen later stuurt cron automatisch een review-vraag per e-mail.
   // BJAY kan handmatig markeren dat er een review binnen is.

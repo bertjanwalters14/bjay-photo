@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
   const email: string | undefined = body?.email
   const type: PortalType = body?.type === 'event' ? 'event' : 'personal'
   const customCodeRaw: string | undefined = body?.customCode
+  const date: string | undefined = typeof body?.date === 'string' ? body.date.trim() : undefined
 
   if (!name || !name.trim()) {
     return NextResponse.json({ error: 'Naam is verplicht' }, { status: 400 })
@@ -82,6 +83,7 @@ export async function POST(req: NextRequest) {
     code,
     type,
     createdAt: new Date().toISOString(),
+    ...(date ? { date } : {}),
   }
 
   try {

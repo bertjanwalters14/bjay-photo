@@ -50,6 +50,7 @@ export default function AdminClientPage() {
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState('')
   const [editEmail, setEditEmail] = useState('')
+  const [editDate, setEditDate] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
   const [archiving, setArchiving] = useState(false)
   // Verhaal-export: selectie van foto's die als webp-zip voor een
@@ -298,7 +299,7 @@ export default function AdminClientPage() {
 
   // Inline-bewerken voor naam + e-mail. Gebruik je vooral als je een klant
   // hebt aangemaakt zonder e-mail en die later toevoegt.
-  async function saveClientEdit(updates: { name?: string; email?: string }) {
+  async function saveClientEdit(updates: { name?: string; email?: string; date?: string }) {
     const res = await fetch(`/api/clients/${clientId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -554,6 +555,7 @@ export default function AdminClientPage() {
                 onClick={() => {
                   setEditName(client?.name || '')
                   setEditEmail(client?.email || '')
+                  setEditDate(client?.date || '')
                   setEditing(true)
                 }}
                 className="text-xs underline transition hover:opacity-70"
@@ -571,6 +573,16 @@ export default function AdminClientPage() {
                   type="text"
                   value={editName}
                   onChange={e => setEditName(e.target.value)}
+                  className="w-full mt-1 px-2 py-1.5 text-sm focus:outline-none"
+                  style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221' }}
+                />
+              </label>
+              <label className="text-xs" style={{ color: '#4a6358' }}>
+                {isEvent ? 'Datum event' : 'Datum shoot'}
+                <input
+                  type="date"
+                  value={editDate}
+                  onChange={e => setEditDate(e.target.value)}
                   className="w-full mt-1 px-2 py-1.5 text-sm focus:outline-none"
                   style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221' }}
                 />
@@ -595,6 +607,7 @@ export default function AdminClientPage() {
                     const ok = await saveClientEdit({
                       name: editName,
                       email: isEvent ? undefined : editEmail,
+                      date: editDate,
                     })
                     setSavingEdit(false)
                     if (ok) setEditing(false)
@@ -628,6 +641,14 @@ export default function AdminClientPage() {
           <p className="text-sm mt-1" style={{ color: '#4a6358' }}>
             Aangemaakt: {client ? new Date(client.createdAt).toLocaleDateString('nl-NL') : ''}
           </p>
+          {client?.date && (
+            <p className="text-sm mt-1" style={{ color: '#4a6358' }}>
+              {isEvent ? 'Datum event' : 'Datum shoot'}:{' '}
+              <span style={{ color: '#053221' }}>
+                {new Date(client.date).toLocaleDateString('nl-NL')}
+              </span>
+            </p>
+          )}
           {/* Visit-stats — toont of klant het portaal heeft geopend */}
           <p className="text-sm mt-1" style={{ color: '#4a6358' }}>
             Portaalbezoek:{' '}

@@ -93,6 +93,9 @@ export async function PATCH(
     }
     updates.email = trimmed
   }
+  if ('date' in body) {
+    updates.date = typeof body.date === 'string' && body.date.trim() ? body.date.trim() : undefined
+  }
 
   const updated: Client = { ...client, ...updates }
   await redis.set(`client:${clientId}`, updated)
