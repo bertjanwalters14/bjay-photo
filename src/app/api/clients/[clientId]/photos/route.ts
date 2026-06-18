@@ -23,6 +23,19 @@ function watermarkedUrl(publicId: string, width: number, yOffset: number) {
   })
 }
 
+// Schone (niet-gewatermerkte) URL op displaygrootte, voor personal-galerijen.
+function cleanUrl(publicId: string, width: number) {
+  return cloudinary.url(publicId, {
+    secure: true,
+    transformation: [{ width, crop: 'limit', quality: 'auto', fetch_format: 'auto' }],
+  })
+}
+
+// Schone download op volledige resolutie, geforceerd als download (attachment).
+function originalDownloadUrl(publicId: string) {
+  return cloudinary.url(publicId, { secure: true, flags: 'attachment' })
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ clientId: string }> }
@@ -121,11 +134,15 @@ export async function GET(
 
   const photosWithKeys: PhotoWithSortKey[] = (result.resources as CloudinaryResource[]).map(r => ({
     publicId: r.public_id,
-    // Gallery preview (modal-grootte) + grid thumbnail. Personal portals
-    // krijgen hogere resolutie omdat de klant de shoot al heeft betaald
-    // en mooi groot wil kunnen kijken op het portaal.
-    url: watermarkedUrl(r.public_id, PREVIEW_WIDTH, PREVIEW_Y),
-    thumbnail: watermarkedUrl(r.public_id, THUMB_WIDTH, THUMB_Y),
+    // Personal: schone foto's (geen watermerk) op displaygrootte + een schone
+    // download op volle resolutie. Event: gewatermerkte preview, geen download.
+    url: isPersonal
+      ? cleanUrl(r.public_id, PREVIEW_WIDTH)
+      : watermarkedUrl(r.public_id, PREVIEW_WIDTH, PREVIEW_Y),
+    thumbnail: isPersonal
+      ? cleanUrl(r.public_id, THUMB_WIDTH)
+      : watermarkedUrl(r.public_id, THUMB_WIDTH, THUMB_Y),
+    downloadUrl: isPersonal ? originalDownloadUrl(r.public_id) : undefined,
     width: r.width,
     height: r.height,
     // createdAt = de "echte" opname-datum uit EXIF, met upload-tijd als fallback.

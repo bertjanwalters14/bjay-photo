@@ -116,7 +116,9 @@ export default function PhotoModal({
   }
 
   async function handleDownload() {
-    const res = await fetch(current.url)
+    // Personal krijgt de schone, volledige-resolutie download; event de
+    // (gewatermerkte) preview-URL.
+    const res = await fetch(current.downloadUrl || current.url)
     const blob = await res.blob()
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')

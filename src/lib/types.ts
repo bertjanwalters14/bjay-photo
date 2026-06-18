@@ -72,6 +72,10 @@ export interface Photo {
   width: number
   height: number
   createdAt: string
+  // Schone download-URL op volledige resolutie. Alleen gezet voor personal-
+  // portals; bij events undefined zodat bezoekers alleen de gewatermerkte
+  // preview krijgen tot ze betalen.
+  downloadUrl?: string
 }
 
 export interface Feedback {

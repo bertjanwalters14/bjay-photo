@@ -52,6 +52,9 @@ export default function GalleryPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   // Tijdslot binnen een dag: null = hele dag, anders 'ochtend' | 'middag' | 'avond'
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(null)
+  // Bulk-download (alleen personal): voortgang van het zippen.
+  const [downloadingAll, setDownloadingAll] = useState(false)
+  const [downloadProgress, setDownloadProgress] = useState(0)
 
   const gridRef = useRef<HTMLDivElement>(null)
 
@@ -257,6 +260,48 @@ export default function GalleryPage() {
     setSelectedIds([])
   }
 
+  // Personal: alle foto's in één ZIP downloaden (client-side, schone originelen).
+  async function downloadAll() {
+    if (downloadingAll || photos.length === 0) return
+    setDownloadingAll(true)
+    setDownloadProgress(0)
+    try {
+      const JSZip = (await import('jszip')).default
+      const zip = new JSZip()
+      let nextIndex = 0
+      let done = 0
+      async function worker() {
+        while (true) {
+          const i = nextIndex++
+          if (i >= photos.length) return
+          const p = photos[i]
+          try {
+            const r = await fetch(p.downloadUrl || p.url)
+            if (r.ok) {
+              const base = p.publicId.split('/').pop() || `foto-${i + 1}`
+              const name = /\.(jpe?g|png|webp)$/i.test(base) ? base : `${base}.jpg`
+              zip.file(name, await r.blob())
+            }
+          } catch {
+            // sla deze foto over bij een fout
+          }
+          done++
+          setDownloadProgress(done)
+        }
+      }
+      await Promise.all(Array.from({ length: Math.min(4, photos.length) }, () => worker()))
+      const blob = await zip.generateAsync({ type: 'blob' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${client?.name || 'fotos'}.zip`
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setDownloadingAll(false)
+    }
+  }
+
   // History API: push state bij modal open zodat browser-back de modal sluit
   function openPhoto(photo: Photo) {
     setSelectedPhoto(photo)
@@ -424,7 +469,7 @@ export default function GalleryPage() {
                   className="text-sm font-medium tracking-widest uppercase mb-3"
                   style={{ color: '#053221' }}
                 >
-                  Zo bestel je foto's
+                  {isEvent ? "Zo bestel je foto's" : "Je foto's"}
                 </h3>
 
                 <div
@@ -445,9 +490,9 @@ export default function GalleryPage() {
                         },
                       ]
                     : [
-                        { n: '1', t: 'Selecteer', d: 'Tik op + voor digitale download, of klik een foto voor een afdruk' },
-                        { n: '2', t: 'Checkout', d: 'Digitaal: groene knop onderin. Afdruk: in de foto-weergave.' },
-                        { n: '3', t: 'Per mail of post', d: 'Digitale foto(s) in hoge resolutie per mail, afdrukken per post.' },
+                        { n: '1', t: 'Downloaden', d: 'Download een foto los in de foto-weergave, of allemaal in één keer hieronder.' },
+                        { n: '2', t: 'Afdruk?', d: 'Een fysieke afdruk bestel je per foto in de foto-weergave.' },
+                        { n: '3', t: 'Tag me!', d: 'Post je een foto? Tag @bjay.photo, dan deel ik hem in mn story.' },
                       ]
                   ).map((step: { n: string; t: string; d: string; href?: string }) => (
                     <div key={step.n} className="flex gap-3 items-start">
@@ -494,19 +539,43 @@ export default function GalleryPage() {
                   className="rounded p-3 text-xs"
                   style={{ backgroundColor: 'rgba(200,169,110,0.1)', color: '#053221' }}
                 >
-                  <strong>Tarieven (digitale download):</strong>{' '}
-                  <span style={{ color: '#4a6358' }}>
-                    {isEvent
-                      ? "1 foto €5 · 3 foto's €12 · 5 foto's €18"
-                      : "1 foto €10 · 3 foto's €25 · 5 foto's €40"}
-                  </span>
-                  {!isEvent && (
-                    <span style={{ color: 'rgba(74,99,88,0.7)' }}>
-                      {' '}· Afdrukken: zie foto-weergave
-                    </span>
+                  {isEvent ? (
+                    <>
+                      <strong>Tarieven (digitale download):</strong>{' '}
+                      <span style={{ color: '#4a6358' }}>1 foto €5 · 3 foto&apos;s €12 · 5 foto&apos;s €18</span>
+                    </>
+                  ) : (
+                    <span style={{ color: '#4a6358' }}>Afdrukken bestel je per foto in de foto-weergave.</span>
                   )}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Personal: alles in één keer downloaden + tag-zin */}
+          {!isEvent && photos.length > 0 && (
+            <div
+              className="mt-4 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+              style={{ backgroundColor: '#053221' }}
+            >
+              <div>
+                <p className="text-base font-medium" style={{ color: '#f5f4f0' }}>
+                  Post je een foto? Tag <strong style={{ color: '#c8a96e' }}>@bjay.photo</strong>
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: 'rgba(232,237,233,0.7)' }}>
+                  Dan deel ik &apos;m in mn story. Je foto&apos;s staan in hoge resolutie klaar om te downloaden.
+                </p>
+              </div>
+              <button
+                onClick={downloadAll}
+                disabled={downloadingAll}
+                className="px-5 py-2.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80 disabled:opacity-60 flex-shrink-0"
+                style={{ backgroundColor: '#c8a96e', color: '#053221' }}
+              >
+                {downloadingAll
+                  ? `Bezig... ${downloadProgress}/${photos.length}`
+                  : "Download alle foto's"}
+              </button>
             </div>
           )}
 
@@ -633,8 +702,8 @@ export default function GalleryPage() {
                 onSelect={openPhoto}
                 onToggleFavorite={toggleFavorite}
                 likeCounts={isEvent ? likeCounts : undefined}
-                selectedIds={selectedIds}
-                onToggleSelection={toggleSelection}
+                selectedIds={isEvent ? selectedIds : undefined}
+                onToggleSelection={isEvent ? toggleSelection : undefined}
               />
             )}
           </div>
@@ -652,14 +721,14 @@ export default function GalleryPage() {
           clientId={clientId}
           clientName={client?.name}
           likeCounts={isEvent ? likeCounts : undefined}
-          selectedIds={selectedIds}
-          onToggleSelection={toggleSelection}
+          selectedIds={isEvent ? selectedIds : undefined}
+          onToggleSelection={isEvent ? toggleSelection : undefined}
           showPrintOption={!isEvent}
         />
       )}
 
-      {/* Cart bar + checkout - voor events en personal */}
-      {client && (
+      {/* Cart bar + checkout - alleen voor events (personal downloadt schoon) */}
+      {client && isEvent && (
         <OrderCart
           photos={photos}
           selectedIds={selectedIds}
