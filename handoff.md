@@ -129,7 +129,7 @@ Beide endpoints accepteren drie auth-paden:
 - Stripe-integratie gebouwd en weer teruggedraaid (KVK nodig voor live keys)
 - E-mail-filter advies voor Gmail (notificatie per bestelling)
 - App-favicon (`src/app/favicon.ico`) gelijkgetrokken met de website: groen BJAY-logo (bron `public/logo.png`) i.p.v. de oude gouden. Multi-size .ico via Pillow.
-- Opschoning (juni 2026): ongebruikte Next-starter-SVG's uit `public/` weg (next/vercel/file/globe/window.svg), dode `src/app/lib/cloudinary.ts` weg (alle imports gebruiken `@/lib/cloudinary`). Web3Forms-key niet meer hardcoded in `events.ts`/`reviews.ts` maar via `src/lib/web3forms.ts` uit env. **Nieuwe env-var `WEB3FORMS_ACCESS_KEY` ook in Vercel zetten**, anders breken de event-aanvraag- en review-fallback-mails in productie.
+- Opschoning (juni 2026): ongebruikte Next-starter-SVG's uit `public/` weg (next/vercel/file/globe/window.svg), dode `src/app/lib/cloudinary.ts` weg (alle imports gebruiken `@/lib/cloudinary`). Web3Forms bleek server-side geblokkeerd (Cloudflare-403 op aanroepen vanaf Vercel), daarom volledig vervangen door **Resend**: de event-aanvraag-notificatie (`events.ts`, met `reply_to` = de aanvrager) en de review-mail (`reviews.ts`) gaan nu via Resend naar/vanaf info@bjay.photo. `web3forms.ts` is verwijderd; de env-var `WEB3FORMS_ACCESS_KEY` is niet meer nodig (mag uit Vercel + `.env.local`).
 
 ## Bekende issues en heads-ups
 

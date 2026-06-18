@@ -1,7 +1,6 @@
 import redis from '@/lib/redis'
 import { Event, EventRequest } from '@/lib/types'
 import { nanoid } from 'nanoid'
-import { WEB3FORMS_ACCESS_KEY } from '@/lib/web3forms'
 
 const DEFAULT_LOGIN_URL = 'https://app.bjay.photo/login'
 
@@ -200,7 +199,7 @@ export async function deleteRequest(id: string): Promise<boolean> {
   return true
 }
 
-// ---------- Email notification via web3forms ----------
+// ---------- Email notification via Resend ----------
 
 export async function sendRequestNotification(request: EventRequest): Promise<void> {
   const subject = `Wachtwoord-aanvraag: ${request.eventName}`
@@ -217,21 +216,33 @@ export async function sendRequestNotification(request: EventRequest): Promise<vo
     `Tijd: ${new Date(request.createdAt).toLocaleString('nl-NL')}`,
   ].filter(Boolean)
 
+  // Notificatie naar BJAY via Resend. reply_to = de aanvrager, zodat je in je
+  // mail direct op Beantwoorden kunt klikken om het wachtwoord te sturen.
+  const resendKey = process.env.RESEND_API_KEY
+  if (!resendKey) {
+    console.error('RESEND_API_KEY ontbreekt - aanvraag-notificatie niet verstuurd')
+    return
+  }
   try {
-    await fetch('https://api.web3forms.com/submit', {
+    const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${resendKey}`,
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        access_key: WEB3FORMS_ACCESS_KEY,
+        from: 'Bjay.photo <info@bjay.photo>',
+        to: 'info@bjay.photo',
+        reply_to: request.email,
         subject,
-        name: request.name,
-        email: request.email,
-        message: lines.join('\n'),
-        botcheck: '',
+        text: lines.join('\n'),
       }),
     })
+    if (!res.ok) {
+      console.error('Resend notificatie faalt:', await res.text())
+    }
   } catch (err) {
     // Email-falen mag de aanvraag-opslag niet blokkeren.
-    console.error('Email notification failed:', err)
+    console.error('Aanvraag-notificatie mislukt:', err)
   }
 }

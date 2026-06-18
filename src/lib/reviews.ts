@@ -1,6 +1,5 @@
 import redis from './redis'
 import type { Client } from './types'
-import { WEB3FORMS_ACCESS_KEY } from './web3forms'
 
 const GOOGLE_REVIEW_URL = 'https://g.page/r/CZc1CoEHfp4HEAE/review'
 
@@ -78,71 +77,37 @@ BJAY Fotografie
 info@bjay.photo`
 }
 
-// Stuur de review-vraag. Twee strategieën:
-//   1. Als RESEND_API_KEY is geconfigureerd: direct naar de klant via Resend.
-//   2. Anders fallback: een notificatie aan BJAY zelf via web3forms met de
-//      kant-en-klare tekst, zodat hij die in zijn eigen mailbox 1-op-1 kan
-//      doorsturen naar de klant.
-//
+// Stuur de review-vraag via Resend (direct naar de klant, volautomatisch).
 // Returnt true bij succes, false bij falen (cron blijft dan retry op
 // volgende dag omdat reviewRequestedAt niet wordt gezet bij falen).
 export async function sendReviewRequest(client: PendingReviewClient): Promise<boolean> {
   const message = buildReviewMessage(client.name)
   const subject = 'Bedankt voor de fotoshoot bij BJAY Fotografie'
 
-  // Strategie 1: Resend (direct naar klant, volautomatisch)
   const resendKey = process.env.RESEND_API_KEY
-  if (resendKey) {
-    try {
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: 'Bjay.photo <info@bjay.photo>',
-          to: client.email,
-          subject,
-          text: message,
-        }),
-      })
-      if (res.ok) return true
-      console.error('Resend faalt:', await res.text())
-    } catch (err) {
-      console.error('Resend error:', err)
-    }
+  if (!resendKey) {
+    console.error('RESEND_API_KEY ontbreekt - review-mail niet verstuurd')
+    return false
   }
-
-  // Strategie 2 (fallback): web3forms naar BJAY met copy-paste tekst.
   try {
-    const reminderBody = [
-      `Klant '${client.name}' is ${client.daysSinceDelivery} dagen geleden opgeleverd.`,
-      `Email klant: ${client.email}`,
-      `Klantcode: ${client.code}`,
-      '',
-      '--- Verstuur deze tekst aan de klant ---',
-      '',
-      message,
-      '',
-      '--- Einde ---',
-    ].join('\n')
-
-    await fetch('https://api.web3forms.com/submit', {
+    const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${resendKey}`,
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        access_key: WEB3FORMS_ACCESS_KEY,
-        subject: `Review-herinnering: ${client.name}`,
-        name: 'Review flow',
-        email: 'info@bjay.photo',
-        message: reminderBody,
-        botcheck: '',
+        from: 'Bjay.photo <info@bjay.photo>',
+        to: client.email,
+        subject,
+        text: message,
       }),
     })
-    return true
+    if (res.ok) return true
+    console.error('Resend faalt:', await res.text())
+    return false
   } catch (err) {
-    console.error('Web3forms fallback error:', err)
+    console.error('Resend error:', err)
     return false
   }
 }
