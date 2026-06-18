@@ -6,6 +6,8 @@ import { calculatePriceForCount, priceForUnlimited, type PriceTier } from '@/lib
 import cloudinary from '@/lib/cloudinary'
 import type { Client } from '@/lib/types'
 import type { Order } from '@/lib/types'
+import { sendBrandedMail } from '@/lib/email'
+import { orderConfirmationBodyHtml, orderConfirmationBodyText } from '@/lib/orderMail'
 
 // Bouw schone Cloudinary delivery URL uit publicId (geen transformaties)
 function cleanCloudinaryUrl(publicId: string): string {
@@ -188,38 +190,26 @@ export async function POST(req: NextRequest) {
       ].filter(Boolean).join('\n')
     )
 
-    // Bevestiging naar klant
+    // Bevestiging naar klant (in huisstijl)
     if (customerEmail) {
       const klantSummary = isEventOrder
         ? order.packageType === 'unlimited'
-          ? 'Pakket: Onbeperkt - alle foto\'s van het evenement'
+          ? "Pakket: Onbeperkt - alle foto's van het evenement"
           : `Selectie: ${order.format}`
         : `Formaat: ${order.format}`
 
-      await sendMail(
-        customerEmail,
-        'Bevestiging van je fotobestelling - Bjay.photo',
-        [
-          `Hoi ${customerName || ''},`.trim(),
-          '',
-          'Bedankt voor je bestelling bij Bjay.photo!',
-          '',
-          'Wat je hebt besteld:',
-          `  ${klantSummary}`,
-          `  Prijs: ${order.price}`,
-          '',
-          'Hoe het verder gaat:',
-          '  1. Ik stuur je binnenkort persoonlijk een betaalverzoek (Tikkie of iDEAL link).',
-          isEventOrder
-            ? '  2. Zodra de betaling binnen is, ontvang je de foto(s) in hoge resolutie zonder watermerk per mail.'
-            : '  2. Zodra de betaling binnen is, regel ik de print en stuur ik je een update.',
-          '',
-          'Mocht je vragen hebben, beantwoord deze mail dan gewoon.',
-          '',
-          'Tot snel!',
-          'Bert-Jan - Bjay.photo',
-        ].join('\n')
-      )
+      const mailOpts = {
+        customerName,
+        summary: klantSummary,
+        price: order.price,
+        isEvent: isEventOrder,
+      }
+      await sendBrandedMail({
+        to: customerEmail,
+        subject: 'Bevestiging van je fotobestelling - Bjay.photo',
+        bodyHtml: orderConfirmationBodyHtml(mailOpts),
+        bodyText: orderConfirmationBodyText(mailOpts),
+      })
     }
 
     return NextResponse.json({ success: true, orderId: order.id })

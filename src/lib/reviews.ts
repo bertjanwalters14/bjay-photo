@@ -1,5 +1,6 @@
 import redis from './redis'
 import type { Client } from './types'
+import { sendBrandedMail, emailButton, escapeHtml } from './email'
 
 const GOOGLE_REVIEW_URL = 'https://g.page/r/CZc1CoEHfp4HEAE/review'
 
@@ -56,13 +57,14 @@ export async function markReviewRequested(clientCode: string): Promise<void> {
   })
 }
 
-// Bouw de review-vraag tekst die naar de klant gestuurd wordt.
-// Persoonlijke toon, korte uitleg waarom, directe Google-link.
-function buildReviewMessage(name: string): string {
-  // Pak alleen de voornaam voor een persoonlijke aanhef.
-  const firstName = name.trim().split(/\s+/)[0]
+// Voornaam voor een persoonlijke aanhef.
+function reviewFirstName(name: string): string {
+  return name.trim().split(/\s+/)[0] || 'daar'
+}
 
-  return `Hoi ${firstName},
+// Body zonder afsluiting; de handtekening wordt door sendBrandedMail toegevoegd.
+function buildReviewText(name: string): string {
+  return `Hoi ${reviewFirstName(name)},
 
 Hopelijk geniet je inmiddels van de foto's!
 
@@ -70,44 +72,25 @@ Mocht je een momentje hebben: zou je een korte Google-review willen achterlaten?
 
 ${GOOGLE_REVIEW_URL}
 
-Het is zeker niet verplicht, ik vond het echt een toffe shoot en hopelijk kun je nog lang van de beelden genieten.
+Het is zeker niet verplicht, ik vond het echt een toffe shoot en hopelijk kun je nog lang van de beelden genieten.`
+}
 
-Bert-Jan
-BJAY Fotografie
-info@bjay.photo`
+export function buildReviewHtml(name: string): string {
+  return `<p>Hoi ${escapeHtml(reviewFirstName(name))},</p>
+  <p>Hopelijk geniet je inmiddels van de foto's!</p>
+  <p>Mocht je een momentje hebben: zou je een korte Google-review willen achterlaten? Dat helpt me enorm om beter gevonden te worden en meer mensen blij te maken met gave fotoshoots.</p>
+  ${emailButton(GOOGLE_REVIEW_URL, 'Schrijf een review')}
+  <p>Het is zeker niet verplicht, ik vond het echt een toffe shoot en hopelijk kun je nog lang van de beelden genieten.</p>`
 }
 
 // Stuur de review-vraag via Resend (direct naar de klant, volautomatisch).
 // Returnt true bij succes, false bij falen (cron blijft dan retry op
 // volgende dag omdat reviewRequestedAt niet wordt gezet bij falen).
 export async function sendReviewRequest(client: PendingReviewClient): Promise<boolean> {
-  const message = buildReviewMessage(client.name)
-  const subject = 'Bedankt voor de fotoshoot bij BJAY Fotografie'
-
-  const resendKey = process.env.RESEND_API_KEY
-  if (!resendKey) {
-    console.error('RESEND_API_KEY ontbreekt - review-mail niet verstuurd')
-    return false
-  }
-  try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${resendKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'Bjay.photo <info@bjay.photo>',
-        to: client.email,
-        subject,
-        text: message,
-      }),
-    })
-    if (res.ok) return true
-    console.error('Resend faalt:', await res.text())
-    return false
-  } catch (err) {
-    console.error('Resend error:', err)
-    return false
-  }
+  return sendBrandedMail({
+    to: client.email,
+    subject: 'Bedankt voor de fotoshoot bij BJAY Fotografie',
+    bodyHtml: buildReviewHtml(client.name),
+    bodyText: buildReviewText(client.name),
+  })
 }
