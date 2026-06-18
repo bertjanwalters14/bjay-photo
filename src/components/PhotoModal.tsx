@@ -310,7 +310,7 @@ export default function PhotoModal({
                 <p className="text-xs" style={{ color: '#ff8a8a' }}>{orderError}</p>
               )}
               <p className="text-xs" style={{ color: 'rgba(232,237,233,0.45)' }}>
-                Je ontvangt direct een bevestigingsmail. Daarna stuur ik je een betaalverzoek; zodra dat is voldaan ontvang je de foto in hoge resolutie zonder watermerk per mail.
+                Je ontvangt direct een bevestigingsmail. Daarna stuur ik je een betaalverzoek; zodra dat is voldaan neem ik je afdruk in bestelling en stuur ik hem zo snel mogelijk op.
               </p>
             </div>
           )}
