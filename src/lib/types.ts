@@ -68,6 +68,8 @@ export interface Client {
   archivedAt?: string | null
   // Wanneer de toegangsmail (inloglink + code) naar de klant is verstuurd.
   accessMailSentAt?: string | null
+  // Wanneer de sneak peek-mail (paar bewerkte favorieten vooraf) is verstuurd.
+  sneakPeekSentAt?: string | null
 }
 
 export interface Photo {

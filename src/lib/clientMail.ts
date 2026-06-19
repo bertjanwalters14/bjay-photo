@@ -51,3 +51,43 @@ export async function sendAccessMail(client: Client): Promise<boolean> {
     bodyText: accessBodyText(client),
   })
 }
+
+// Body (HTML) van de sneak peek-mail. Zelfde portaal-link + code, andere tekst.
+export function sneakPeekBodyHtml(client: Client): string {
+  const name = greetingName(client)
+  const link = loginLink(client)
+  return `<p>Hoi ${escapeHtml(name)},</p>
+  <p>Ik kon niet wachten, hier is alvast een kleine sneak peek!</p>
+  <p>Ik heb een paar van mn favorieten al voor je bewerkt zodat je er nu al van kunt genieten. De volledige set volgt zo snel mogelijk.</p>
+  ${emailButton(link, 'Bekijk de sneak peek')}
+  <p>Je inlogcode is: <strong>${escapeHtml(client.code)}</strong></p>
+  <p>Vind je ze leuk? Tag me gerust @bjay.photo, dan deel ik je foto graag in mn story.</p>`
+}
+
+function sneakPeekBodyText(client: Client): string {
+  const name = greetingName(client)
+  const link = loginLink(client)
+  return `Hoi ${name},
+
+Ik kon niet wachten, hier is alvast een kleine sneak peek!
+
+Ik heb een paar van mn favorieten al voor je bewerkt zodat je er nu al van kunt genieten. De volledige set volgt zo snel mogelijk.
+
+Bekijk de sneak peek hier:
+${link}
+
+Je inlogcode is: ${client.code}
+
+Vind je ze leuk? Tag me gerust @bjay.photo, dan deel ik je foto graag in mn story.`
+}
+
+// Sneak peek-mail in huisstijl.
+export async function sendSneakPeekMail(client: Client): Promise<boolean> {
+  if (!client.email) return false
+  return sendBrandedMail({
+    to: client.email,
+    subject: "Alvast een sneak peek van je foto's",
+    bodyHtml: sneakPeekBodyHtml(client),
+    bodyText: sneakPeekBodyText(client),
+  })
+}

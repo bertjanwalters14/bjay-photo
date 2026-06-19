@@ -1,5 +1,5 @@
 import { brandedHtml } from '@/lib/email'
-import { accessBodyHtml } from '@/lib/clientMail'
+import { accessBodyHtml, sneakPeekBodyHtml } from '@/lib/clientMail'
 import { buildReviewHtml } from '@/lib/reviews'
 import { orderConfirmationBodyHtml } from '@/lib/orderMail'
 import type { Client } from '@/lib/types'
@@ -25,6 +25,11 @@ export default function MailPreviewPage() {
       label: 'Toegangsmail',
       subject: "Je foto's van BJAY Fotografie staan klaar",
       html: brandedHtml(accessBodyHtml(sampleClient)),
+    },
+    {
+      label: 'Sneak peek',
+      subject: "Alvast een sneak peek van je foto's",
+      html: brandedHtml(sneakPeekBodyHtml(sampleClient)),
     },
     {
       label: 'Review-vraag',

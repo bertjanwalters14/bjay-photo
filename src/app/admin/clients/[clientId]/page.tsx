@@ -55,6 +55,7 @@ export default function AdminClientPage() {
   const [savingEdit, setSavingEdit] = useState(false)
   const [archiving, setArchiving] = useState(false)
   const [sendingAccess, setSendingAccess] = useState(false)
+  const [sendingSneak, setSendingSneak] = useState(false)
   // Verhaal-export: selectie van foto's die als webp-zip voor een
   // verhaal-pagina op bjay.photo wordt gedownload. Volgorde van aanvinken
   // bepaalt de nummering in de bestandsnamen.
@@ -265,6 +266,23 @@ export default function AdminClientPage() {
       }
     } finally {
       setSendingAccess(false)
+    }
+  }
+
+  // Stuurt de klant een sneak peek-mail (paar bewerkte favorieten vooraf).
+  async function handleSendSneakPeek() {
+    setSendingSneak(true)
+    try {
+      const res = await fetch(`/api/clients/${clientId}/sneak-peek`, { method: 'POST' })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.client) setClient(data.client)
+      } else {
+        const d = await res.json().catch(() => ({}))
+        alert(d?.error || 'Sneak peek versturen mislukt')
+      }
+    } finally {
+      setSendingSneak(false)
     }
   }
 
@@ -721,6 +739,25 @@ export default function AdminClientPage() {
                 style={{ backgroundColor: '#053221', color: '#c8a96e' }}
               >
                 {sendingAccess ? 'Versturen...' : client?.accessMailSentAt ? 'Opnieuw sturen' : 'Stuur toegangsmail'}
+              </button>
+            </div>
+          )}
+
+          {/* Sneak peek-mail: paar bewerkte favorieten vooraf (personal met e-mail) */}
+          {!isEvent && client?.email && (
+            <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2">
+              <p className="text-xs flex-1" style={{ color: '#4a6358' }}>
+                {client?.sneakPeekSentAt
+                  ? `Sneak peek verstuurd op ${new Date(client.sneakPeekSentAt).toLocaleDateString('nl-NL')}.`
+                  : 'Stuur alvast een sneak peek (een paar bewerkte favorieten).'}
+              </p>
+              <button
+                onClick={handleSendSneakPeek}
+                disabled={sendingSneak}
+                className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80 disabled:opacity-50"
+                style={{ border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }}
+              >
+                {sendingSneak ? 'Versturen...' : client?.sneakPeekSentAt ? 'Opnieuw sturen' : 'Stuur sneak peek'}
               </button>
             </div>
           )}
