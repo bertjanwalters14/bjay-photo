@@ -3,6 +3,9 @@
 // inbox) gebruiken dit bewust NIET; die blijven kale tekst.
 
 const FROM = 'Bjay.photo <info@bjay.photo>'
+// BCC naar BJAY zelf op alle klant-mails: zo is er altijd een kopie en zie je
+// precies hoe de mail bij de klant aankomt. Verborgen voor de klant.
+const BCC = 'bertjanwalters@gmail.com'
 const GREEN = '#053221'
 const GOLD = '#c8a96e'
 const LOGO_URL = 'https://app.bjay.photo/logoBJAYv3.0.png'
@@ -69,6 +72,7 @@ export async function sendBrandedMail(opts: {
       body: JSON.stringify({
         from: FROM,
         to: opts.to,
+        bcc: BCC,
         subject: opts.subject,
         html: brandedHtml(opts.bodyHtml),
         text: `${opts.bodyText}\n\n${SIGNATURE_TEXT}`,
