@@ -12,6 +12,8 @@ export default function NewClientPage() {
   const [customCode, setCustomCode] = useState('')
   const [date, setDate] = useState('')
   const [contactName, setContactName] = useState('')
+  const [price, setPrice] = useState('')
+  const [personalNote, setPersonalNote] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
@@ -30,6 +32,8 @@ export default function NewClientPage() {
         type,
         date: date || undefined,
         contactName: contactName.trim() || undefined,
+        price: type === 'personal' ? price.trim() || undefined : undefined,
+        personalNote: type === 'personal' ? personalNote.trim() || undefined : undefined,
         customCode: customCode.trim() || undefined,
       }),
     })
@@ -226,6 +230,53 @@ export default function NewClientPage() {
                   style={inputStyle}
                 />
               </div>
+            )}
+
+            {/* Bedrag + persoonlijk bericht (alleen persoonlijk portaal).
+                Beide verschijnen alleen in de oplever-mail. */}
+            {type === 'personal' && (
+              <>
+                <div>
+                  <label
+                    className="block text-xs tracking-widest uppercase mb-2"
+                    style={{ color: '#4a6358' }}
+                  >
+                    Bedrag shoot
+                  </label>
+                  <input
+                    type="text"
+                    value={price}
+                    onChange={e => setPrice(e.target.value)}
+                    placeholder="Bv. €200"
+                    className="w-full px-4 py-3 text-sm focus:outline-none transition"
+                    style={inputStyle}
+                  />
+                  <p className="text-xs mt-2" style={{ color: '#4a6358' }}>
+                    Leeg laten = geen betaalregel in de oplever-mail. Anders komt er een
+                    regel met je IBAN en het bedrag onderaan.
+                  </p>
+                </div>
+
+                <div>
+                  <label
+                    className="block text-xs tracking-widest uppercase mb-2"
+                    style={{ color: '#4a6358' }}
+                  >
+                    Persoonlijk bericht
+                  </label>
+                  <textarea
+                    value={personalNote}
+                    onChange={e => setPersonalNote(e.target.value)}
+                    placeholder="Bv. We hadden 2 uur afgesproken, maar ik vond het zo leuk dat het er 5 werden. Geen zorgen, dat is mijn plezier!"
+                    rows={4}
+                    className="w-full px-4 py-3 text-sm focus:outline-none transition resize-y"
+                    style={inputStyle}
+                  />
+                  <p className="text-xs mt-2" style={{ color: '#4a6358' }}>
+                    Verschijnt als opening van de oplever-mail, net na &quot;Hoi ...&quot;. Leeg laten = geen extra alinea.
+                  </p>
+                </div>
+              </>
             )}
 
             {/* Custom code (optioneel) */}

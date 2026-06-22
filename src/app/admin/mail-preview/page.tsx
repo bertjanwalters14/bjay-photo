@@ -18,6 +18,9 @@ export default function MailPreviewPage() {
     code: 'abc12345',
     type: 'personal',
     createdAt: new Date().toISOString(),
+    price: '€200',
+    personalNote:
+      'We hadden 2 uur afgesproken, maar ik vond het zo leuk dat het er 5 werden. Geen zorgen, dat is mijn plezier!',
   }
 
   const mails: { label: string; subject: string; html: string }[] = [

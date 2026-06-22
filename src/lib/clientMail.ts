@@ -2,6 +2,8 @@ import type { Client } from './types'
 import { sendBrandedMail, emailButton, escapeHtml } from './email'
 
 const LOGIN_BASE = 'https://app.bjay.photo/login'
+const IBAN = 'NL03 TRBK 0594 0453 11'
+const ACCOUNT_NAME = 'Berend Jan-Geert Walters'
 
 // Aanhef: contactName indien gezet, anders het eerste woord van de albumnaam.
 function greetingName(client: Client): string {
@@ -14,34 +16,57 @@ function loginLink(client: Client): string {
   return `${LOGIN_BASE}?code=${encodeURIComponent(client.code)}`
 }
 
-// Body (HTML) van de toegangsmail. Geexporteerd zodat de mail-preview 'm ook
-// kan renderen.
+// Optioneel persoonlijk bericht als alinea (regelovergangen blijven behouden).
+function noteHtml(client: Client): string | null {
+  if (!client.personalNote || !client.personalNote.trim()) return null
+  return `<p>${escapeHtml(client.personalNote.trim()).replace(/\n/g, '<br>')}</p>`
+}
+function noteText(client: Client): string | null {
+  if (!client.personalNote || !client.personalNote.trim()) return null
+  return client.personalNote.trim()
+}
+
+// Optionele betaalregel (alleen als er een bedrag is ingevuld).
+function paymentHtml(client: Client): string | null {
+  if (!client.price || !client.price.trim()) return null
+  return `<p>Het afgesproken bedrag voor de shoot is <strong>${escapeHtml(client.price.trim())}</strong>. Je kunt dit overmaken naar <strong>${IBAN}</strong> t.n.v. ${ACCOUNT_NAME} (dat ben ik, BJAY Fotografie), o.v.v. ${escapeHtml(client.name)}.</p>`
+}
+function paymentText(client: Client): string | null {
+  if (!client.price || !client.price.trim()) return null
+  return `Het afgesproken bedrag voor de shoot is ${client.price.trim()}. Je kunt dit overmaken naar ${IBAN} t.n.v. ${ACCOUNT_NAME} (dat ben ik, BJAY Fotografie), o.v.v. ${client.name}.`
+}
+
+// Body (HTML) van de oplever-mail. Persoonlijk bericht bovenin, betaalregel
+// onderaan; beide alleen als ze ingevuld zijn. Ook gebruikt door de mail-preview.
 export function accessBodyHtml(client: Client): string {
-  const name = greetingName(client)
   const link = loginLink(client)
-  return `<p>Hoi ${escapeHtml(name)},</p>
-  <p>Je foto's staan klaar op je persoonlijke portaal!</p>
-  ${emailButton(link, "Bekijk je foto's")}
-  <p>Je inlogcode is: <strong>${escapeHtml(client.code)}</strong></p>
-  <p>Veel plezier met de foto's. Vind je ze leuk? Tag me gerust @bjay.photo, dan deel ik je foto graag in mn story.</p>`
+  const parts: (string | null)[] = [
+    `<p>Hoi ${escapeHtml(greetingName(client))},</p>`,
+    noteHtml(client),
+    `<p>Je foto's staan klaar op je persoonlijke portaal!</p>`,
+    emailButton(link, "Bekijk je foto's"),
+    `<p>Je inlogcode is: <strong>${escapeHtml(client.code)}</strong></p>`,
+    `<p>Veel plezier met de foto's. Vind je ze leuk? Tag me gerust @bjay.photo, dan deel ik je foto graag in mn story.</p>`,
+    paymentHtml(client),
+  ]
+  return parts.filter(Boolean).join('\n  ')
 }
 
 function accessBodyText(client: Client): string {
-  const name = greetingName(client)
   const link = loginLink(client)
-  return `Hoi ${name},
-
-Je foto's staan klaar op je persoonlijke portaal!
-
-Bekijk en download ze hier:
-${link}
-
-Je inlogcode is: ${client.code}
-
-Veel plezier met de foto's. Vind je ze leuk? Tag me gerust @bjay.photo, dan deel ik je foto graag in mn story.`
+  const parts: (string | null)[] = [
+    `Hoi ${greetingName(client)},`,
+    noteText(client),
+    "Je foto's staan klaar op je persoonlijke portaal!",
+    `Bekijk en download ze hier:\n${link}`,
+    `Je inlogcode is: ${client.code}`,
+    "Veel plezier met de foto's. Vind je ze leuk? Tag me gerust @bjay.photo, dan deel ik je foto graag in mn story.",
+    paymentText(client),
+  ]
+  return parts.filter(Boolean).join('\n\n')
 }
 
-// Toegangsmail in huisstijl.
+// Oplever-mail in huisstijl.
 export async function sendAccessMail(client: Client): Promise<boolean> {
   if (!client.email) return false
   return sendBrandedMail({

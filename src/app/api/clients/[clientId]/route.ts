@@ -99,6 +99,12 @@ export async function PATCH(
   if ('contactName' in body) {
     updates.contactName = typeof body.contactName === 'string' && body.contactName.trim() ? body.contactName.trim() : undefined
   }
+  if ('price' in body) {
+    updates.price = typeof body.price === 'string' && body.price.trim() ? body.price.trim() : undefined
+  }
+  if ('personalNote' in body) {
+    updates.personalNote = typeof body.personalNote === 'string' && body.personalNote.trim() ? body.personalNote.trim() : undefined
+  }
 
   const updated: Client = { ...client, ...updates }
   await redis.set(`client:${clientId}`, updated)

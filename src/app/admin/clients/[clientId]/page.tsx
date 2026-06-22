@@ -52,6 +52,8 @@ export default function AdminClientPage() {
   const [editEmail, setEditEmail] = useState('')
   const [editDate, setEditDate] = useState('')
   const [editContactName, setEditContactName] = useState('')
+  const [editPrice, setEditPrice] = useState('')
+  const [editPersonalNote, setEditPersonalNote] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
   const [archiving, setArchiving] = useState(false)
   const [sendingAccess, setSendingAccess] = useState(false)
@@ -336,7 +338,7 @@ export default function AdminClientPage() {
 
   // Inline-bewerken voor naam + e-mail. Gebruik je vooral als je een klant
   // hebt aangemaakt zonder e-mail en die later toevoegt.
-  async function saveClientEdit(updates: { name?: string; email?: string; date?: string; contactName?: string }) {
+  async function saveClientEdit(updates: { name?: string; email?: string; date?: string; contactName?: string; price?: string; personalNote?: string }) {
     const res = await fetch(`/api/clients/${clientId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -594,6 +596,8 @@ export default function AdminClientPage() {
                   setEditEmail(client?.email || '')
                   setEditDate(client?.date || '')
                   setEditContactName(client?.contactName || '')
+                  setEditPrice(client?.price || '')
+                  setEditPersonalNote(client?.personalNote || '')
                   setEditing(true)
                 }}
                 className="text-xs underline transition hover:opacity-70"
@@ -651,6 +655,32 @@ export default function AdminClientPage() {
                   />
                 </label>
               )}
+              {!isEvent && (
+                <label className="text-xs" style={{ color: '#4a6358' }}>
+                  Bedrag shoot
+                  <input
+                    type="text"
+                    value={editPrice}
+                    onChange={e => setEditPrice(e.target.value)}
+                    placeholder="Bv. €200 — leeg = geen betaalregel"
+                    className="w-full mt-1 px-2 py-1.5 text-sm focus:outline-none"
+                    style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221' }}
+                  />
+                </label>
+              )}
+              {!isEvent && (
+                <label className="text-xs" style={{ color: '#4a6358' }}>
+                  Persoonlijk bericht (opening oplever-mail)
+                  <textarea
+                    value={editPersonalNote}
+                    onChange={e => setEditPersonalNote(e.target.value)}
+                    placeholder="Bv. We hadden 2 uur afgesproken, maar ik vond het zo leuk dat het er 5 werden. Geen zorgen, dat is mijn plezier!"
+                    rows={4}
+                    className="w-full mt-1 px-2 py-1.5 text-sm focus:outline-none resize-y"
+                    style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221' }}
+                  />
+                </label>
+              )}
               <div className="flex gap-2 mt-1">
                 <button
                   onClick={async () => {
@@ -660,6 +690,8 @@ export default function AdminClientPage() {
                       email: isEvent ? undefined : editEmail,
                       date: editDate,
                       contactName: isEvent ? undefined : editContactName,
+                      price: isEvent ? undefined : editPrice,
+                      personalNote: isEvent ? undefined : editPersonalNote,
                     })
                     setSavingEdit(false)
                     if (ok) setEditing(false)
@@ -698,6 +730,21 @@ export default function AdminClientPage() {
               {isEvent ? 'Datum event' : 'Datum shoot'}:{' '}
               <span style={{ color: '#053221' }}>
                 {new Date(client.date).toLocaleDateString('nl-NL')}
+              </span>
+            </p>
+          )}
+          {!isEvent && client?.price && (
+            <p className="text-sm mt-1" style={{ color: '#4a6358' }}>
+              Bedrag shoot:{' '}
+              <span style={{ color: '#053221' }}>{client.price}</span>
+              <span className="text-xs"> · betaalregel in oplever-mail</span>
+            </p>
+          )}
+          {!isEvent && client?.personalNote && (
+            <p className="text-sm mt-1" style={{ color: '#4a6358' }}>
+              Persoonlijk bericht:{' '}
+              <span style={{ color: '#053221', fontStyle: 'italic' }}>
+                &ldquo;{client.personalNote}&rdquo;
               </span>
             </p>
           )}

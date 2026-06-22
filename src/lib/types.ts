@@ -70,6 +70,11 @@ export interface Client {
   accessMailSentAt?: string | null
   // Wanneer de sneak peek-mail (paar bewerkte favorieten vooraf) is verstuurd.
   sneakPeekSentAt?: string | null
+  // Afgesproken bedrag voor de shoot (vrije tekst, bv. "€200"). Leeg = geen
+  // betaalregel in de oplever-mail.
+  price?: string
+  // Vrij persoonlijk bericht; verschijnt als alinea bovenin de oplever-mail.
+  personalNote?: string
 }
 
 export interface Photo {
