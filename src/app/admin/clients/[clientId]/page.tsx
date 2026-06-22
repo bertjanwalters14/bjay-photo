@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Client, Photo, Feedback, Event } from '@/lib/types'
+import { formatPrice } from '@/lib/format'
 
 type LikesByPhoto = Record<
   string,
@@ -658,14 +659,31 @@ export default function AdminClientPage() {
               {!isEvent && (
                 <label className="text-xs" style={{ color: '#4a6358' }}>
                   Bedrag shoot
-                  <input
-                    type="text"
-                    value={editPrice}
-                    onChange={e => setEditPrice(e.target.value)}
-                    placeholder="Bv. €200 — leeg = geen betaalregel"
-                    className="w-full mt-1 px-2 py-1.5 text-sm focus:outline-none"
-                    style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221' }}
-                  />
+                  <div
+                    className="flex items-stretch mt-1"
+                    style={{ border: '1px solid rgba(200,169,110,0.4)', backgroundColor: '#fff' }}
+                  >
+                    <span
+                      className="flex items-center px-2 text-sm"
+                      style={{ color: '#053221', borderRight: '1px solid rgba(200,169,110,0.4)' }}
+                    >
+                      €
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={editPrice}
+                      onChange={e => setEditPrice(e.target.value)}
+                      placeholder="200"
+                      className="flex-1 px-2 py-1.5 text-sm focus:outline-none"
+                      style={{ color: '#053221', border: 'none', backgroundColor: 'transparent' }}
+                    />
+                  </div>
+                  <span className="block mt-1" style={{ color: '#4a6358' }}>
+                    {editPrice.trim() && formatPrice(editPrice)
+                      ? <>In de mail: <strong style={{ color: '#053221' }}>{formatPrice(editPrice)}</strong></>
+                      : 'Alleen het getal, leeg = geen betaalregel.'}
+                  </span>
                 </label>
               )}
               {!isEvent && (
@@ -733,10 +751,10 @@ export default function AdminClientPage() {
               </span>
             </p>
           )}
-          {!isEvent && client?.price && (
+          {!isEvent && client?.price && formatPrice(client.price) && (
             <p className="text-sm mt-1" style={{ color: '#4a6358' }}>
               Bedrag shoot:{' '}
-              <span style={{ color: '#053221' }}>{client.price}</span>
+              <span style={{ color: '#053221' }}>{formatPrice(client.price)}</span>
               <span className="text-xs"> · betaalregel in oplever-mail</span>
             </p>
           )}

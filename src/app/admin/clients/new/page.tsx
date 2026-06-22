@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import type { PortalType } from '@/lib/types'
+import { formatPrice } from '@/lib/format'
 
 export default function NewClientPage() {
   const [name, setName] = useState('')
@@ -243,17 +244,30 @@ export default function NewClientPage() {
                   >
                     Bedrag shoot
                   </label>
-                  <input
-                    type="text"
-                    value={price}
-                    onChange={e => setPrice(e.target.value)}
-                    placeholder="Bv. €200"
-                    className="w-full px-4 py-3 text-sm focus:outline-none transition"
-                    style={inputStyle}
-                  />
+                  <div
+                    className="flex items-stretch"
+                    style={{ backgroundColor: '#fff', border: '1px solid rgba(200,169,110,0.4)' }}
+                  >
+                    <span
+                      className="flex items-center px-3 text-sm"
+                      style={{ color: '#053221', borderRight: '1px solid rgba(200,169,110,0.4)' }}
+                    >
+                      €
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={price}
+                      onChange={e => setPrice(e.target.value)}
+                      placeholder="200"
+                      className="flex-1 px-4 py-3 text-sm focus:outline-none"
+                      style={{ backgroundColor: '#fff', color: '#053221', border: 'none' }}
+                    />
+                  </div>
                   <p className="text-xs mt-2" style={{ color: '#4a6358' }}>
-                    Leeg laten = geen betaalregel in de oplever-mail. Anders komt er een
-                    regel met je IBAN en het bedrag onderaan.
+                    Alleen het getal invullen{price.trim() && formatPrice(price)
+                      ? <>; in de mail wordt dit <strong style={{ color: '#053221' }}>{formatPrice(price)}</strong></>
+                      : ' (ik maak er bv. €200,- van)'}. Leeg laten = geen betaalregel.
                   </p>
                 </div>
 

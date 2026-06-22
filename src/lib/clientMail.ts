@@ -1,5 +1,6 @@
 import type { Client } from './types'
 import { sendBrandedMail, emailButton, escapeHtml } from './email'
+import { formatPrice } from './format'
 
 const LOGIN_BASE = 'https://app.bjay.photo/login'
 const IBAN = 'NL03 TRBK 0594 0453 11'
@@ -26,14 +27,16 @@ function noteText(client: Client): string | null {
   return client.personalNote.trim()
 }
 
-// Optionele betaalregel (alleen als er een bedrag is ingevuld).
+// Optionele betaalregel (alleen als er een geldig bedrag is ingevuld).
 function paymentHtml(client: Client): string | null {
-  if (!client.price || !client.price.trim()) return null
-  return `<p>Het afgesproken bedrag voor de shoot is <strong>${escapeHtml(client.price.trim())}</strong>. Je kunt dit overmaken naar <strong>${IBAN}</strong> t.n.v. ${ACCOUNT_NAME} (dat ben ik, BJAY Fotografie), o.v.v. ${escapeHtml(client.name)}.</p>`
+  const amount = formatPrice(client.price)
+  if (!amount) return null
+  return `<p>Het afgesproken bedrag voor de shoot is <strong>${amount}</strong>. Je kunt dit overmaken naar <strong>${IBAN}</strong> t.n.v. ${ACCOUNT_NAME} (dat ben ik, BJAY Fotografie), o.v.v. ${escapeHtml(client.name)}.</p>`
 }
 function paymentText(client: Client): string | null {
-  if (!client.price || !client.price.trim()) return null
-  return `Het afgesproken bedrag voor de shoot is ${client.price.trim()}. Je kunt dit overmaken naar ${IBAN} t.n.v. ${ACCOUNT_NAME} (dat ben ik, BJAY Fotografie), o.v.v. ${client.name}.`
+  const amount = formatPrice(client.price)
+  if (!amount) return null
+  return `Het afgesproken bedrag voor de shoot is ${amount}. Je kunt dit overmaken naar ${IBAN} t.n.v. ${ACCOUNT_NAME} (dat ben ik, BJAY Fotografie), o.v.v. ${client.name}.`
 }
 
 // Body (HTML) van de oplever-mail. Persoonlijk bericht bovenin, betaalregel
