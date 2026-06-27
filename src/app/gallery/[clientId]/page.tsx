@@ -579,8 +579,9 @@ export default function GalleryPage() {
             </div>
           )}
 
-          {/* Datum-filter chips (alleen bij 2+ unieke datums) */}
-          {uniqueDates.length >= 2 && (
+          {/* Datum-filter chips (alleen events, en bij 2+ unieke datums).
+              Personal-shoots tonen alles chronologisch zonder filter. */}
+          {isEvent && uniqueDates.length >= 2 && (
             <div className="mt-4 flex flex-wrap gap-2">
               <button
                 onClick={() => setSelectedDate(null)}
@@ -615,7 +616,7 @@ export default function GalleryPage() {
           {/* Tijdslot-chips: alleen tonen als er een dag is geselecteerd en
               er 2+ tijdsloten foto's hebben (anders nutteloos). Helpt
               tennissers hun specifieke match-moment snel terug te vinden. */}
-          {selectedDate && availableTimeSlots.length >= 2 && (
+          {isEvent && selectedDate && availableTimeSlots.length >= 2 && (
             <div className="mt-2 flex flex-wrap gap-2">
               <button
                 onClick={() => setSelectedTimeSlot(null)}

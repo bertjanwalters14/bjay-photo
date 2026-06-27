@@ -151,11 +151,22 @@ export async function GET(
     _sortKey: sortKeyFor(r),
   }))
 
-  // Natural sort: DSC_2 voor DSC_10. Op de sleutel die zo dicht mogelijk
-  // bij de originele camera-bestandsnaam ligt.
-  photosWithKeys.sort((a, b) =>
-    a._sortKey.localeCompare(b._sortKey, 'nl', { numeric: true, sensitivity: 'base' })
-  )
+  // Personal: chronologisch op opnamedatum (EXIF), zodat een shoot over
+  // meerdere dagen als één doorlopend geheel getoond wordt (geen datum-filter).
+  // Bestandsnaam als tiebreaker bij gelijke/ontbrekende tijd.
+  // Event: natural sort op bestandsnaam (DSC_2 voor DSC_10), zodat de datum-
+  // filter de dagen kan opsplitsen.
+  if (isPersonal) {
+    photosWithKeys.sort((a, b) => {
+      const byDate = a.createdAt.localeCompare(b.createdAt)
+      if (byDate !== 0) return byDate
+      return a._sortKey.localeCompare(b._sortKey, 'nl', { numeric: true, sensitivity: 'base' })
+    })
+  } else {
+    photosWithKeys.sort((a, b) =>
+      a._sortKey.localeCompare(b._sortKey, 'nl', { numeric: true, sensitivity: 'base' })
+    )
+  }
 
   // Strip de interne _sortKey weg voordat we naar de client sturen.
   const photos: Photo[] = photosWithKeys.map(({ _sortKey, ...rest }) => {
