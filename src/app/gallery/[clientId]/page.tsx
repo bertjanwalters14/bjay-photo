@@ -212,7 +212,11 @@ export default function GalleryPage() {
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) setGridVisible(true) },
-      { threshold: 0.05 }
+      // threshold 0: zodra het rooster ook maar in beeld komt. Niet 0.05 (5%):
+      // bij veel foto's is het rooster zo hoog dat er nooit 5% tegelijk zichtbaar
+      // is, waardoor de fade-in nooit afging en het rooster op opacity 0 bleef
+      // (onzichtbaar maar wel klikbaar).
+      { threshold: 0 }
     )
     if (gridRef.current) observer.observe(gridRef.current)
     return () => observer.disconnect()
