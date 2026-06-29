@@ -10,6 +10,8 @@ const EMPTY_SLOT: RecentPhoto = { url: '', alt: '', href: '', publicId: '' }
 export default function AdminRecentPage() {
   const router = useRouter()
   const [slots, setSlots] = useState<RecentPhoto[]>([EMPTY_SLOT, EMPTY_SLOT, EMPTY_SLOT, EMPTY_SLOT])
+  // Eén gedeelde link voor alle vier de tegels (het is altijd één shoot).
+  const [sharedLink, setSharedLink] = useState('')
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
@@ -25,6 +27,8 @@ export default function AdminRecentPage() {
     const existing: RecentPhoto[] = Array.isArray(data.photos) ? data.photos : []
     const filled = [0, 1, 2, 3].map(i => existing[i] || { ...EMPTY_SLOT })
     setSlots(filled)
+    // De gedeelde link = de eerste niet-lege href die we vinden.
+    setSharedLink(filled.find(s => s.href)?.href || '')
     setLoading(false)
   }
 
@@ -73,10 +77,14 @@ export default function AdminRecentPage() {
 
   async function save() {
     setSaving(true)
+    // Gedeelde link op elke tegel zetten, zodat klikken op een willekeurige
+    // tegel naar hetzelfde verhaal gaat.
+    const link = sharedLink.trim()
+    const photos = slots.map(s => ({ ...s, href: link }))
     const res = await fetch('/api/recent', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ photos: slots }),
+      body: JSON.stringify({ photos }),
     })
     setSaving(false)
     if (res.ok) {
@@ -247,6 +255,28 @@ export default function AdminRecentPage() {
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Gedeelde link voor alle tegels */}
+            <div
+              className="mt-4 rounded-lg p-4"
+              style={{ backgroundColor: '#fff', border: '1px solid rgba(200,169,110,0.3)' }}
+            >
+              <label className="text-[10px] tracking-widest uppercase block mb-1" style={{ color: '#4a6358' }}>
+                Link voor alle tegels (optioneel)
+              </label>
+              <input
+                type="text"
+                value={sharedLink}
+                onChange={e => { setSharedLink(e.target.value); setSavedAt(null) }}
+                placeholder="Bv. https://bjay.photo/verhalen/hyrox-heerenveen-2026"
+                className="w-full px-3 py-2 text-sm"
+                style={{ border: '1px solid rgba(5,50,33,0.18)', backgroundColor: '#fff', color: '#053221' }}
+              />
+              <p className="text-xs mt-2 leading-relaxed" style={{ color: '#4a6358' }}>
+                Klikken op een van de tegels gaat naar deze pagina (de foto&apos;s zijn altijd van
+                dezelfde shoot). Leeg laten = de tegels zijn niet klikbaar.
+              </p>
             </div>
 
             <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-3">
