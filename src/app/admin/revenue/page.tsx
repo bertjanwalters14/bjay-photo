@@ -9,6 +9,7 @@ interface MonthBucket {
   month: string
   orders: number
   personal: number
+  eventShoots: number
   total: number
 }
 
@@ -17,7 +18,8 @@ interface RevenueData {
   totalThisYear: number
   orders: { total: number; count: number }
   personal: { total: number; count: number }
-  outstanding: { total: number; count: number; items: { code: string; name: string; amount: number }[] }
+  eventShoots: { total: number; count: number }
+  outstanding: { total: number; count: number; items: { code: string; name: string; amount: number; type: 'personal' | 'event' }[] }
   byMonth: MonthBucket[]
 }
 
@@ -112,7 +114,7 @@ export default function AdminRevenuePage() {
             </div>
 
             {/* Verdeling bron */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div
                 className="rounded-lg p-4 flex flex-col gap-1"
                 style={{ backgroundColor: '#fff', border: '1px solid rgba(200,169,110,0.3)' }}
@@ -139,6 +141,20 @@ export default function AdminRevenuePage() {
                 </span>
                 <span className="text-xs" style={{ color: 'rgba(74,99,88,0.7)' }}>
                   {data.personal.count} shoot{data.personal.count !== 1 ? 's' : ''}
+                </span>
+              </div>
+              <div
+                className="rounded-lg p-4 flex flex-col gap-1"
+                style={{ backgroundColor: '#fff', border: '1px solid rgba(200,169,110,0.3)' }}
+              >
+                <span className="text-xs tracking-widest uppercase" style={{ color: '#4a6358' }}>
+                  Event shoots (betaald)
+                </span>
+                <span className="text-xl font-medium" style={{ color: '#053221' }}>
+                  {formatEuros(data.eventShoots.total)}
+                </span>
+                <span className="text-xs" style={{ color: 'rgba(74,99,88,0.7)' }}>
+                  {data.eventShoots.count} shoot{data.eventShoots.count !== 1 ? 's' : ''}
                 </span>
               </div>
             </div>
@@ -170,9 +186,11 @@ export default function AdminRevenuePage() {
                       </span>
                       <div className="flex items-center gap-4">
                         <span className="text-xs" style={{ color: 'rgba(74,99,88,0.7)' }}>
-                          {m.orders > 0 && <>orders {formatEuros(m.orders)}</>}
-                          {m.orders > 0 && m.personal > 0 && ' · '}
-                          {m.personal > 0 && <>personal {formatEuros(m.personal)}</>}
+                          {[
+                            m.orders > 0 ? `orders ${formatEuros(m.orders)}` : null,
+                            m.personal > 0 ? `personal ${formatEuros(m.personal)}` : null,
+                            m.eventShoots > 0 ? `event ${formatEuros(m.eventShoots)}` : null,
+                          ].filter(Boolean).join(' · ')}
                         </span>
                         <span className="text-sm font-medium" style={{ color: '#053221' }}>
                           {formatEuros(m.total)}
@@ -211,8 +229,14 @@ export default function AdminRevenuePage() {
                       className="px-2 py-2 flex items-center justify-between text-left transition hover:opacity-70"
                       style={{ borderTop: '1px solid rgba(200,169,110,0.3)' }}
                     >
-                      <span className="text-sm underline" style={{ color: '#053221' }}>
-                        {item.name}
+                      <span className="text-sm flex items-center gap-2">
+                        <span className="underline" style={{ color: '#053221' }}>{item.name}</span>
+                        <span
+                          className="text-[10px] px-1.5 py-0.5 tracking-widest uppercase rounded-full"
+                          style={{ color: '#4a6358', border: '1px solid rgba(74,99,88,0.3)' }}
+                        >
+                          {item.type === 'event' ? 'event' : 'personal'}
+                        </span>
                       </span>
                       <span className="text-sm" style={{ color: '#4a6358' }}>
                         {formatEuros(item.amount)}

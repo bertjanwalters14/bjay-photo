@@ -7,12 +7,14 @@ import type { Client, Order } from '@/lib/types'
 // Omzet-overzicht (alleen admin). Telt uitsluitend ECHT ontvangen geld:
 //   - Event/print-orders met status 'paid' of 'shipped' (verzonden = al betaald)
 //   - Personal shoots met een ingevuld bedrag (price) en gezette paidAt
-// Maand-indeling: orders op besteldatum (createdAt), personal op paidAt.
+//   - Event shoot-vergoedingen (event-klant met price) en gezette paidAt
+// Maand-indeling: orders op besteldatum (createdAt), shoots op paidAt.
 
 interface MonthBucket {
   month: string // 'YYYY-MM'
   orders: number
   personal: number
+  eventShoots: number
   total: number
 }
 
@@ -49,7 +51,7 @@ export async function GET() {
   function bucket(key: string): MonthBucket {
     let b = months.get(key)
     if (!b) {
-      b = { month: key, orders: 0, personal: 0, total: 0 }
+      b = { month: key, orders: 0, personal: 0, eventShoots: 0, total: 0 }
       months.set(key, b)
     }
     return b
@@ -74,28 +76,37 @@ export async function GET() {
     }
   }
 
-  // Personal shoots: bedrag ingevuld + als betaald gemarkeerd.
+  // Shoot-vergoedingen: bedrag ingevuld + als betaald gemarkeerd. Personal en
+  // event apart geteld, maar beide via Client.price + Client.paidAt.
   let personalTotal = 0
   let personalCount = 0
-  // Openstaand = personal met bedrag maar nog niet betaald (informatief).
+  let eventShootsTotal = 0
+  let eventShootsCount = 0
+  // Openstaand = klant met bedrag maar nog niet betaald (informatief).
   let outstandingTotal = 0
-  const outstandingItems: { code: string; name: string; amount: number }[] = []
+  const outstandingItems: { code: string; name: string; amount: number; type: 'personal' | 'event' }[] = []
   for (const c of clients) {
-    if (c.type !== 'personal') continue
     const amount = parsePrice(c.price)
     if (amount <= 0) continue
+    const isEvent = c.type === 'event'
     if (c.paidAt) {
-      personalTotal += amount
-      personalCount += 1
       const key = monthKey(c.paidAt)
+      if (isEvent) {
+        eventShootsTotal += amount
+        eventShootsCount += 1
+        if (key) bucket(key).eventShoots += amount
+      } else {
+        personalTotal += amount
+        personalCount += 1
+        if (key) bucket(key).personal += amount
+      }
       if (key) {
-        bucket(key).personal += amount
         bucket(key).total += amount
         if (key.startsWith(currentYear)) totalThisYear += amount
       }
     } else {
       outstandingTotal += amount
-      outstandingItems.push({ code: c.code, name: c.name, amount })
+      outstandingItems.push({ code: c.code, name: c.name, amount, type: isEvent ? 'event' : 'personal' })
     }
   }
   // Hoogste openstaande bedrag bovenaan.
@@ -104,10 +115,11 @@ export async function GET() {
   const byMonth = Array.from(months.values()).sort((a, b) => b.month.localeCompare(a.month))
 
   return NextResponse.json({
-    total: ordersTotal + personalTotal,
+    total: ordersTotal + personalTotal + eventShootsTotal,
     totalThisYear,
     orders: { total: ordersTotal, count: ordersCount },
     personal: { total: personalTotal, count: personalCount },
+    eventShoots: { total: eventShootsTotal, count: eventShootsCount },
     outstanding: { total: outstandingTotal, count: outstandingItems.length, items: outstandingItems },
     byMonth,
   })

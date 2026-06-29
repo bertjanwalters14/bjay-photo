@@ -671,49 +671,49 @@ export default function AdminClientPage() {
                   />
                 </label>
               )}
-              {!isEvent && (
-                <label className="text-xs" style={{ color: '#4a6358' }}>
-                  Bedrag shoot
-                  <div
-                    className="flex items-stretch mt-1"
-                    style={{ border: '1px solid rgba(200,169,110,0.4)', backgroundColor: '#fff' }}
+              <label className="text-xs" style={{ color: '#4a6358' }}>
+                Bedrag shoot
+                <div
+                  className="flex items-stretch mt-1"
+                  style={{ border: '1px solid rgba(200,169,110,0.4)', backgroundColor: '#fff' }}
+                >
+                  <span
+                    className="flex items-center px-2 text-sm"
+                    style={{ color: '#053221', borderRight: '1px solid rgba(200,169,110,0.4)' }}
                   >
-                    <span
-                      className="flex items-center px-2 text-sm"
-                      style={{ color: '#053221', borderRight: '1px solid rgba(200,169,110,0.4)' }}
-                    >
-                      €
-                    </span>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={editPrice}
-                      onChange={e => setEditPrice(e.target.value)}
-                      placeholder="200"
-                      className="flex-1 px-2 py-1.5 text-sm focus:outline-none"
-                      style={{ color: '#053221', border: 'none', backgroundColor: 'transparent' }}
-                    />
-                  </div>
-                  <span className="block mt-1" style={{ color: '#4a6358' }}>
-                    {editPrice.trim() && formatPrice(editPrice)
-                      ? <>In de mail: <strong style={{ color: '#053221' }}>{formatPrice(editPrice)}</strong></>
-                      : 'Alleen het getal, leeg = geen betaalregel.'}
+                    €
                   </span>
-                </label>
-              )}
-              {!isEvent && (
-                <label className="text-xs" style={{ color: '#4a6358' }}>
-                  Persoonlijk bericht (opening oplever-mail)
-                  <textarea
-                    value={editPersonalNote}
-                    onChange={e => setEditPersonalNote(e.target.value)}
-                    placeholder="Bv. We hadden 2 uur afgesproken, maar ik vond het zo leuk dat het er 5 werden. Geen zorgen, dat is mijn plezier!"
-                    rows={4}
-                    className="w-full mt-1 px-2 py-1.5 text-sm focus:outline-none resize-y"
-                    style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221' }}
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={editPrice}
+                    onChange={e => setEditPrice(e.target.value)}
+                    placeholder="200"
+                    className="flex-1 px-2 py-1.5 text-sm focus:outline-none"
+                    style={{ color: '#053221', border: 'none', backgroundColor: 'transparent' }}
                   />
-                </label>
-              )}
+                </div>
+                <span className="block mt-1" style={{ color: '#4a6358' }}>
+                  {editPrice.trim() && formatPrice(editPrice)
+                    ? <>{isEvent ? 'Wordt' : 'In de mail:'} <strong style={{ color: '#053221' }}>{formatPrice(editPrice)}</strong></>
+                    : isEvent
+                      ? 'Alleen het getal, voor je omzet-overzicht.'
+                      : 'Alleen het getal, leeg = geen betaalregel.'}
+                </span>
+              </label>
+              <label className="text-xs" style={{ color: '#4a6358' }}>
+                {isEvent ? 'Opmerkingen (intern)' : 'Persoonlijk bericht (opening oplever-mail)'}
+                <textarea
+                  value={editPersonalNote}
+                  onChange={e => setEditPersonalNote(e.target.value)}
+                  placeholder={isEvent
+                    ? 'Bv. afspraken over de vergoeding, factuurnummer, contactpersoon...'
+                    : 'Bv. We hadden 2 uur afgesproken, maar ik vond het zo leuk dat het er 5 werden. Geen zorgen, dat is mijn plezier!'}
+                  rows={4}
+                  className="w-full mt-1 px-2 py-1.5 text-sm focus:outline-none resize-y"
+                  style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221' }}
+                />
+              </label>
               <div className="flex gap-2 mt-1">
                 <button
                   onClick={async () => {
@@ -723,8 +723,8 @@ export default function AdminClientPage() {
                       email: isEvent ? undefined : editEmail,
                       date: editDate,
                       contactName: isEvent ? undefined : editContactName,
-                      price: isEvent ? undefined : editPrice,
-                      personalNote: isEvent ? undefined : editPersonalNote,
+                      price: editPrice,
+                      personalNote: editPersonalNote,
                     })
                     setSavingEdit(false)
                     if (ok) setEditing(false)
@@ -766,7 +766,7 @@ export default function AdminClientPage() {
               </span>
             </p>
           )}
-          {!isEvent && client?.price && formatPrice(client.price) && (
+          {client?.price && formatPrice(client.price) && (
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <p className="text-sm" style={{ color: '#4a6358' }}>
                 Bedrag shoot:{' '}
@@ -792,9 +792,9 @@ export default function AdminClientPage() {
               </button>
             </div>
           )}
-          {!isEvent && client?.personalNote && (
+          {client?.personalNote && (
             <p className="text-sm mt-1" style={{ color: '#4a6358' }}>
-              Persoonlijk bericht:{' '}
+              {isEvent ? 'Opmerkingen' : 'Persoonlijk bericht'}:{' '}
               <span style={{ color: '#053221', fontStyle: 'italic' }}>
                 &ldquo;{client.personalNote}&rdquo;
               </span>

@@ -33,8 +33,8 @@ export default function NewClientPage() {
         type,
         date: date || undefined,
         contactName: contactName.trim() || undefined,
-        price: type === 'personal' ? price.trim() || undefined : undefined,
-        personalNote: type === 'personal' ? personalNote.trim() || undefined : undefined,
+        price: price.trim() || undefined,
+        personalNote: personalNote.trim() || undefined,
         customCode: customCode.trim() || undefined,
       }),
     })
@@ -233,65 +233,75 @@ export default function NewClientPage() {
               </div>
             )}
 
-            {/* Bedrag + persoonlijk bericht (alleen persoonlijk portaal).
-                Beide verschijnen alleen in de oplever-mail. */}
-            {type === 'personal' && (
-              <>
-                <div>
-                  <label
-                    className="block text-xs tracking-widest uppercase mb-2"
-                    style={{ color: '#4a6358' }}
-                  >
-                    Bedrag shoot
-                  </label>
-                  <div
-                    className="flex items-stretch"
-                    style={{ backgroundColor: '#fff', border: '1px solid rgba(200,169,110,0.4)' }}
-                  >
-                    <span
-                      className="flex items-center px-3 text-sm"
-                      style={{ color: '#053221', borderRight: '1px solid rgba(200,169,110,0.4)' }}
-                    >
-                      €
-                    </span>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={price}
-                      onChange={e => setPrice(e.target.value)}
-                      placeholder="200"
-                      className="flex-1 px-4 py-3 text-sm focus:outline-none"
-                      style={{ backgroundColor: '#fff', color: '#053221', border: 'none' }}
-                    />
-                  </div>
-                  <p className="text-xs mt-2" style={{ color: '#4a6358' }}>
+            {/* Bedrag + opmerkingen. Bij personal voeden deze de oplever-mail;
+                bij event zijn ze puur intern (omzet-tracking + notitie). */}
+            <div>
+              <label
+                className="block text-xs tracking-widest uppercase mb-2"
+                style={{ color: '#4a6358' }}
+              >
+                Bedrag shoot
+              </label>
+              <div
+                className="flex items-stretch"
+                style={{ backgroundColor: '#fff', border: '1px solid rgba(200,169,110,0.4)' }}
+              >
+                <span
+                  className="flex items-center px-3 text-sm"
+                  style={{ color: '#053221', borderRight: '1px solid rgba(200,169,110,0.4)' }}
+                >
+                  €
+                </span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={price}
+                  onChange={e => setPrice(e.target.value)}
+                  placeholder="200"
+                  className="flex-1 px-4 py-3 text-sm focus:outline-none"
+                  style={{ backgroundColor: '#fff', color: '#053221', border: 'none' }}
+                />
+              </div>
+              <p className="text-xs mt-2" style={{ color: '#4a6358' }}>
+                {type === 'personal' ? (
+                  <>
                     Alleen het getal invullen{price.trim() && formatPrice(price)
                       ? <>; in de mail wordt dit <strong style={{ color: '#053221' }}>{formatPrice(price)}</strong></>
                       : ' (ik maak er bv. €200,- van)'}. Leeg laten = geen betaalregel.
-                  </p>
-                </div>
+                  </>
+                ) : (
+                  <>
+                    Alleen het getal invullen{price.trim() && formatPrice(price)
+                      ? <>; wordt <strong style={{ color: '#053221' }}>{formatPrice(price)}</strong></>
+                      : ''}. Voor je eigen omzet-overzicht; gaat niet in een mail.
+                  </>
+                )}
+              </p>
+            </div>
 
-                <div>
-                  <label
-                    className="block text-xs tracking-widest uppercase mb-2"
-                    style={{ color: '#4a6358' }}
-                  >
-                    Persoonlijk bericht
-                  </label>
-                  <textarea
-                    value={personalNote}
-                    onChange={e => setPersonalNote(e.target.value)}
-                    placeholder="Bv. We hadden 2 uur afgesproken, maar ik vond het zo leuk dat het er 5 werden. Geen zorgen, dat is mijn plezier!"
-                    rows={4}
-                    className="w-full px-4 py-3 text-sm focus:outline-none transition resize-y"
-                    style={inputStyle}
-                  />
-                  <p className="text-xs mt-2" style={{ color: '#4a6358' }}>
-                    Verschijnt als opening van de oplever-mail, net na &quot;Hoi ...&quot;. Leeg laten = geen extra alinea.
-                  </p>
-                </div>
-              </>
-            )}
+            <div>
+              <label
+                className="block text-xs tracking-widest uppercase mb-2"
+                style={{ color: '#4a6358' }}
+              >
+                {type === 'personal' ? 'Persoonlijk bericht' : 'Opmerkingen'}
+              </label>
+              <textarea
+                value={personalNote}
+                onChange={e => setPersonalNote(e.target.value)}
+                placeholder={type === 'personal'
+                  ? 'Bv. We hadden 2 uur afgesproken, maar ik vond het zo leuk dat het er 5 werden. Geen zorgen, dat is mijn plezier!'
+                  : 'Bv. afspraken over de vergoeding, factuurnummer, contactpersoon...'}
+                rows={4}
+                className="w-full px-4 py-3 text-sm focus:outline-none transition resize-y"
+                style={inputStyle}
+              />
+              <p className="text-xs mt-2" style={{ color: '#4a6358' }}>
+                {type === 'personal'
+                  ? 'Verschijnt als opening van de oplever-mail, net na "Hoi ...". Leeg laten = geen extra alinea.'
+                  : 'Interne notitie, niet zichtbaar voor bezoekers. Leeg laten mag.'}
+              </p>
+            </div>
 
             {/* Custom code (optioneel) */}
             <div>
