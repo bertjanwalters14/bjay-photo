@@ -105,6 +105,15 @@ export async function PATCH(
   if ('personalNote' in body) {
     updates.personalNote = typeof body.personalNote === 'string' && body.personalNote.trim() ? body.personalNote.trim() : undefined
   }
+  if ('paidAt' in body) {
+    // true => nu markeren als betaald; false/null => betaald-markering weghalen.
+    // Een meegestuurde ISO-string wordt overgenomen, anders huidige tijd.
+    if (body.paidAt) {
+      updates.paidAt = typeof body.paidAt === 'string' ? body.paidAt : new Date().toISOString()
+    } else {
+      updates.paidAt = null
+    }
+  }
 
   const updated: Client = { ...client, ...updates }
   await redis.set(`client:${clientId}`, updated)

@@ -75,6 +75,10 @@ export interface Client {
   price?: string
   // Vrij persoonlijk bericht; verschijnt als alinea bovenin de oplever-mail.
   personalNote?: string
+  // Wanneer het afgesproken bedrag (price) daadwerkelijk is ontvangen. Alleen
+  // relevant voor personal shoots; gezet via de "Markeer als betaald"-knop.
+  // Telt mee in het omzet-overzicht. Leeg/null = nog niet betaald.
+  paidAt?: string | null
 }
 
 export interface Photo {

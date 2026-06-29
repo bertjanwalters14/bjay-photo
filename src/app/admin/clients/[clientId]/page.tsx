@@ -391,6 +391,21 @@ export default function AdminClientPage() {
     }
   }
 
+  // Personal shoot: markeer het afgesproken bedrag als ontvangen (telt mee in
+  // het omzet-overzicht) of haal de markering weer weg.
+  async function togglePaid() {
+    if (!client) return
+    const res = await fetch(`/api/clients/${clientId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paidAt: client.paidAt ? null : new Date().toISOString() }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setClient(data.client)
+    }
+  }
+
   async function setCover(photo: Photo) {
     setCoverUrl(photo.url)
     await fetch(`/api/clients/${clientId}/cover`, {
@@ -752,11 +767,30 @@ export default function AdminClientPage() {
             </p>
           )}
           {!isEvent && client?.price && formatPrice(client.price) && (
-            <p className="text-sm mt-1" style={{ color: '#4a6358' }}>
-              Bedrag shoot:{' '}
-              <span style={{ color: '#053221' }}>{formatPrice(client.price)}</span>
-              <span className="text-xs"> · betaalregel in oplever-mail</span>
-            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <p className="text-sm" style={{ color: '#4a6358' }}>
+                Bedrag shoot:{' '}
+                <span style={{ color: '#053221' }}>{formatPrice(client.price)}</span>
+                {client.paidAt ? (
+                  <span className="text-xs" style={{ color: '#2d8a3e' }}>
+                    {' '}· betaald op {new Date(client.paidAt).toLocaleDateString('nl-NL')}
+                  </span>
+                ) : (
+                  <span className="text-xs"> · nog niet betaald</span>
+                )}
+              </p>
+              <button
+                onClick={togglePaid}
+                className="text-xs px-2 py-1 transition hover:opacity-80"
+                style={
+                  client.paidAt
+                    ? { backgroundColor: '#fff', color: '#4a6358', border: '1px solid rgba(74,99,88,0.4)' }
+                    : { backgroundColor: '#2d8a3e', color: '#fff', border: '1px solid #2d8a3e' }
+                }
+              >
+                {client.paidAt ? 'Betaald ongedaan maken' : '✓ Markeer als betaald'}
+              </button>
+            </div>
           )}
           {!isEvent && client?.personalNote && (
             <p className="text-sm mt-1" style={{ color: '#4a6358' }}>

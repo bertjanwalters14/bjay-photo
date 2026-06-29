@@ -126,6 +126,13 @@ export default function AdminDashboard() {
             Bestellingen
           </button>
           <button
+            onClick={() => router.push('/admin/revenue')}
+            className="px-4 py-2 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
+            style={{ border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }}
+          >
+            Omzet
+          </button>
+          <button
             onClick={() => router.push('/admin/mail-preview')}
             className="px-4 py-2 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
             style={{ border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }}
