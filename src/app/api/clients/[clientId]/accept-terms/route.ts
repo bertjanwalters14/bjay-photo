@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import redis from '@/lib/redis'
 import { canActAsClient } from '@/lib/auth'
+import { sendInternalMail } from '@/lib/email'
 import type { Client } from '@/lib/types'
 
 // POST — de klant (ingelogd met de code, of admin) legt akkoord op de algemene
@@ -26,8 +27,16 @@ export async function POST(
     return NextResponse.json({ client })
   }
 
-  const updated: Client = { ...client, termsAcceptedAt: new Date().toISOString() }
+  const now = new Date().toISOString()
+  const updated: Client = { ...client, termsAcceptedAt: now }
   await redis.set(`client:${clientId}`, updated)
+
+  // Seintje naar BJAY's inbox (best-effort; faalt dit, dan blijft het akkoord
+  // wel gewoon vastgelegd).
+  await sendInternalMail(
+    `Akkoord voorwaarden: ${client.name}`,
+    `${client.name} (code ${client.code}) is akkoord gegaan met de algemene voorwaarden op ${new Date(now).toLocaleString('nl-NL')}.`,
+  )
 
   return NextResponse.json({ client: updated })
 }

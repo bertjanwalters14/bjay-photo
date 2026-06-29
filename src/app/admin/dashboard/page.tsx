@@ -242,6 +242,23 @@ export default function AdminDashboard() {
                       >
                         {(client.type ?? 'personal') === 'event' ? 'Event' : 'Personal'}
                       </span>
+                      {(client.type ?? 'personal') !== 'event' && client.termsAcceptedAt && (
+                        <span
+                          className="text-[10px] px-2 py-0.5 tracking-widest uppercase rounded-full whitespace-nowrap"
+                          style={{ backgroundColor: 'rgba(45,138,62,0.12)', color: '#2d8a3e', border: '1px solid rgba(45,138,62,0.4)' }}
+                          title={`Akkoord op ${new Date(client.termsAcceptedAt).toLocaleDateString('nl-NL')}`}
+                        >
+                          ✓ Akkoord
+                        </span>
+                      )}
+                      {(client.type ?? 'personal') !== 'event' && !client.termsAcceptedAt && client.bookingMailSentAt && (
+                        <span
+                          className="text-[10px] px-2 py-0.5 tracking-widest uppercase rounded-full whitespace-nowrap"
+                          style={{ backgroundColor: 'rgba(180,130,15,0.12)', color: '#9a7b1e', border: '1px solid rgba(180,130,15,0.4)' }}
+                        >
+                          Wacht op akkoord
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs mt-0.5 break-words" style={{ color: '#4a6358' }}>
                       {client.email || 'Geen e-mail'}

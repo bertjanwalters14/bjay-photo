@@ -87,3 +87,30 @@ export async function sendBrandedMail(opts: {
     return false
   }
 }
+
+// Interne melding naar BJAY's eigen inbox: kale tekst, geen huisstijl of
+// handtekening. Voor seintjes als "klant is akkoord gegaan".
+const PHOTOGRAPHER = 'bertjanwalters@gmail.com'
+export async function sendInternalMail(subject: string, text: string): Promise<boolean> {
+  const resendKey = process.env.RESEND_API_KEY
+  if (!resendKey) {
+    console.error('RESEND_API_KEY ontbreekt - interne mail niet verstuurd')
+    return false
+  }
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ from: FROM, to: PHOTOGRAPHER, subject, text }),
+    })
+    if (res.ok) return true
+    console.error('Resend (intern) faalt:', await res.text())
+    return false
+  } catch (err) {
+    console.error('Interne mail error:', err)
+    return false
+  }
+}
