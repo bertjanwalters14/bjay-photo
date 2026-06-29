@@ -17,7 +17,7 @@ interface RevenueData {
   totalThisYear: number
   orders: { total: number; count: number }
   personal: { total: number; count: number }
-  outstanding: { total: number; count: number }
+  outstanding: { total: number; count: number; items: { code: string; name: string; amount: number }[] }
   byMonth: MonthBucket[]
 }
 
@@ -184,23 +184,42 @@ export default function AdminRevenuePage() {
               )}
             </div>
 
-            {/* Openstaand (informatief) */}
+            {/* Openstaand (informatief) — klikbaar naar de shoot */}
             {data.outstanding.count > 0 && (
               <div
-                className="rounded-lg p-4 flex items-center justify-between"
+                className="rounded-lg p-4 flex flex-col gap-3"
                 style={{ backgroundColor: 'rgba(200,169,110,0.1)', border: '1px dashed rgba(200,169,110,0.5)' }}
               >
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-xs tracking-widest uppercase" style={{ color: '#4a6358' }}>
-                    Nog openstaand (personal)
-                  </span>
-                  <span className="text-xs" style={{ color: 'rgba(74,99,88,0.7)' }}>
-                    {data.outstanding.count} shoot{data.outstanding.count !== 1 ? 's' : ''} met bedrag, nog niet als betaald gemarkeerd
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-xs tracking-widest uppercase" style={{ color: '#4a6358' }}>
+                      Nog openstaand (personal)
+                    </span>
+                    <span className="text-xs" style={{ color: 'rgba(74,99,88,0.7)' }}>
+                      {data.outstanding.count} shoot{data.outstanding.count !== 1 ? 's' : ''} met bedrag, nog niet als betaald gemarkeerd
+                    </span>
+                  </div>
+                  <span className="text-lg font-medium" style={{ color: '#c8a96e' }}>
+                    {formatEuros(data.outstanding.total)}
                   </span>
                 </div>
-                <span className="text-lg font-medium" style={{ color: '#c8a96e' }}>
-                  {formatEuros(data.outstanding.total)}
-                </span>
+                <div className="flex flex-col">
+                  {data.outstanding.items.map(item => (
+                    <button
+                      key={item.code}
+                      onClick={() => router.push(`/admin/clients/${item.code}`)}
+                      className="px-2 py-2 flex items-center justify-between text-left transition hover:opacity-70"
+                      style={{ borderTop: '1px solid rgba(200,169,110,0.3)' }}
+                    >
+                      <span className="text-sm underline" style={{ color: '#053221' }}>
+                        {item.name}
+                      </span>
+                      <span className="text-sm" style={{ color: '#4a6358' }}>
+                        {formatEuros(item.amount)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </>

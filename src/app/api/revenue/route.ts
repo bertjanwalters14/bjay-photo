@@ -79,7 +79,7 @@ export async function GET() {
   let personalCount = 0
   // Openstaand = personal met bedrag maar nog niet betaald (informatief).
   let outstandingTotal = 0
-  let outstandingCount = 0
+  const outstandingItems: { code: string; name: string; amount: number }[] = []
   for (const c of clients) {
     if (c.type !== 'personal') continue
     const amount = parsePrice(c.price)
@@ -95,9 +95,11 @@ export async function GET() {
       }
     } else {
       outstandingTotal += amount
-      outstandingCount += 1
+      outstandingItems.push({ code: c.code, name: c.name, amount })
     }
   }
+  // Hoogste openstaande bedrag bovenaan.
+  outstandingItems.sort((a, b) => b.amount - a.amount)
 
   const byMonth = Array.from(months.values()).sort((a, b) => b.month.localeCompare(a.month))
 
@@ -106,7 +108,7 @@ export async function GET() {
     totalThisYear,
     orders: { total: ordersTotal, count: ordersCount },
     personal: { total: personalTotal, count: personalCount },
-    outstanding: { total: outstandingTotal, count: outstandingCount },
+    outstanding: { total: outstandingTotal, count: outstandingItems.length, items: outstandingItems },
     byMonth,
   })
 }
