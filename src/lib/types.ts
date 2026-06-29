@@ -79,6 +79,12 @@ export interface Client {
   // relevant voor personal shoots; gezet via de "Markeer als betaald"-knop.
   // Telt mee in het omzet-overzicht. Leeg/null = nog niet betaald.
   paidAt?: string | null
+  // Boekingsbevestiging + voorwaarden-akkoord (alleen personal). bookingMailSentAt
+  // = wanneer de boekingsmail met de akkoord-knop is verstuurd. termsAcceptedAt
+  // = wanneer de klant op "Ik ga akkoord" klikte (via de mail-link of de
+  // galerij-gate). Leeg = nog niet akkoord.
+  bookingMailSentAt?: string | null
+  termsAcceptedAt?: string | null
 }
 
 export interface Photo {

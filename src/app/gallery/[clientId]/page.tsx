@@ -7,6 +7,7 @@ import PhotoGrid from '@/components/PhotoGrid'
 import PhotoModal from '@/components/PhotoModal'
 import NamePrompt from '@/components/NamePrompt'
 import OrderCart from '@/components/OrderCart'
+import TermsAccept from '@/components/TermsAccept'
 import { Photo, Client } from '@/lib/types'
 import { apiUrl } from '@/lib/apiUrl'
 
@@ -352,6 +353,25 @@ export default function GalleryPage() {
       <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#080f0c' }}>
         <p style={{ color: '#4a6358' }}>Foto's laden...</p>
       </main>
+    )
+  }
+
+  // Voorwaarden-gate (alleen personal, en alleen als de boekingsmail is
+  // verstuurd): geen toegang tot de foto's tot de klant akkoord is op de
+  // algemene voorwaarden. Door te koppelen aan bookingMailSentAt worden
+  // bestaande klanten (zonder dit flow) niet ineens geblokkeerd. Events delen
+  // een code met bezoekers, dus daar nooit een gate.
+  if (client && client.type !== 'event' && client.bookingMailSentAt && !client.termsAcceptedAt) {
+    return (
+      <TermsAccept
+        client={client}
+        onAccept={async () => {
+          const res = await fetch(apiUrl(`/api/clients/${clientId}/accept-terms`), { method: 'POST' })
+          if (!res.ok) throw new Error('accept failed')
+          const data = await res.json()
+          setClient(data.client)
+        }}
+      />
     )
   }
 

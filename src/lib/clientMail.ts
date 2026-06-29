@@ -3,8 +3,20 @@ import { sendBrandedMail, emailButton, escapeHtml } from './email'
 import { formatPrice } from './format'
 
 const LOGIN_BASE = 'https://app.bjay.photo/login'
+const AKKOORD_BASE = 'https://app.bjay.photo/akkoord'
 const IBAN = 'NL03 TRBK 0594 0453 11'
 const ACCOUNT_NAME = 'Berend Jan-Geert Walters'
+
+const MONTHS_NL = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december']
+
+// Shootdatum (YYYY-MM-DD) als nette NL-tekst, bv. "5 juli 2026". Deterministisch
+// (geen afhankelijkheid van server-locale). Lege/ongeldige datum -> null.
+function formatShootDate(date: string | undefined): string | null {
+  if (!date || !date.trim()) return null
+  const d = new Date(date.trim() + 'T12:00:00')
+  if (Number.isNaN(d.getTime())) return null
+  return `${d.getDate()} ${MONTHS_NL[d.getMonth()]} ${d.getFullYear()}`
+}
 
 // Aanhef: contactName indien gezet, anders het eerste woord van de albumnaam.
 function greetingName(client: Client): string {
@@ -117,5 +129,61 @@ export async function sendSneakPeekMail(client: Client): Promise<boolean> {
     subject: "Alvast een sneak peek van je foto's",
     bodyHtml: sneakPeekBodyHtml(client),
     bodyText: sneakPeekBodyText(client),
+  })
+}
+
+// Boekingssamenvatting: shoot (albumnaam) + datum + bedrag. Datum en bedrag
+// vallen weg als ze niet zijn ingevuld.
+function bookingSummaryHtml(client: Client): string {
+  const rows = [
+    `<strong>Shoot:</strong> ${escapeHtml(client.name)}`,
+    formatShootDate(client.date) ? `<strong>Datum:</strong> ${escapeHtml(formatShootDate(client.date)!)}` : null,
+    formatPrice(client.price) ? `<strong>Afgesproken bedrag:</strong> ${formatPrice(client.price)}` : null,
+  ].filter(Boolean)
+  return `<p>${rows.join('<br>')}</p>`
+}
+function bookingSummaryText(client: Client): string {
+  const rows = [
+    `Shoot: ${client.name}`,
+    formatShootDate(client.date) ? `Datum: ${formatShootDate(client.date)}` : null,
+    formatPrice(client.price) ? `Afgesproken bedrag: ${formatPrice(client.price)}` : null,
+  ].filter(Boolean)
+  return rows.join('\n')
+}
+
+// Body (HTML) van de boekingsmail. Bevestigt de boeking en vraagt om akkoord op
+// de algemene voorwaarden via de akkoord-pagina. Ook gebruikt door de mail-preview.
+export function bookingBodyHtml(client: Client): string {
+  const link = `${AKKOORD_BASE}?code=${encodeURIComponent(client.code)}`
+  return [
+    `<p>Hoi ${escapeHtml(greetingName(client))},</p>`,
+    `<p>Leuk dat we samen aan de slag gaan! Hierbij even je boeking op een rij:</p>`,
+    bookingSummaryHtml(client),
+    `<p>Voordat we beginnen vraag ik je nog even mn algemene voorwaarden door te lezen en akkoord te geven. Da's zo gebeurd:</p>`,
+    emailButton(link, 'Bekijk en ga akkoord met de voorwaarden'),
+    `<p>Klopt er iets niet of heb je een vraag? Laat het gerust weten, ik denk graag met je mee.</p>`,
+  ].join('\n  ')
+}
+
+function bookingBodyText(client: Client): string {
+  const link = `${AKKOORD_BASE}?code=${encodeURIComponent(client.code)}`
+  return [
+    `Hoi ${greetingName(client)},`,
+    'Leuk dat we samen aan de slag gaan! Hierbij even je boeking op een rij:',
+    bookingSummaryText(client),
+    "Voordat we beginnen vraag ik je nog even mn algemene voorwaarden door te lezen en akkoord te geven. Da's zo gebeurd:",
+    `Bekijk en ga akkoord met de voorwaarden:\n${link}`,
+    'Klopt er iets niet of heb je een vraag? Laat het gerust weten, ik denk graag met je mee.',
+  ].join('\n\n')
+}
+
+// Boekingsmail in huisstijl.
+export async function sendBookingMail(client: Client): Promise<boolean> {
+  if (!client.email) return false
+  return sendBrandedMail({
+    to: client.email,
+    subject: 'Je boeking bij BJAY Fotografie - even bevestigen',
+    bodyHtml: bookingBodyHtml(client),
+    bodyText: bookingBodyText(client),
   })
 }

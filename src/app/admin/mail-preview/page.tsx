@@ -1,5 +1,5 @@
 import { brandedHtml } from '@/lib/email'
-import { accessBodyHtml, sneakPeekBodyHtml } from '@/lib/clientMail'
+import { accessBodyHtml, sneakPeekBodyHtml, bookingBodyHtml } from '@/lib/clientMail'
 import { buildReviewHtml } from '@/lib/reviews'
 import { orderConfirmationBodyHtml } from '@/lib/orderMail'
 import type { Client } from '@/lib/types'
@@ -18,12 +18,18 @@ export default function MailPreviewPage() {
     code: 'abc12345',
     type: 'personal',
     createdAt: new Date().toISOString(),
+    date: '2026-07-05',
     price: '200',
     personalNote:
       'We hadden 2 uur afgesproken, maar ik vond het zo leuk dat het er 5 werden. Geen zorgen, dat is mijn plezier!',
   }
 
   const mails: { label: string; subject: string; html: string }[] = [
+    {
+      label: 'Boekingsbevestiging',
+      subject: 'Je boeking bij BJAY Fotografie - even bevestigen',
+      html: brandedHtml(bookingBodyHtml(sampleClient)),
+    },
     {
       label: 'Toegangsmail',
       subject: "Je foto's van BJAY Fotografie staan klaar",

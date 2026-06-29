@@ -59,6 +59,7 @@ export default function AdminClientPage() {
   const [archiving, setArchiving] = useState(false)
   const [sendingAccess, setSendingAccess] = useState(false)
   const [sendingSneak, setSendingSneak] = useState(false)
+  const [sendingBooking, setSendingBooking] = useState(false)
   // Verhaal-export: selectie van foto's die als webp-zip voor een
   // verhaal-pagina op bjay.photo wordt gedownload. Volgorde van aanvinken
   // bepaalt de nummering in de bestandsnamen.
@@ -286,6 +287,24 @@ export default function AdminClientPage() {
       }
     } finally {
       setSendingSneak(false)
+    }
+  }
+
+  // Stuurt de klant de boekingsbevestiging met de vraag om akkoord op de
+  // algemene voorwaarden (personal met e-mail).
+  async function handleSendBookingMail() {
+    setSendingBooking(true)
+    try {
+      const res = await fetch(`/api/clients/${clientId}/booking-mail`, { method: 'POST' })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.client) setClient(data.client)
+      } else {
+        const d = await res.json().catch(() => ({}))
+        alert(d?.error || 'Boekingsbevestiging versturen mislukt')
+      }
+    } finally {
+      setSendingBooking(false)
     }
   }
 
@@ -857,6 +876,29 @@ export default function AdminClientPage() {
                 style={{ border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }}
               >
                 {sendingSneak ? 'Versturen...' : client?.sneakPeekSentAt ? 'Opnieuw sturen' : 'Stuur sneak peek'}
+              </button>
+            </div>
+          )}
+
+          {/* Boekingsbevestiging + voorwaarden-akkoord (personal met e-mail) */}
+          {!isEvent && client?.email && (
+            <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2">
+              <p className="text-xs flex-1" style={{ color: '#4a6358' }}>
+                {client?.termsAcceptedAt ? (
+                  <>Voorwaarden: <span style={{ color: '#2d8a3e' }}>akkoord op {new Date(client.termsAcceptedAt).toLocaleDateString('nl-NL')}</span></>
+                ) : client?.bookingMailSentAt ? (
+                  <>Boekingsmail verstuurd op {new Date(client.bookingMailSentAt).toLocaleDateString('nl-NL')} · <span style={{ color: '#c8a96e' }}>nog niet akkoord</span></>
+                ) : (
+                  'Stuur de boekingsbevestiging met de vraag om akkoord op de voorwaarden.'
+                )}
+              </p>
+              <button
+                onClick={handleSendBookingMail}
+                disabled={sendingBooking}
+                className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80 disabled:opacity-50"
+                style={{ border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }}
+              >
+                {sendingBooking ? 'Versturen...' : client?.bookingMailSentAt ? 'Opnieuw sturen' : 'Stuur boekingsbevestiging'}
               </button>
             </div>
           )}
