@@ -29,7 +29,7 @@ export default function NewClientPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name,
-        email: type === 'personal' ? email : '',
+        email,
         type,
         date: date || undefined,
         contactName: contactName.trim() || undefined,
@@ -130,10 +130,7 @@ export default function NewClientPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setType('event')
-                    setEmail('')
-                  }}
+                  onClick={() => setType('event')}
                   className="py-3 text-xs font-medium tracking-widest uppercase transition"
                   style={{
                     backgroundColor: type === 'event' ? '#053221' : '#fff',
@@ -170,28 +167,28 @@ export default function NewClientPage() {
               />
             </div>
 
-            {/* Aanhef: voornaam/namen voor in de mail (personal) */}
-            {type === 'personal' && (
-              <div>
-                <label
-                  className="block text-xs tracking-widest uppercase mb-2"
-                  style={{ color: '#4a6358' }}
-                >
-                  Aanhef
-                </label>
-                <input
-                  type="text"
-                  value={contactName}
-                  onChange={e => setContactName(e.target.value)}
-                  placeholder="Bv. Mick & Marieke"
-                  className="w-full px-4 py-3 text-sm focus:outline-none transition"
-                  style={inputStyle}
-                />
-                <p className="text-xs mt-2" style={{ color: '#4a6358' }}>
-                  Hiermee begint de mail: &quot;Hoi ...&quot;. Leeg laten = ik gebruik de naam hierboven.
-                </p>
-              </div>
-            )}
+            {/* Aanhef: voornaam (personal) of contactpersoon van de organisatie (event) */}
+            <div>
+              <label
+                className="block text-xs tracking-widest uppercase mb-2"
+                style={{ color: '#4a6358' }}
+              >
+                Aanhef
+              </label>
+              <input
+                type="text"
+                value={contactName}
+                onChange={e => setContactName(e.target.value)}
+                placeholder={type === 'event' ? 'Bv. naam contactpersoon' : 'Bv. Mick & Marieke'}
+                className="w-full px-4 py-3 text-sm focus:outline-none transition"
+                style={inputStyle}
+              />
+              <p className="text-xs mt-2" style={{ color: '#4a6358' }}>
+                {type === 'event'
+                  ? 'Contactpersoon van de organisatie, voor de aanhef in mails. Leeg laten mag.'
+                  : 'Hiermee begint de mail: "Hoi ...". Leeg laten = ik gebruik de naam hierboven.'}
+              </p>
+            </div>
 
             {/* Datum van het event/de shoot */}
             <div>
@@ -213,25 +210,28 @@ export default function NewClientPage() {
               </p>
             </div>
 
-            {/* E-mail (alleen voor persoonlijk portaal) */}
-            {type === 'personal' && (
-              <div>
-                <label
-                  className="block text-xs tracking-widest uppercase mb-2"
-                  style={{ color: '#4a6358' }}
-                >
-                  E-mail
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="email@voorbeeld.nl"
-                  className="w-full px-4 py-3 text-sm focus:outline-none transition"
-                  style={inputStyle}
-                />
-              </div>
-            )}
+            {/* E-mail (personal: de klant; event: de organisator) */}
+            <div>
+              <label
+                className="block text-xs tracking-widest uppercase mb-2"
+                style={{ color: '#4a6358' }}
+              >
+                E-mail
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="email@voorbeeld.nl"
+                className="w-full px-4 py-3 text-sm focus:outline-none transition"
+                style={inputStyle}
+              />
+              {type === 'event' && (
+                <p className="text-xs mt-2" style={{ color: '#4a6358' }}>
+                  Mailadres van de organisator, voor o.a. het betaalverzoek.
+                </p>
+              )}
+            </div>
 
             {/* Bedrag + opmerkingen. Bij personal voeden deze de oplever-mail;
                 bij event zijn ze puur intern (omzet-tracking + notitie). */}

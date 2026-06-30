@@ -85,6 +85,10 @@ export interface Client {
   // galerij-gate). Leeg = nog niet akkoord.
   bookingMailSentAt?: string | null
   termsAcceptedAt?: string | null
+  // Wanneer het betaalverzoek (bedrag + IBAN) naar de klant/organisator is
+  // gestuurd. Vooral voor events; personal heeft de betaalregel al in de
+  // oplever-mail.
+  paymentRequestSentAt?: string | null
 }
 
 export interface Photo {

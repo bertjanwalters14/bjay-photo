@@ -177,6 +177,45 @@ function bookingBodyText(client: Client): string {
   ].join('\n\n')
 }
 
+// Betaalverzoek (vooral voor events): bedankt + afgesproken bedrag + IBAN +
+// o.v.v. de event-/albumnaam. Geen formele factuur (geen KVK/BTW).
+export function paymentRequestBodyHtml(client: Client): string {
+  const amount = formatPrice(client.price)
+  const naam = client.contactName && client.contactName.trim() ? escapeHtml(client.contactName.trim()) : null
+  return [
+    naam ? `<p>Hoi ${naam},</p>` : `<p>Hoi,</p>`,
+    `<p>Bedankt voor de fijne samenwerking bij <strong>${escapeHtml(client.name)}</strong>!</p>`,
+    amount
+      ? `<p>Het afgesproken bedrag is <strong>${amount}</strong>. Je kunt dit overmaken naar <strong>${IBAN}</strong> t.n.v. ${ACCOUNT_NAME} (BJAY Fotografie), o.v.v. ${escapeHtml(client.name)}.</p>`
+      : `<p>Voor het afgesproken bedrag kun je overmaken naar <strong>${IBAN}</strong> t.n.v. ${ACCOUNT_NAME} (BJAY Fotografie), o.v.v. ${escapeHtml(client.name)}.</p>`,
+    `<p>Heb je nog vragen over de betaling? Laat het gerust weten.</p>`,
+  ].join('\n  ')
+}
+
+function paymentRequestBodyText(client: Client): string {
+  const amount = formatPrice(client.price)
+  const naam = client.contactName && client.contactName.trim() ? client.contactName.trim() : null
+  return [
+    naam ? `Hoi ${naam},` : 'Hoi,',
+    `Bedankt voor de fijne samenwerking bij ${client.name}!`,
+    amount
+      ? `Het afgesproken bedrag is ${amount}. Je kunt dit overmaken naar ${IBAN} t.n.v. ${ACCOUNT_NAME} (BJAY Fotografie), o.v.v. ${client.name}.`
+      : `Voor het afgesproken bedrag kun je overmaken naar ${IBAN} t.n.v. ${ACCOUNT_NAME} (BJAY Fotografie), o.v.v. ${client.name}.`,
+    'Heb je nog vragen over de betaling? Laat het gerust weten.',
+  ].join('\n\n')
+}
+
+// Betaalverzoek-mail in huisstijl.
+export async function sendPaymentRequestMail(client: Client): Promise<boolean> {
+  if (!client.email) return false
+  return sendBrandedMail({
+    to: client.email,
+    subject: `Betaalverzoek - ${client.name} - BJAY Fotografie`,
+    bodyHtml: paymentRequestBodyHtml(client),
+    bodyText: paymentRequestBodyText(client),
+  })
+}
+
 // Boekingsmail in huisstijl.
 export async function sendBookingMail(client: Client): Promise<boolean> {
   if (!client.email) return false

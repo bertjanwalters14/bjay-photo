@@ -1,5 +1,5 @@
 import { brandedHtml } from '@/lib/email'
-import { accessBodyHtml, sneakPeekBodyHtml, bookingBodyHtml } from '@/lib/clientMail'
+import { accessBodyHtml, sneakPeekBodyHtml, bookingBodyHtml, paymentRequestBodyHtml } from '@/lib/clientMail'
 import { buildReviewHtml } from '@/lib/reviews'
 import { orderConfirmationBodyHtml } from '@/lib/orderMail'
 import type { Client } from '@/lib/types'
@@ -29,6 +29,11 @@ export default function MailPreviewPage() {
       label: 'Boekingsbevestiging',
       subject: 'Je boeking bij BJAY Fotografie - even bevestigen',
       html: brandedHtml(bookingBodyHtml(sampleClient)),
+    },
+    {
+      label: 'Betaalverzoek (event)',
+      subject: 'Betaalverzoek - Feest Mick & Marieke - BJAY Fotografie',
+      html: brandedHtml(paymentRequestBodyHtml(sampleClient)),
     },
     {
       label: 'Toegangsmail',

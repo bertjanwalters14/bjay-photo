@@ -60,6 +60,7 @@ export default function AdminClientPage() {
   const [sendingAccess, setSendingAccess] = useState(false)
   const [sendingSneak, setSendingSneak] = useState(false)
   const [sendingBooking, setSendingBooking] = useState(false)
+  const [sendingPayment, setSendingPayment] = useState(false)
   // Verhaal-export: selectie van foto's die als webp-zip voor een
   // verhaal-pagina op bjay.photo wordt gedownload. Volgorde van aanvinken
   // bepaalt de nummering in de bestandsnamen.
@@ -305,6 +306,23 @@ export default function AdminClientPage() {
       }
     } finally {
       setSendingBooking(false)
+    }
+  }
+
+  // Stuurt de klant/organisator een betaalverzoek (bedrag + IBAN) via Resend.
+  async function handleSendPaymentRequest() {
+    setSendingPayment(true)
+    try {
+      const res = await fetch(`/api/clients/${clientId}/payment-request`, { method: 'POST' })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.client) setClient(data.client)
+      } else {
+        const d = await res.json().catch(() => ({}))
+        alert(d?.error || 'Betaalverzoek versturen mislukt')
+      }
+    } finally {
+      setSendingPayment(false)
     }
   }
 
@@ -654,19 +672,17 @@ export default function AdminClientPage() {
                   style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221' }}
                 />
               </label>
-              {!isEvent && (
-                <label className="text-xs" style={{ color: '#4a6358' }}>
-                  Aanhef
-                  <input
-                    type="text"
-                    value={editContactName}
-                    onChange={e => setEditContactName(e.target.value)}
-                    placeholder="Bv. Mick & Marieke"
-                    className="w-full mt-1 px-2 py-1.5 text-sm focus:outline-none"
-                    style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221' }}
-                  />
-                </label>
-              )}
+              <label className="text-xs" style={{ color: '#4a6358' }}>
+                Aanhef
+                <input
+                  type="text"
+                  value={editContactName}
+                  onChange={e => setEditContactName(e.target.value)}
+                  placeholder={isEvent ? 'Bv. naam contactpersoon' : 'Bv. Mick & Marieke'}
+                  className="w-full mt-1 px-2 py-1.5 text-sm focus:outline-none"
+                  style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221' }}
+                />
+              </label>
               <label className="text-xs" style={{ color: '#4a6358' }}>
                 {isEvent ? 'Datum event' : 'Datum shoot'}
                 <input
@@ -677,19 +693,17 @@ export default function AdminClientPage() {
                   style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221' }}
                 />
               </label>
-              {!isEvent && (
-                <label className="text-xs" style={{ color: '#4a6358' }}>
-                  E-mail
-                  <input
-                    type="email"
-                    value={editEmail}
-                    onChange={e => setEditEmail(e.target.value)}
-                    placeholder="naam@voorbeeld.nl"
-                    className="w-full mt-1 px-2 py-1.5 text-sm focus:outline-none"
-                    style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221' }}
-                  />
-                </label>
-              )}
+              <label className="text-xs" style={{ color: '#4a6358' }}>
+                E-mail
+                <input
+                  type="email"
+                  value={editEmail}
+                  onChange={e => setEditEmail(e.target.value)}
+                  placeholder="naam@voorbeeld.nl"
+                  className="w-full mt-1 px-2 py-1.5 text-sm focus:outline-none"
+                  style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221' }}
+                />
+              </label>
               <label className="text-xs" style={{ color: '#4a6358' }}>
                 Bedrag shoot
                 <div
@@ -739,9 +753,9 @@ export default function AdminClientPage() {
                     setSavingEdit(true)
                     const ok = await saveClientEdit({
                       name: editName,
-                      email: isEvent ? undefined : editEmail,
+                      email: editEmail,
                       date: editDate,
-                      contactName: isEvent ? undefined : editContactName,
+                      contactName: editContactName,
                       price: editPrice,
                       personalNote: editPersonalNote,
                     })
@@ -899,6 +913,25 @@ export default function AdminClientPage() {
                 style={{ border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }}
               >
                 {sendingBooking ? 'Versturen...' : client?.bookingMailSentAt ? 'Opnieuw sturen' : 'Stuur boekingsbevestiging'}
+              </button>
+            </div>
+          )}
+
+          {/* Betaalverzoek (events met e-mail): bedrag + IBAN naar de organisator */}
+          {isEvent && client?.email && (
+            <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2">
+              <p className="text-xs flex-1" style={{ color: '#4a6358' }}>
+                {client?.paymentRequestSentAt
+                  ? `Betaalverzoek verstuurd op ${new Date(client.paymentRequestSentAt).toLocaleDateString('nl-NL')}.`
+                  : 'Stuur de organisator een betaalverzoek (bedrag + IBAN).'}
+              </p>
+              <button
+                onClick={handleSendPaymentRequest}
+                disabled={sendingPayment}
+                className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80 disabled:opacity-50"
+                style={{ border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }}
+              >
+                {sendingPayment ? 'Versturen...' : client?.paymentRequestSentAt ? 'Opnieuw sturen' : 'Stuur betaalverzoek'}
               </button>
             </div>
           )}
