@@ -1,6 +1,6 @@
 import redis from './redis'
 import type { Client } from './types'
-import { sendBrandedMail, emailButton, escapeHtml } from './email'
+import { sendBrandedMail, emailButton, escapeHtml, greetingName } from './email'
 
 const GOOGLE_REVIEW_URL = 'https://g.page/r/CZc1CoEHfp4HEAE/review'
 
@@ -12,6 +12,7 @@ const DAYS_AFTER_DELIVERY = 3
 export interface PendingReviewClient {
   id: string
   name: string
+  contactName?: string
   email: string
   code: string
   deliveredAt: string
@@ -38,6 +39,7 @@ export async function getPendingReviewRequests(): Promise<PendingReviewClient[]>
       return {
         id: c.id,
         name: c.name,
+        contactName: c.contactName,
         email: c.email,
         code: c.code,
         deliveredAt: c.deliveredAt!,
@@ -57,14 +59,10 @@ export async function markReviewRequested(clientCode: string): Promise<void> {
   })
 }
 
-// Voornaam voor een persoonlijke aanhef.
-function reviewFirstName(name: string): string {
-  return name.trim().split(/\s+/)[0] || 'daar'
-}
-
 // Body zonder afsluiting; de handtekening wordt door sendBrandedMail toegevoegd.
-function buildReviewText(name: string): string {
-  return `Hoi ${reviewFirstName(name)},
+// `greeting` is de al-opgeloste aanhef (zie greetingName in email.ts).
+function buildReviewText(greeting: string): string {
+  return `Hoi ${greeting},
 
 Hopelijk geniet je inmiddels van de foto's!
 
@@ -75,8 +73,8 @@ ${GOOGLE_REVIEW_URL}
 Het is zeker niet verplicht, ik vond het echt een toffe shoot en hopelijk kun je nog lang van de beelden genieten.`
 }
 
-export function buildReviewHtml(name: string): string {
-  return `<p>Hoi ${escapeHtml(reviewFirstName(name))},</p>
+export function buildReviewHtml(greeting: string): string {
+  return `<p>Hoi ${escapeHtml(greeting)},</p>
   <p>Hopelijk geniet je inmiddels van de foto's!</p>
   <p>Mocht je een momentje hebben: zou je een korte Google-review willen achterlaten? Dat helpt me enorm om beter gevonden te worden en meer mensen blij te maken met gave fotoshoots.</p>
   ${emailButton(GOOGLE_REVIEW_URL, 'Schrijf een review')}
@@ -87,10 +85,11 @@ export function buildReviewHtml(name: string): string {
 // Returnt true bij succes, false bij falen (cron blijft dan retry op
 // volgende dag omdat reviewRequestedAt niet wordt gezet bij falen).
 export async function sendReviewRequest(client: PendingReviewClient): Promise<boolean> {
+  const greeting = greetingName(client)
   return sendBrandedMail({
     to: client.email,
     subject: 'Bedankt voor de fotoshoot bij BJAY Fotografie',
-    bodyHtml: buildReviewHtml(client.name),
-    bodyText: buildReviewText(client.name),
+    bodyHtml: buildReviewHtml(greeting),
+    bodyText: buildReviewText(greeting),
   })
 }

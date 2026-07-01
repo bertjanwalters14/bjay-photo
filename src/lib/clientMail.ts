@@ -1,5 +1,5 @@
 import type { Client } from './types'
-import { sendBrandedMail, emailButton, escapeHtml } from './email'
+import { sendBrandedMail, emailButton, escapeHtml, greetingName } from './email'
 import { formatPrice } from './format'
 
 const LOGIN_BASE = 'https://app.bjay.photo/login'
@@ -16,13 +16,6 @@ function formatShootDate(date: string | undefined): string | null {
   const d = new Date(date.trim() + 'T12:00:00')
   if (Number.isNaN(d.getTime())) return null
   return `${d.getDate()} ${MONTHS_NL[d.getMonth()]} ${d.getFullYear()}`
-}
-
-// Aanhef: contactName indien gezet, anders het eerste woord van de albumnaam.
-function greetingName(client: Client): string {
-  return client.contactName && client.contactName.trim()
-    ? client.contactName.trim()
-    : client.name.trim().split(/\s+/)[0] || 'daar'
 }
 
 function loginLink(client: Client): string {

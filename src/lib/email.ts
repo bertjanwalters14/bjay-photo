@@ -18,6 +18,14 @@ export function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;')
 }
 
+// Aanhef voor alle klant-mails: de ingevoerde contactName indien gezet, anders
+// het eerste woord van de albumnaam. Gedeeld zodat elke mail dezelfde naam pakt.
+export function greetingName(client: { contactName?: string; name: string }): string {
+  return client.contactName && client.contactName.trim()
+    ? client.contactName.trim()
+    : client.name.trim().split(/\s+/)[0] || 'daar'
+}
+
 // Groene call-to-action knop voor in de body.
 export function emailButton(href: string, label: string): string {
   return `<p style="margin:24px 0;"><a href="${href}" style="display:inline-block;background:${GREEN};color:${GOLD};text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:bold;">${label}</a></p>`
