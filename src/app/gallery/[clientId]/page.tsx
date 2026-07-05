@@ -565,6 +565,12 @@ export default function GalleryPage() {
                 >
                   {isEvent ? (
                     <>
+                      <p style={{ marginBottom: '0.45rem' }}>
+                        <strong>Gratis:</strong>{' '}
+                        <span style={{ color: '#4a6358' }}>
+                          elke foto kun je los downloaden in de foto-weergave, in lage resolutie met watermerk. Wil je hoge resolutie zonder watermerk? Bestel hieronder.
+                        </span>
+                      </p>
                       <strong>Tarieven (digitale download):</strong>{' '}
                       <span style={{ color: '#4a6358' }}>1 foto €5 · 3 foto&apos;s €12 · 5 foto&apos;s €18</span>
                     </>
