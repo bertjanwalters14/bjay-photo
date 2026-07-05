@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Photo } from '@/lib/types'
-import { calculatePriceForCount, priceCatalog, type PriceTier } from '@/lib/eventPackages'
+import { calculatePriceForCount, priceCatalog, priceRule, type PriceTier } from '@/lib/eventPackages'
 import { apiUrl } from '@/lib/apiUrl'
 
 interface Props {
@@ -251,7 +251,7 @@ export default function OrderCart({
                       </li>
                     ))}
                     <li className="pt-1" style={{ color: 'rgba(74,99,88,0.7)' }}>
-                      We rekenen automatisch de goedkoopste combinatie voor je selectie.
+                      {priceRule(tier)}
                     </li>
                   </ul>
                 </details>

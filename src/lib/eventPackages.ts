@@ -1,20 +1,16 @@
-import type { EventPackage } from './types'
-
 // Prijs-tier: event = volume, lage prijs per foto. Personal = curated, premium prijs.
 export type PriceTier = 'event' | 'personal'
 
-interface TierPrices {
-  single: number // cents
-  pack3: number
-  pack5: number
+// Marginale prijs (cents) van de i-de foto (1-based). Aflopend, zodat de prijs
+// per foto altijd daalt naarmate je er meer kiest - geen knikken meer.
+//   event:    foto 1 €5, foto 2 €4, foto 3 t/m 7 €3, vanaf foto 8 €2
+//   personal: foto 1 €10, foto 2 €8, foto 3 t/m 5 €7, vanaf foto 6 €6
+const TIER_RATE: Record<PriceTier, (i: number) => number> = {
+  event: (i) => (i === 1 ? 500 : i === 2 ? 400 : i <= 7 ? 300 : 200),
+  personal: (i) => (i === 1 ? 1000 : i === 2 ? 800 : i <= 5 ? 700 : 600),
 }
 
-const TIER_PRICES: Record<PriceTier, TierPrices> = {
-  event: { single: 500, pack3: 1200, pack5: 1800 },
-  personal: { single: 1000, pack3: 2500, pack5: 4000 },
-}
-
-const UNLIMITED_CENTS = 2500 // legacy: alleen via priceForLegacyPackage
+const UNLIMITED_CENTS = 2500 // legacy: alleen via priceForUnlimited
 
 export interface PriceBreakdown {
   priceCents: number
@@ -29,48 +25,26 @@ function formatEuro(cents: number): string {
   return `€${(cents / 100).toFixed(2).replace('.', ',')}`
 }
 
-// Greedy: pack5 > pack3 > single, vanwege dalende prijs per foto in beide tiers.
+// Telt de marginale prijs per foto op. Elke volgende foto is even duur of
+// goedkoper dan de vorige, dus de gemiddelde prijs per foto daalt netjes.
 export function calculatePriceForCount(n: number, tier: PriceTier = 'event'): PriceBreakdown {
   if (n <= 0) {
     return { priceCents: 0, priceLabel: '€0', isUnlimited: false, parts: [] }
   }
 
-  const prices = TIER_PRICES[tier]
-
-  let remaining = n
+  const rate = TIER_RATE[tier]
   let cents = 0
-  const parts: string[] = []
+  for (let i = 1; i <= n; i++) cents += rate(i)
 
-  const pack5 = Math.floor(remaining / 5)
-  if (pack5 > 0) {
-    cents += pack5 * prices.pack5
-    remaining -= pack5 * 5
-    parts.push(`${pack5}x pakket van 5 foto's`)
-  }
+  // Kleine value-hint: gemiddelde prijs per foto (alleen bij meer dan 1)
+  const parts = n > 1 ? [`gemiddeld ${formatEuro(Math.round(cents / n))} per foto`] : []
 
-  const pack3 = Math.floor(remaining / 3)
-  if (pack3 > 0) {
-    cents += pack3 * prices.pack3
-    remaining -= pack3 * 3
-    parts.push(`${pack3}x pakket van 3 foto's`)
-  }
-
-  if (remaining > 0) {
-    cents += remaining * prices.single
-    parts.push(`${remaining}x losse foto`)
-  }
-
-  // Tier-specifieke upsell-tips
+  // Zachte volume-nudge richting de goedkopere tier
   let tip: string | undefined
-  if (tier === 'event') {
-    if (n === 2) tip = 'Tip: voeg 1 foto toe voor pakket 3 - €12 (extra foto gratis!)'
-    if (n === 4) tip = 'Tip: voeg 1 foto toe voor pakket 5 - €18 (5e foto kost slechts €1)'
-  } else {
-    // personal pricing: pack3 (€50) is duurder dan 2x single (€40), dus n=2 geeft geen tip
-    if (n === 4) {
-      const extraCost = prices.pack5 - cents
-      tip = `Tip: voeg 1 foto toe voor pakket 5 - ${formatEuro(prices.pack5)} (5e foto kost slechts ${formatEuro(extraCost)})`
-    }
+  if (tier === 'event' && n >= 3 && n < 8) {
+    tip = "Vanaf 8 foto's betaal je nog maar €2 per foto."
+  } else if (tier === 'personal' && n >= 3 && n < 6) {
+    tip = "Vanaf 6 foto's is elke extra foto €6."
   }
 
   return {
@@ -91,34 +65,21 @@ export function priceForUnlimited(): PriceBreakdown {
   }
 }
 
-// Backwards-compat voor oude orders (single/pack3/pack5/unlimited)
-export function priceForLegacyPackage(
-  key: EventPackage,
-  tier: PriceTier = 'event'
-): PriceBreakdown | null {
-  const p = TIER_PRICES[tier]
-  switch (key) {
-    case 'single':
-      return { priceCents: p.single, priceLabel: formatEuro(p.single), isUnlimited: false, parts: ['1 foto'] }
-    case 'pack3':
-      return { priceCents: p.pack3, priceLabel: formatEuro(p.pack3), isUnlimited: false, parts: ['Pakket van 3 foto\'s'] }
-    case 'pack5':
-      return { priceCents: p.pack5, priceLabel: formatEuro(p.pack5), isUnlimited: false, parts: ['Pakket van 5 foto\'s'] }
-    case 'unlimited':
-      return priceForUnlimited()
-    default:
-      return null
-  }
+// Een paar voorbeeldpunten voor het "hoe werkt de prijs"-paneel, zodat de
+// klant ziet dat meer kiezen loont.
+export function priceCatalog(tier: PriceTier = 'event'): { label: string; price: string }[] {
+  const examples = tier === 'event' ? [1, 3, 5, 8] : [1, 3, 5]
+  return examples.map(n => ({
+    label: `${n} foto${n !== 1 ? "'s" : ''}`,
+    price: calculatePriceForCount(n, tier).priceLabel,
+  }))
 }
 
-// Tarieven-catalogus per tier, voor display in banner / info-paneel
-export function priceCatalog(tier: PriceTier = 'event'): { label: string; price: string }[] {
-  const p = TIER_PRICES[tier]
-  return [
-    { label: '1 foto', price: formatEuro(p.single) },
-    { label: '3 foto\'s (pakket)', price: formatEuro(p.pack3) },
-    { label: '5 foto\'s (pakket)', price: formatEuro(p.pack5) },
-  ]
+// Eén regel die de prijsopbouw uitlegt (tier-afhankelijk).
+export function priceRule(tier: PriceTier = 'event'): string {
+  return tier === 'event'
+    ? "Hoe meer foto's je kiest, hoe goedkoper per foto. Vanaf 8 foto's nog maar €2 per stuk."
+    : "Hoe meer foto's je kiest, hoe goedkoper per foto."
 }
 
 // Backwards-compat export — sommige bestanden importeerden de constante
