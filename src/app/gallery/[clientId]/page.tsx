@@ -498,7 +498,7 @@ export default function GalleryPage() {
 
                 {isEvent && (
                   <p className="text-sm mb-4" style={{ color: '#4a6358' }}>
-                    Alle foto&apos;s van dit event kun je <strong style={{ color: '#053221' }}>gratis downloaden</strong> in de foto-weergave, in lagere resolutie met watermerk. Wil je een foto in hoge resolutie zonder watermerk? Volg dan de stappen hieronder om te bestellen.
+                    Alle foto&apos;s van dit event kun je <strong style={{ color: '#053221' }}>gratis downloaden</strong> in de foto-weergave, met watermerk. Wil je een foto in hoge resolutie zonder watermerk? Volg dan de stappen hieronder om te bestellen.
                   </p>
                 )}
 
