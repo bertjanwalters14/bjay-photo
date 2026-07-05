@@ -493,8 +493,14 @@ export default function GalleryPage() {
                   className="text-sm font-medium tracking-widest uppercase mb-3"
                   style={{ color: '#053221' }}
                 >
-                  {isEvent ? "Zo bestel je foto's" : "Je foto's"}
+                  {isEvent ? "Je foto's" : "Je foto's"}
                 </h3>
+
+                {isEvent && (
+                  <p className="text-sm mb-4" style={{ color: '#4a6358' }}>
+                    Alle foto&apos;s van dit event kun je <strong style={{ color: '#053221' }}>gratis downloaden</strong> in de foto-weergave, in lage resolutie met watermerk. Wil je een foto in hoge resolutie zonder watermerk? Volg dan de stappen hieronder om te bestellen.
+                  </p>
+                )}
 
                 <div
                   className={`grid grid-cols-1 gap-3 sm:gap-4 mb-4 ${
@@ -565,12 +571,6 @@ export default function GalleryPage() {
                 >
                   {isEvent ? (
                     <>
-                      <p style={{ marginBottom: '0.45rem' }}>
-                        <strong>Gratis:</strong>{' '}
-                        <span style={{ color: '#4a6358' }}>
-                          elke foto kun je los downloaden in de foto-weergave, in lage resolutie met watermerk. Wil je hoge resolutie zonder watermerk? Bestel hieronder.
-                        </span>
-                      </p>
                       <strong>Tarieven (digitale download):</strong>{' '}
                       <span style={{ color: '#4a6358' }}>1 foto €5 · 3 foto&apos;s €12 · 5 foto&apos;s €18</span>
                     </>
