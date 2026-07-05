@@ -509,7 +509,7 @@ export default function GalleryPage() {
                         {
                           n: '4',
                           t: 'Tevreden?',
-                          d: 'Laat een korte Google-review achter — helpt me enorm.',
+                          d: 'Laat een korte Google-review achter, dit helpt me enorm.',
                           href: 'https://g.page/r/CZc1CoEHfp4HEAE/review',
                         },
                       ]
