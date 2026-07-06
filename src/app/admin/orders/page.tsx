@@ -81,6 +81,22 @@ export default function AdminOrdersPage() {
     setUpdating(prev => ({ ...prev, [orderId]: false }))
   }
 
+  async function sendReview(orderId: string) {
+    setUpdating(prev => ({ ...prev, [orderId]: true }))
+    try {
+      const res = await fetch(`/api/orders/${orderId}/review-request`, { method: 'POST' })
+      if (res.ok) {
+        const data = await res.json()
+        setOrders(prev => prev.map(o => (o.id === orderId ? data.order : o)))
+      } else {
+        const data = await res.json().catch(() => ({}))
+        alert(data?.error || 'Review-verzoek kon niet verstuurd worden')
+      }
+    } finally {
+      setUpdating(prev => ({ ...prev, [orderId]: false }))
+    }
+  }
+
   async function deleteOrder(order: Order) {
     const confirmed = window.confirm(
       `Bestelling van ${order.customerName || '(geen naam)'} verwijderen?\n\n` +
@@ -311,6 +327,11 @@ export default function AdminOrdersPage() {
                         <> · gewijzigd {new Date(order.updatedAt).toLocaleString('nl-NL')}</>
                       )}
                     </p>
+                    {order.reviewRequestedAt && (
+                      <p className="text-xs" style={{ color: '#2d8a3e' }}>
+                        Review-verzoek verstuurd op {new Date(order.reviewRequestedAt).toLocaleDateString('nl-NL')}
+                      </p>
+                    )}
                   </div>
 
                   {/* Status */}
@@ -355,6 +376,21 @@ export default function AdminOrdersPage() {
                       >
                         Download hi-res
                       </button>
+                      {(order.status === 'paid' || order.status === 'shipped') && order.customerEmail && (
+                        <button
+                          onClick={() => sendReview(order.id)}
+                          disabled={updating[order.id]}
+                          className="text-xs px-2 py-1 transition hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
+                          style={{
+                            backgroundColor: '#fff',
+                            color: '#053221',
+                            border: '1px solid rgba(200,169,110,0.6)',
+                          }}
+                          title="Stuur de klant een Google-review verzoek"
+                        >
+                          {order.reviewRequestedAt ? 'Review opnieuw' : 'Stuur review-verzoek'}
+                        </button>
+                      )}
                       <button
                         onClick={() => deleteOrder(order)}
                         disabled={deletingId === order.id}

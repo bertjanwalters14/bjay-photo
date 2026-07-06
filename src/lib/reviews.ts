@@ -81,15 +81,27 @@ export function buildReviewHtml(greeting: string): string {
   <p>Het is zeker niet verplicht, ik vond het echt een toffe shoot en hopelijk kun je nog lang van de beelden genieten.</p>`
 }
 
-// Stuur de review-vraag via Resend (direct naar de klant, volautomatisch).
-// Returnt true bij succes, false bij falen (cron blijft dan retry op
-// volgende dag omdat reviewRequestedAt niet wordt gezet bij falen).
-export async function sendReviewRequest(client: PendingReviewClient): Promise<boolean> {
-  const greeting = greetingName(client)
+// Kern: stuur de review-vraag naar een naam + e-mail. Hergebruikt door zowel
+// de klant-cron (personal shoots) als de handmatige knop op een bestelling
+// (event-kopers). `subject` is optioneel zodat event-kopers een passende
+// onderwerpregel krijgen. `contactName` gaat voor op `name` (zie greetingName).
+export async function sendReviewRequestTo(opts: {
+  name: string
+  contactName?: string
+  email: string
+  subject?: string
+}): Promise<boolean> {
+  const greeting = greetingName({ name: opts.name, contactName: opts.contactName })
   return sendBrandedMail({
-    to: client.email,
-    subject: 'Bedankt voor de fotoshoot bij BJAY Fotografie',
+    to: opts.email,
+    subject: opts.subject || 'Bedankt voor de fotoshoot bij BJAY Fotografie',
     bodyHtml: buildReviewHtml(greeting),
     bodyText: buildReviewText(greeting),
   })
+}
+
+// Stuur de review-vraag naar een klant (cron). Returnt true bij succes, false
+// bij falen (cron blijft dan retry omdat reviewRequestedAt niet wordt gezet).
+export async function sendReviewRequest(client: PendingReviewClient): Promise<boolean> {
+  return sendReviewRequestTo({ name: client.name, contactName: client.contactName, email: client.email })
 }

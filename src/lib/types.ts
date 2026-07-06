@@ -151,6 +151,9 @@ export interface Order {
   price: string
   status: OrderStatus
   notes: string
+  // Wanneer het Google-review verzoek naar de klant is gestuurd (handmatig
+  // vanaf de orders-adminpagina, na betaald/verzonden). Leeg = nog niet.
+  reviewRequestedAt?: string | null
   createdAt: string
   updatedAt: string
 }
