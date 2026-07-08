@@ -110,6 +110,12 @@ export async function updateEvent(slug: string, patch: Partial<Event>): Promise<
     updatedAt: new Date().toISOString(),
   }
 
+  // dismissKey mag nooit leeg worden opgeslagen: zonder waarde weigert de
+  // active-event route de popup te tonen (zie /api/active-event).
+  if (!updated.dismissKey?.trim()) {
+    updated.dismissKey = `${slug}-dismissed`
+  }
+
   // Slechts één event mag popupActive zijn.
   if (updated.popupActive && !current.popupActive) {
     await clearPopupActive(slug)
