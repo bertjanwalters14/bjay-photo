@@ -8,7 +8,7 @@ import PhotoModal from '@/components/PhotoModal'
 import NamePrompt from '@/components/NamePrompt'
 import OrderCart from '@/components/OrderCart'
 import TermsAccept from '@/components/TermsAccept'
-import { Photo, Client } from '@/lib/types'
+import { Photo, Client, Feedback } from '@/lib/types'
 import { apiUrl } from '@/lib/apiUrl'
 
 // Tijdslot-indeling voor de fijnmazige filter onder een geselecteerde dag.
@@ -41,6 +41,7 @@ export default function GalleryPage() {
   const [archived, setArchived] = useState(false)
   const [favorites, setFavorites] = useState<string[]>([])
   const [likeCounts, setLikeCounts] = useState<Record<string, number>>({})
+  const [feedbackList, setFeedbackList] = useState<Feedback[]>([])
   const [visitorName, setVisitorName] = useState<string | null>(null)
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null)
   const [client, setClient] = useState<Client | null>(null)
@@ -209,6 +210,19 @@ export default function GalleryPage() {
 
     loadInteractions()
   }, [client, clientId, visitorName])
+
+  // Reactie-draadje laden: publiek voor iedereen met toegang tot deze galerij.
+  useEffect(() => {
+    if (!client) return
+    fetch(apiUrl(`/api/clients/${clientId}/feedback`))
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => setFeedbackList(data?.feedback || []))
+      .catch(() => {})
+  }, [client, clientId])
+
+  function handleFeedbackAdded(fb: Feedback) {
+    setFeedbackList(prev => [fb, ...prev])
+  }
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -757,6 +771,9 @@ export default function GalleryPage() {
           selectedIds={isEvent ? selectedIds : undefined}
           onToggleSelection={isEvent ? toggleSelection : undefined}
           showPrintOption={!isEvent}
+          feedbackList={feedbackList}
+          visitorName={visitorName}
+          onFeedbackAdded={handleFeedbackAdded}
         />
       )}
 

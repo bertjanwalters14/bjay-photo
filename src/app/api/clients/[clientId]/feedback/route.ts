@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import redis from '@/lib/redis'
-import { getAdminSession, canActAsClient } from '@/lib/auth'
+import { canActAsClient } from '@/lib/auth'
 import { Feedback } from '@/lib/types'
 
-// GET — feedback ophalen (admin only)
+// GET — feedback ophalen. Publiek reactie-draadje: elke bezoeker met
+// toegang tot deze galerij (of admin) mag alle reacties zien.
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ clientId: string }> }
 ) {
   const { clientId } = await params
-  const isAdmin = await getAdminSession()
 
-  if (!isAdmin) {
+  const allowed = await canActAsClient(clientId, req)
+  if (!allowed) {
     return NextResponse.json({ error: 'Niet toegestaan' }, { status: 401 })
   }
 
@@ -35,7 +36,7 @@ export async function POST(
     return NextResponse.json({ error: 'Niet toegestaan' }, { status: 401 })
   }
 
-  const { photoId, message } = await req.json()
+  const { photoId, message, name } = await req.json()
 
   if (!message) {
     return NextResponse.json({ error: 'Bericht is verplicht' }, { status: 400 })
@@ -45,9 +46,10 @@ export async function POST(
     photoId,
     message,
     createdAt: new Date().toISOString(),
+    ...(name && typeof name === 'string' && name.trim() ? { name: name.trim().slice(0, 60) } : {}),
   }
 
   await redis.lpush(`client:${clientId}:feedback`, JSON.stringify(feedback))
 
-  return NextResponse.json({ success: true })
+  return NextResponse.json({ success: true, feedback })
 }

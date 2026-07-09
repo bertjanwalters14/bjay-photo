@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { Photo } from '@/lib/types'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { Photo, Feedback } from '@/lib/types'
 import { PRINT_SIZES } from '@/lib/printSizes'
 import { apiUrl } from '@/lib/apiUrl'
 
@@ -25,6 +25,12 @@ interface Props {
   onToggleSelection?: (photoId: string) => void
   // Toon ook de print-knop naast cart (typisch voor personal portals).
   showPrintOption?: boolean
+  // Publiek reactie-draadje: alle reacties van deze galerij (alle foto's),
+  // hier gefilterd op de foto die nu open staat. Bij events wordt elke
+  // nieuwe reactie ondertekend met visitorName, net als bij likes.
+  feedbackList?: Feedback[]
+  visitorName?: string | null
+  onFeedbackAdded?: (fb: Feedback) => void
 }
 
 export default function PhotoModal({
@@ -40,6 +46,9 @@ export default function PhotoModal({
   selectedIds,
   onToggleSelection,
   showPrintOption = false,
+  feedbackList,
+  visitorName,
+  onFeedbackAdded,
 }: Props) {
   const [current, setCurrent] = useState(photo)
   const [feedback, setFeedback] = useState('')
@@ -153,6 +162,13 @@ export default function PhotoModal({
 
   const feedbackSent = sentPhotos.includes(current.publicId)
   const idx = photos.findIndex(p => p.publicId === current.publicId)
+
+  // Reacties op de foto die nu open staat, oudste eerst (zoals een chatje).
+  const photoFeedback = useMemo(() => {
+    return (feedbackList || [])
+      .filter(fb => fb.photoId === current.publicId)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+  }, [feedbackList, current.publicId])
   const hasPrev = idx > 0
   const hasNext = idx < photos.length - 1
   const currentIsFav = favs.includes(current.publicId)
@@ -224,11 +240,17 @@ export default function PhotoModal({
   async function handleFeedback(e: React.FormEvent) {
     e.preventDefault()
     setSending(true)
-    await fetch(apiUrl(`/api/clients/${clientId}/feedback`), {
+    const res = await fetch(apiUrl(`/api/clients/${clientId}/feedback`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ photoId: current.publicId, message: feedback }),
+      body: JSON.stringify({ photoId: current.publicId, message: feedback, name: visitorName }),
     })
+    try {
+      const data = await res.json()
+      if (data?.feedback) onFeedbackAdded?.(data.feedback)
+    } catch {
+      // ok, thread update is best-effort
+    }
     setSentPhotos(prev => [...prev, current.publicId])
     setSending(false)
     setFeedback('')
@@ -457,9 +479,23 @@ export default function PhotoModal({
         </button>
       </div>
 
+      {/* Reactie-draadje: publiek zichtbaar voor iedereen met toegang tot deze galerij */}
+      {photoFeedback.length > 0 && (
+        <div className="flex-shrink-0 px-6 pt-3 flex flex-col gap-2 overflow-y-auto"
+          style={{ borderTop: '1px solid rgba(200,169,110,0.15)', maxHeight: 140 }}>
+          {photoFeedback.map((fb, i) => (
+            <div key={i} className="text-sm" style={{ color: 'rgba(232,237,233,0.85)' }}>
+              <strong style={{ color: '#c8a96e' }}>{fb.name || 'Bezoeker'}</strong>
+              {': '}
+              {fb.message}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Feedback balk */}
       <div className="flex-shrink-0 px-6 py-3 flex items-center gap-3"
-        style={{ borderTop: '1px solid rgba(200,169,110,0.15)' }}>
+        style={{ borderTop: photoFeedback.length > 0 ? 'none' : '1px solid rgba(200,169,110,0.15)' }}>
         {feedbackSent ? (
           <p className="text-sm w-full text-center" style={{ color: '#c8a96e' }}>
             Reactie verstuurd - bedankt!

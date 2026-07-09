@@ -108,6 +108,9 @@ export interface Feedback {
   photoId: string
   message: string
   createdAt: string
+  // Naam van de bezoeker (bij events: dezelfde naam als voor likes gebruikt).
+  // Ontbreekt bij oudere reacties van vóór het publieke reactie-draadje.
+  name?: string
 }
 
 export interface Like {
