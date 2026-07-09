@@ -38,7 +38,15 @@ export async function GET(
   const raw = await redis.hgetall<Record<string, Like>>(`client:${clientId}:likes`)
   const entries: Like[] = raw ? Object.values(raw) : []
 
-  if (isAdmin) {
+  const url = new URL(req.url)
+
+  // De galerij stuurt altijd een 'name' query param mee (ook als admin in
+  // preview-mode) en verwacht de {counts, mine} vorm. Alleen het admin-
+  // dashboard vraagt zonder 'name' op en verwacht {likes, total}. Zonder deze
+  // check kreeg een admin die zijn eigen galerij bekeek altijd de admin-vorm
+  // terug (isAdmin is dan true), waardoor data.counts undefined was en de
+  // like-badges in de galerij nooit toonden.
+  if (isAdmin && !url.searchParams.has('name')) {
     const byPhoto: Record<string, { count: number; names: { name: string; createdAt: string }[] }> = {}
     for (const e of entries) {
       if (!byPhoto[e.photoId]) byPhoto[e.photoId] = { count: 0, names: [] }
@@ -48,7 +56,6 @@ export async function GET(
     return NextResponse.json({ likes: byPhoto, total: entries.length })
   }
 
-  const url = new URL(req.url)
   const visitorName = url.searchParams.get('name') || ''
   const visitorSlug = visitorName ? nameSlug(visitorName) : ''
 
