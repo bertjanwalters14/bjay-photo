@@ -39,6 +39,8 @@ export default function AdminClientPage() {
   const [feedback, setFeedback] = useState<Feedback[]>([])
   const [likes, setLikes] = useState<LikesByPhoto>({})
   const [likesTotal, setLikesTotal] = useState(0)
+  const [downloadCounts, setDownloadCounts] = useState<Record<string, number>>({})
+  const [downloadsTotal, setDownloadsTotal] = useState(0)
   const [coverUrl, setCoverUrl] = useState<string | null>(null)
   // Bijbehorend event (voor popup-toggle + aanvragen-knop in de header).
   const [linkedEvent, setLinkedEvent] = useState<Event | null>(null)
@@ -96,15 +98,25 @@ export default function AdminClientPage() {
       .sort((a, b) => (b.entry?.count || 0) - (a.entry?.count || 0))
   }, [photos, likes])
 
+  // Foto's gesorteerd op aantal downloads (descending), gefilterd op >0.
+  // We weten dus welke foto's vaak gedownload zijn, niet door wie.
+  const photosByDownloads = useMemo(() => {
+    return photos
+      .map(p => ({ photo: p, count: downloadCounts[p.publicId] || 0 }))
+      .filter(x => x.count > 0)
+      .sort((a, b) => b.count - a.count)
+  }, [photos, downloadCounts])
+
   useEffect(() => {
     async function load() {
-      const [clientRes, photosRes, favsRes, feedbackRes, coverRes, likesRes] = await Promise.all([
+      const [clientRes, photosRes, favsRes, feedbackRes, coverRes, likesRes, downloadsRes] = await Promise.all([
         fetch(`/api/clients/${clientId}`),
         fetch(`/api/clients/${clientId}/photos`),
         fetch(`/api/clients/${clientId}/favorites`),
         fetch(`/api/clients/${clientId}/feedback`),
         fetch(`/api/clients/${clientId}/cover`),
         fetch(`/api/clients/${clientId}/likes`),
+        fetch(`/api/clients/${clientId}/downloads`),
       ])
       try {
         const clientData = await clientRes.json()
@@ -113,6 +125,7 @@ export default function AdminClientPage() {
         const feedbackData = await feedbackRes.json()
         const coverData = await coverRes.json()
         const likesData = likesRes.ok ? await likesRes.json() : { likes: {}, total: 0 }
+        const downloadsData = downloadsRes.ok ? await downloadsRes.json() : { counts: {}, total: 0 }
         setClient(clientData.client)
         setPhotos(photosData.photos || [])
         setFavorites(favsData.favorites || [])
@@ -120,6 +133,8 @@ export default function AdminClientPage() {
         setCoverUrl(coverData.cover || null)
         setLikes(likesData.likes || {})
         setLikesTotal(likesData.total || 0)
+        setDownloadCounts(downloadsData.counts || {})
+        setDownloadsTotal(downloadsData.total || 0)
         if (clientData.stats) {
           setVisitStats({
             lastVisit: clientData.stats.lastVisit || null,
@@ -1066,12 +1081,13 @@ export default function AdminClientPage() {
         )}
 
         {/* Statistieken (verschillen per type) */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className={`grid gap-3 ${isEvent ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'}`}>
           {(isEvent
             ? [
                 { label: "Foto's", value: photos.length },
                 { label: 'Likes totaal', value: likesTotal },
                 { label: 'Unieke bezoekers', value: uniqueLikers },
+                { label: 'Downloads totaal', value: downloadsTotal },
               ]
             : [
                 { label: "Foto's", value: photos.length },
@@ -1390,6 +1406,37 @@ export default function AdminClientPage() {
                         .join(', ')}
                     </p>
                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Downloads per foto (alleen events, geen bezoekersnaam bekend) */}
+        {isEvent && photosByDownloads.length > 0 && (
+          <div>
+            <h2 className="text-lg font-light mb-3" style={{ color: '#053221' }}>
+              Downloads per foto
+            </h2>
+            <div className="flex flex-col gap-2">
+              {photosByDownloads.map(({ photo, count }) => (
+                <div
+                  key={photo.publicId}
+                  className="rounded-lg p-3 flex gap-3 items-center"
+                  style={{ backgroundColor: '#fff', border: '1px solid rgba(200,169,110,0.3)' }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={photo.thumbnail}
+                    alt=""
+                    className="w-16 h-16 object-cover rounded flex-shrink-0"
+                  />
+                  <span
+                    className="text-xs px-2 py-0.5 tracking-widest uppercase rounded-full"
+                    style={{ backgroundColor: 'rgba(200,169,110,0.15)', color: '#c8a96e' }}
+                  >
+                    {count} download{count !== 1 ? 's' : ''}
+                  </span>
                 </div>
               ))}
             </div>

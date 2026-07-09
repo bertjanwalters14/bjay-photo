@@ -213,6 +213,12 @@ export default function PhotoModal({
     a.download = current.publicId.split('/').pop() || 'foto.jpg'
     a.click()
     URL.revokeObjectURL(url)
+
+    fetch(apiUrl(`/api/clients/${clientId}/downloads`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ photoId: current.publicId }),
+    }).catch(() => {})
   }
 
   async function handleFeedback(e: React.FormEvent) {
