@@ -93,13 +93,24 @@ export async function GET(
   // dit veld zou de datum-filter in de gallery alleen op upload-tijd werken,
   // wat nutteloos is bij events die over meerdere dagen lopen maar in 1 batch
   // ge-upload worden.
-  const result = await cloudinary.search
-    .expression(`folder:bjay/clients/${sourceFolderId}`)
-    .sort_by('public_id', 'asc')
-    .with_field('context')
-    .with_field('image_metadata')
-    .max_results(500)
-    .execute()
+  //
+  // 500 is het maximum dat Cloudinary's Search API per aanroep toestaat, dus
+  // we blijven doorpagineren met next_cursor tot alles is opgehaald. Zonder
+  // deze loop werden foto's boven de 500 stilletjes niet getoond.
+  const resources: CloudinaryResource[] = []
+  let cursor: string | undefined
+  do {
+    const page = await cloudinary.search
+      .expression(`folder:bjay/clients/${sourceFolderId}`)
+      .sort_by('public_id', 'asc')
+      .with_field('context')
+      .with_field('image_metadata')
+      .max_results(500)
+      .next_cursor(cursor)
+      .execute()
+    resources.push(...(page.resources as CloudinaryResource[]))
+    cursor = page.next_cursor
+  } while (cursor)
 
   // EXIF DateTimeOriginal heeft format "YYYY:MM:DD HH:MM:SS" (kolons als
   // datum-scheider, anders dan ISO). Converteer naar ISO of geef null bij
@@ -136,7 +147,7 @@ export async function GET(
     return base.replace(/_[a-z0-9]{4,10}$/i, '')
   }
 
-  const photosWithKeys: PhotoWithSortKey[] = (result.resources as CloudinaryResource[]).map(r => ({
+  const photosWithKeys: PhotoWithSortKey[] = resources.map(r => ({
     publicId: r.public_id,
     // Personal: schone foto's (geen watermerk) op displaygrootte + een schone
     // download op volle resolutie. Event: gewatermerkte preview, geen download.
