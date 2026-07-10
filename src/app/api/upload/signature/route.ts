@@ -22,8 +22,14 @@ export async function POST(req: NextRequest) {
   // Heractiveer een eerder gearchiveerde client zodra er nieuwe foto's
   // ge-upload gaan worden. archiveWarningAt ook resetten zodat de cron
   // bij een volgende archief-ronde gewoon weer een warning kan sturen.
+  let sourceFolderId = clientId
   try {
     const client = await redis.get<Client>(`client:${clientId}`)
+    if (client?.photoSourceClientId) {
+      // Gelinkte client (bv. commissie-album): upload landt in de map van
+      // de bron-client, zodat je niet twee keer hoeft te uploaden.
+      sourceFolderId = client.photoSourceClientId
+    }
     if (client && (client.archivedAt || client.archiveWarningAt)) {
       await redis.set(`client:${clientId}`, {
         ...client,
@@ -37,7 +43,7 @@ export async function POST(req: NextRequest) {
   }
 
   const timestamp = Math.round(Date.now() / 1000)
-  const folder = `bjay/clients/${clientId}`
+  const folder = `bjay/clients/${sourceFolderId}`
 
   // Cloudinary verifieert dat browser-uploads exact deze params gebruiken.
   // Browser moet bij upload: file, api_key, timestamp, signature, folder,

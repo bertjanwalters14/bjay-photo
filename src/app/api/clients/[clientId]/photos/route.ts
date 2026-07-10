@@ -62,6 +62,10 @@ export async function GET(
     return NextResponse.json({ photos: [], archived: true, archivedAt: client.archivedAt })
   }
 
+  // Gelinkte foto-bron: toon de map van een andere client (zie types.ts).
+  // Zo hoef je bv. voor een commissie-album niet apart te uploaden.
+  const sourceFolderId = client?.photoSourceClientId || clientId
+
   // Resolutie-preset per type. Watermerk blijft op beide (branding).
   // Y-offset schaalt mee met de breedte zodat het watermerk visueel
   // op dezelfde plek staat.
@@ -90,7 +94,7 @@ export async function GET(
   // wat nutteloos is bij events die over meerdere dagen lopen maar in 1 batch
   // ge-upload worden.
   const result = await cloudinary.search
-    .expression(`folder:bjay/clients/${clientId}`)
+    .expression(`folder:bjay/clients/${sourceFolderId}`)
     .sort_by('public_id', 'asc')
     .with_field('context')
     .with_field('image_metadata')

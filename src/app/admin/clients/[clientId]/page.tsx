@@ -57,6 +57,7 @@ export default function AdminClientPage() {
   const [editContactName, setEditContactName] = useState('')
   const [editPrice, setEditPrice] = useState('')
   const [editPersonalNote, setEditPersonalNote] = useState('')
+  const [editPhotoSourceClientId, setEditPhotoSourceClientId] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
   const [archiving, setArchiving] = useState(false)
   const [sendingAccess, setSendingAccess] = useState(false)
@@ -391,7 +392,7 @@ export default function AdminClientPage() {
 
   // Inline-bewerken voor naam + e-mail. Gebruik je vooral als je een klant
   // hebt aangemaakt zonder e-mail en die later toevoegt.
-  async function saveClientEdit(updates: { name?: string; email?: string; date?: string; contactName?: string; price?: string; personalNote?: string }) {
+  async function saveClientEdit(updates: { name?: string; email?: string; date?: string; contactName?: string; price?: string; personalNote?: string; photoSourceClientId?: string }) {
     const res = await fetch(`/api/clients/${clientId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -657,6 +658,15 @@ export default function AdminClientPage() {
             >
               {isEvent ? 'Event' : 'Personal'}
             </span>
+            {client?.photoSourceClientId && (
+              <span
+                className="text-[10px] px-2 py-0.5 tracking-widest uppercase rounded-full"
+                style={{ backgroundColor: 'rgba(5,50,33,0.08)', color: '#4a6358', border: '1px solid rgba(5,50,33,0.15)' }}
+                title="Foto's en uploads gaan naar deze andere klant-code"
+              >
+                Foto&apos;s van {client.photoSourceClientId}
+              </span>
+            )}
             {!editing && (
               <button
                 onClick={() => {
@@ -666,6 +676,7 @@ export default function AdminClientPage() {
                   setEditContactName(client?.contactName || '')
                   setEditPrice(client?.price || '')
                   setEditPersonalNote(client?.personalNote || '')
+                  setEditPhotoSourceClientId(client?.photoSourceClientId || '')
                   setEditing(true)
                 }}
                 className="text-xs underline transition hover:opacity-70"
@@ -762,6 +773,21 @@ export default function AdminClientPage() {
                   style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221' }}
                 />
               </label>
+              <label className="text-xs" style={{ color: '#4a6358' }}>
+                Foto&apos;s overnemen van andere klant-code (optioneel)
+                <input
+                  type="text"
+                  value={editPhotoSourceClientId}
+                  onChange={e => setEditPhotoSourceClientId(e.target.value.trim())}
+                  placeholder="Bv. gltb2026open"
+                  className="w-full mt-1 px-2 py-1.5 text-sm focus:outline-none font-mono"
+                  style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221' }}
+                />
+                <span className="block mt-1" style={{ color: '#4a6358' }}>
+                  Laat leeg voor een eigen foto-map. Vul de code van een andere klant in om
+                  dezelfde foto&apos;s te tonen (en uploads naartoe te sturen) zonder dubbel te uploaden.
+                </span>
+              </label>
               <div className="flex gap-2 mt-1">
                 <button
                   onClick={async () => {
@@ -773,6 +799,7 @@ export default function AdminClientPage() {
                       contactName: editContactName,
                       price: editPrice,
                       personalNote: editPersonalNote,
+                      photoSourceClientId: editPhotoSourceClientId,
                     })
                     setSavingEdit(false)
                     if (ok) setEditing(false)

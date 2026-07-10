@@ -49,6 +49,11 @@ export interface Client {
   code: string
   type: PortalType
   createdAt: string
+  // Als gezet: deze client toont (en uploadt naar) de Cloudinary-map van de
+  // opgegeven andere client-code, in plaats van zijn eigen map. Zo kan bv.
+  // een 'personal' commissie-album dezelfde foto's tonen als het 'event'-
+  // album van de deelnemers, zonder dat je alles twee keer moet uploaden.
+  photoSourceClientId?: string
   // Datum van het event/de shoot zelf (los van createdAt = aanmaakmoment).
   // Optioneel; gebruikt om de klantenlijst chronologisch te sorteren.
   date?: string

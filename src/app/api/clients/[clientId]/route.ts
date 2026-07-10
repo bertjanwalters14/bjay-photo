@@ -105,6 +105,11 @@ export async function PATCH(
   if ('personalNote' in body) {
     updates.personalNote = typeof body.personalNote === 'string' && body.personalNote.trim() ? body.personalNote.trim() : undefined
   }
+  if ('photoSourceClientId' in body) {
+    updates.photoSourceClientId = typeof body.photoSourceClientId === 'string' && body.photoSourceClientId.trim()
+      ? body.photoSourceClientId.trim()
+      : undefined
+  }
   if ('paidAt' in body) {
     // true => nu markeren als betaald; false/null => betaald-markering weghalen.
     // Een meegestuurde ISO-string wordt overgenomen, anders huidige tijd.
