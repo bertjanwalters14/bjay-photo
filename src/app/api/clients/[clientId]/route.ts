@@ -110,6 +110,12 @@ export async function PATCH(
       ? body.photoSourceClientId.trim()
       : undefined
   }
+  if ('archiveDeadline' in body) {
+    updates.archiveDeadline = body.archiveDeadline || null
+    // Reset de warning-markering zodat er, als de nieuwe (latere) datum
+    // weer binnen WARNING_BEFORE_DAYS komt, opnieuw een mail verstuurd wordt.
+    updates.archiveWarningAt = null
+  }
   if ('paidAt' in body) {
     // true => nu markeren als betaald; false/null => betaald-markering weghalen.
     // Een meegestuurde ISO-string wordt overgenomen, anders huidige tijd.

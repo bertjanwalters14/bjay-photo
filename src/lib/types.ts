@@ -69,8 +69,12 @@ export interface Client {
   // Archief-flow (alleen voor event-portals): foto's worden 30 dagen na
   // aanmaken automatisch uit Cloudinary verwijderd. archiveWarningAt = mail
   // is verstuurd 7 dagen vooraf. archivedAt = foto's zijn daadwerkelijk weg.
+  // archiveDeadline = optionele handmatige override van de 30-dagen-grens
+  // (bv. "nog 2 weken verlengen"); indien gezet, telt deze datum in plaats
+  // van createdAt + 30 dagen.
   archiveWarningAt?: string | null
   archivedAt?: string | null
+  archiveDeadline?: string | null
   // Wanneer de toegangsmail (inloglink + code) naar de klant is verstuurd.
   accessMailSentAt?: string | null
   // Wanneer de sneak peek-mail (paar bewerkte favorieten vooraf) is verstuurd.

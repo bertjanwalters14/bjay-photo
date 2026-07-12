@@ -10,10 +10,21 @@ export const WARNING_BEFORE_DAYS = 7
 
 export interface ArchiveCandidate {
   client: Client
-  daysSinceCreated: number
+  archiveAt: Date
+  daysUntilArchive: number
 }
 
-// Haal alle event-klanten op die nog niet gearchiveerd zijn, met hun leeftijd.
+// De datum waarop een client daadwerkelijk archiveert: archiveDeadline als
+// handmatige override, anders createdAt + ARCHIVE_AFTER_DAYS.
+export function effectiveArchiveAt(client: Client): Date {
+  if (client.archiveDeadline) {
+    const d = new Date(client.archiveDeadline)
+    if (!isNaN(d.getTime())) return d
+  }
+  return new Date(new Date(client.createdAt).getTime() + ARCHIVE_AFTER_DAYS * 24 * 60 * 60 * 1000)
+}
+
+// Haal alle event-klanten op die nog niet gearchiveerd zijn, met hun archief-datum.
 async function getEventClientsWithAge(): Promise<ArchiveCandidate[]> {
   const codes = await redis.smembers('clients:all')
   if (!codes.length) return []
@@ -25,10 +36,14 @@ async function getEventClientsWithAge(): Promise<ArchiveCandidate[]> {
     .filter((c): c is Client => Boolean(c))
     .filter(c => (c.type ?? 'personal') === 'event')
     .filter(c => !c.archivedAt)
-    .map(c => ({
-      client: c,
-      daysSinceCreated: Math.floor((now - new Date(c.createdAt).getTime()) / (24 * 60 * 60 * 1000)),
-    }))
+    .map(c => {
+      const archiveAt = effectiveArchiveAt(c)
+      return {
+        client: c,
+        archiveAt,
+        daysUntilArchive: Math.floor((archiveAt.getTime() - now) / (24 * 60 * 60 * 1000)),
+      }
+    })
 }
 
 // Check of een klant openstaande orders heeft (new of contacted).
@@ -46,7 +61,7 @@ async function hasOpenOrders(clientCode: string): Promise<boolean> {
 // Klanten die op de archiveer-grens zitten en geen openstaande orders hebben.
 export async function getArchivableClients(): Promise<ArchiveCandidate[]> {
   const all = await getEventClientsWithAge()
-  const due = all.filter(c => c.daysSinceCreated >= ARCHIVE_AFTER_DAYS)
+  const due = all.filter(c => c.daysUntilArchive <= 0)
 
   // Filter op open orders
   const result: ArchiveCandidate[] = []
@@ -56,15 +71,14 @@ export async function getArchivableClients(): Promise<ArchiveCandidate[]> {
   return result
 }
 
-// Klanten die over precies WARNING_BEFORE_DAYS zullen archiveren en nog
-// geen warning-mail hebben gehad.
+// Klanten die binnen WARNING_BEFORE_DAYS zullen archiveren en nog geen
+// warning-mail hebben gehad (bv. na een verlenging weer gereset).
 export async function getClientsNeedingWarning(): Promise<ArchiveCandidate[]> {
   const all = await getEventClientsWithAge()
-  const warnThreshold = ARCHIVE_AFTER_DAYS - WARNING_BEFORE_DAYS
   return all.filter(
     c =>
-      c.daysSinceCreated >= warnThreshold &&
-      c.daysSinceCreated < ARCHIVE_AFTER_DAYS &&
+      c.daysUntilArchive <= WARNING_BEFORE_DAYS &&
+      c.daysUntilArchive > 0 &&
       !c.client.archiveWarningAt,
   )
 }

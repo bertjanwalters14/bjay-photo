@@ -55,14 +55,14 @@ export async function GET(req: NextRequest) {
   const needsWarning = await getClientsNeedingWarning()
   const warned: string[] = []
   for (const candidate of needsWarning) {
-    const daysLeft = ARCHIVE_AFTER_DAYS - candidate.daysSinceCreated
+    const daysLeft = candidate.daysUntilArchive
     const subject = `Heads-up: foto's van "${candidate.client.name}" worden over ${daysLeft} dagen verwijderd`
     const message = [
       `Heads-up over een aankomende auto-archivering.`,
       ``,
       `Event: ${candidate.client.name} (code: ${candidate.client.code})`,
       `Aangemaakt: ${new Date(candidate.client.createdAt).toLocaleDateString('nl-NL')}`,
-      `Dagen oud: ${candidate.daysSinceCreated}`,
+      `Archiveert op: ${candidate.archiveAt.toLocaleDateString('nl-NL')}`,
       `Verloopt over: ${daysLeft} dagen`,
       ``,
       `Wat er straks gebeurt: alle Cloudinary-foto's van deze klant worden`,
@@ -70,8 +70,7 @@ export async function GET(req: NextRequest) {
       `en bestellingen blijven gewoon staan voor je administratie.`,
       ``,
       `Wil je dit voorkomen? Open de admin en download de foto's nu,`,
-      `of verleng de termijn door iets aan deze klant aan te passen`,
-      `(workaround: maak een nieuwe upload of pas een ander veld aan).`,
+      `of verleng de termijn met de "Verleng"-knoppen bij Auto-cleanup.`,
       ``,
       `Admin: https://app.bjay.photo/admin/clients/${candidate.client.code}`,
     ].join('\n')

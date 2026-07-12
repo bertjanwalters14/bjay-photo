@@ -60,6 +60,7 @@ export default function AdminClientPage() {
   const [editPhotoSourceClientId, setEditPhotoSourceClientId] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
   const [archiving, setArchiving] = useState(false)
+  const [extendingArchive, setExtendingArchive] = useState(false)
   const [sendingAccess, setSendingAccess] = useState(false)
   const [sendingSneak, setSendingSneak] = useState(false)
   const [sendingBooking, setSendingBooking] = useState(false)
@@ -81,6 +82,19 @@ export default function AdminClientPage() {
   const [uploadFailed, setUploadFailed] = useState(0)
 
   const isEvent = client?.type === 'event'
+
+  // Effectieve archief-datum: archiveDeadline als handmatige override,
+  // anders createdAt + 30 dagen. Moet in sync blijven met ARCHIVE_AFTER_DAYS
+  // in src/lib/archive.ts (kan hier niet geïmporteerd worden, dat bestand
+  // gebruikt server-only Cloudinary/Redis clients).
+  const archiveAt = useMemo(() => {
+    if (!client) return null
+    if (client.archiveDeadline) {
+      const d = new Date(client.archiveDeadline)
+      if (!isNaN(d.getTime())) return d
+    }
+    return new Date(new Date(client.createdAt).getTime() + 30 * 24 * 60 * 60 * 1000)
+  }, [client])
 
   // Aantal unieke namen over alle likes (case-insensitive op basis van trimmed lowercase)
   const uniqueLikers = useMemo(() => {
@@ -390,9 +404,23 @@ export default function AdminClientPage() {
     }
   }
 
+  // Verleng de auto-cleanup-datum met N dagen vanaf de huidige effectieve
+  // archief-datum (niet vanaf vandaag, dat zou "verlengen" verkeerd noemen
+  // als de deadline al verder in de toekomst ligt dan N dagen).
+  async function extendArchive(days: number) {
+    if (!client || !archiveAt) return
+    setExtendingArchive(true)
+    try {
+      const newDeadline = new Date(archiveAt.getTime() + days * 24 * 60 * 60 * 1000)
+      await saveClientEdit({ archiveDeadline: newDeadline.toISOString() })
+    } finally {
+      setExtendingArchive(false)
+    }
+  }
+
   // Inline-bewerken voor naam + e-mail. Gebruik je vooral als je een klant
   // hebt aangemaakt zonder e-mail en die later toevoegt.
-  async function saveClientEdit(updates: { name?: string; email?: string; date?: string; contactName?: string; price?: string; personalNote?: string; photoSourceClientId?: string }) {
+  async function saveClientEdit(updates: { name?: string; email?: string; date?: string; contactName?: string; price?: string; personalNote?: string; photoSourceClientId?: string; archiveDeadline?: string }) {
     const res = await fetch(`/api/clients/${clientId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -997,7 +1025,11 @@ export default function AdminClientPage() {
                 <p className="text-xs flex-1" style={{ color: '#4a6358' }}>
                   {isEvent ? (
                     <>
-                      Auto-cleanup 30 dagen na aanmaken.{' '}
+                      Auto-cleanup op{' '}
+                      <strong style={{ color: '#053221' }}>
+                        {archiveAt?.toLocaleDateString('nl-NL')}
+                      </strong>
+                      {client?.archiveDeadline && ' (verlengd)'}.{' '}
                       {client?.archiveWarningAt &&
                         `Waarschuwingsmail verstuurd op ${new Date(client.archiveWarningAt).toLocaleDateString('nl-NL')}.`}
                     </>
@@ -1008,6 +1040,26 @@ export default function AdminClientPage() {
                     </>
                   )}
                 </p>
+                {isEvent && (
+                  <>
+                    <button
+                      onClick={() => extendArchive(7)}
+                      disabled={extendingArchive}
+                      className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80 disabled:opacity-50"
+                      style={{ border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }}
+                    >
+                      +1 week
+                    </button>
+                    <button
+                      onClick={() => extendArchive(14)}
+                      disabled={extendingArchive}
+                      className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80 disabled:opacity-50"
+                      style={{ border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }}
+                    >
+                      +2 weken
+                    </button>
+                  </>
+                )}
                 <button
                   onClick={handleArchive}
                   disabled={archiving}
@@ -1113,7 +1165,7 @@ export default function AdminClientPage() {
             ? [
                 { label: "Foto's", value: photos.length },
                 { label: 'Likes totaal', value: likesTotal },
-                { label: 'Unieke bezoekers', value: uniqueLikers },
+                { label: 'Unieke likers', value: uniqueLikers },
                 { label: 'Downloads totaal', value: downloadsTotal },
               ]
             : [
