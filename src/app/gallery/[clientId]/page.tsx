@@ -52,6 +52,10 @@ export default function GalleryPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   // Datum-filter: null = alle dagen, anders YYYY-MM-DD string
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  // Bij events met meerdere dagen: bezoeker moet eerst bewust een dag kiezen
+  // (of expliciet "alle dagen") voor de grid rendert. Voorkomt dat iedereen
+  // per ongeluk alle 1200 foto's in één keer laadt (= transformatie-kosten).
+  const [dayChoiceMade, setDayChoiceMade] = useState(false)
   // Tijdslot binnen een dag: null = hele dag, anders 'ochtend' | 'middag' | 'avond'
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(null)
   // Bulk-download (alleen personal): voortgang van het zippen.
@@ -108,10 +112,25 @@ export default function GalleryPage() {
     return order.filter(s => set.has(s))
   }, [photos, selectedDate])
 
-  // Reset tijdslot zodra je een andere dag kiest (of alle dagen).
+  // Tijdslot bij het kiezen van een dag: start op het eerste dagdeel met
+  // foto's (ochtend > middag > avond) i.p.v. meteen de hele dag, dat is de
+  // kleinst mogelijke eerste lading (minder transformaties in één keer).
+  // "Alle dagen" kiezen (selectedDate = null) toont gewoon alles, geen
+  // dagdeel-restrictie, dat is bewust de "ik wil echt alles zien"-keuze.
   useEffect(() => {
-    setSelectedTimeSlot(null)
-  }, [selectedDate])
+    if (!selectedDate) {
+      setSelectedTimeSlot(null)
+      return
+    }
+    const order: TimeSlot[] = ['ochtend', 'middag', 'avond']
+    const set = new Set<TimeSlot>()
+    for (const p of photos) {
+      if (p.createdAt?.slice(0, 10) !== selectedDate) continue
+      const slot = timeSlotFor(p.createdAt)
+      if (slot) set.add(slot)
+    }
+    setSelectedTimeSlot(order.find(s => set.has(s)) || null)
+  }, [selectedDate, photos])
   const visitorStorageKey = useMemo(() => `bjay:visitor:${clientId}`, [clientId])
   const cartStorageKey = useMemo(() => `bjay:cart:${clientId}`, [clientId])
 
@@ -629,7 +648,7 @@ export default function GalleryPage() {
           {uniqueDates.length >= 2 && (
             <div className="mt-4 flex flex-wrap gap-2">
               <button
-                onClick={() => setSelectedDate(null)}
+                onClick={() => { setSelectedDate(null); setDayChoiceMade(true) }}
                 className="px-3 py-1.5 text-xs tracking-widest uppercase transition"
                 style={{
                   backgroundColor: selectedDate === null ? '#053221' : '#fff',
@@ -643,7 +662,7 @@ export default function GalleryPage() {
               {uniqueDates.map(date => (
                 <button
                   key={date}
-                  onClick={() => setSelectedDate(date)}
+                  onClick={() => { setSelectedDate(date); setDayChoiceMade(true) }}
                   className="px-3 py-1.5 text-xs tracking-widest uppercase transition"
                   style={{
                     backgroundColor: selectedDate === date ? '#053221' : '#fff',
@@ -703,7 +722,13 @@ export default function GalleryPage() {
               transition: 'opacity 0.7s ease, transform 0.7s ease',
             }}
           >
-            {visiblePhotos.length === 0 ? (
+            {isEvent && uniqueDates.length >= 2 && !dayChoiceMade ? (
+              <div className="flex items-center justify-center px-4 py-16 text-center">
+                <p style={{ color: '#4a6358' }}>
+                  Kies hierboven een dag om de foto&apos;s te bekijken.
+                </p>
+              </div>
+            ) : visiblePhotos.length === 0 ? (
               <div className="flex items-center justify-center px-4 py-12">
                 {archived ? (
                   <div
