@@ -61,6 +61,10 @@ export default function AdminClientPage() {
   const [savingEdit, setSavingEdit] = useState(false)
   const [archiving, setArchiving] = useState(false)
   const [extendingArchive, setExtendingArchive] = useState(false)
+  const [editingCode, setEditingCode] = useState(false)
+  const [newCodeInput, setNewCodeInput] = useState('')
+  const [renamingCode, setRenamingCode] = useState(false)
+  const [renameError, setRenameError] = useState('')
   const [sendingAccess, setSendingAccess] = useState(false)
   const [sendingSneak, setSendingSneak] = useState(false)
   const [sendingBooking, setSendingBooking] = useState(false)
@@ -415,6 +419,33 @@ export default function AdminClientPage() {
       await saveClientEdit({ archiveDeadline: newDeadline.toISOString() })
     } finally {
       setExtendingArchive(false)
+    }
+  }
+
+  // Code (= inlogwachtwoord) wijzigen. Verhuist alle Redis-data naar een
+  // nieuwe key; werkt alleen als de klant geen eigen foto's in Cloudinary
+  // heeft (zie route.ts). Na succes verandert de URL van deze pagina zelf,
+  // dus navigeren we door naar de nieuwe.
+  async function handleRenameCode() {
+    if (!newCodeInput.trim()) return
+    setRenamingCode(true)
+    setRenameError('')
+    try {
+      const res = await fetch(`/api/clients/${clientId}/rename`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newCode: newCodeInput.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setRenameError(data?.error || 'Wijzigen mislukt')
+        return
+      }
+      router.push(`/admin/clients/${data.newCode}`)
+    } catch {
+      setRenameError('Wijzigen mislukt, probeer opnieuw')
+    } finally {
+      setRenamingCode(false)
     }
   }
 
@@ -856,8 +887,48 @@ export default function AdminClientPage() {
             )
           )}
           <p className="text-sm mt-1 break-all" style={{ color: '#4a6358' }}>
-            Inlogcode: <span className="font-mono tracking-widest" style={{ color: '#c8a96e' }}>{client?.code}</span>
+            Inlogcode: <span className="font-mono tracking-widest" style={{ color: '#c8a96e' }}>{client?.code}</span>{' '}
+            {!editingCode && (
+              <button
+                onClick={() => { setEditingCode(true); setNewCodeInput(client?.code || ''); setRenameError('') }}
+                className="text-xs underline"
+                style={{ color: '#c8a96e' }}
+              >
+                wijzig
+              </button>
+            )}
           </p>
+          {editingCode && (
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <input
+                type="text"
+                value={newCodeInput}
+                onChange={e => setNewCodeInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                placeholder="nieuwe-code"
+                className="px-3 py-1.5 text-sm font-mono tracking-widest focus:outline-none"
+                style={{ backgroundColor: '#fff', color: '#053221', border: '1px solid rgba(200,169,110,0.4)' }}
+              />
+              <button
+                onClick={handleRenameCode}
+                disabled={renamingCode || !newCodeInput.trim()}
+                className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80 disabled:opacity-50"
+                style={{ border: '1px solid #053221', color: '#053221' }}
+              >
+                {renamingCode ? 'Bezig...' : 'Opslaan'}
+              </button>
+              <button
+                onClick={() => { setEditingCode(false); setRenameError('') }}
+                disabled={renamingCode}
+                className="text-xs"
+                style={{ color: '#4a6358' }}
+              >
+                Annuleer
+              </button>
+              {renameError && (
+                <p className="text-xs w-full" style={{ color: '#a05a5a' }}>{renameError}</p>
+              )}
+            </div>
+          )}
           <p className="text-sm mt-1" style={{ color: '#4a6358' }}>
             Aangemaakt: {client ? new Date(client.createdAt).toLocaleDateString('nl-NL') : ''}
           </p>
