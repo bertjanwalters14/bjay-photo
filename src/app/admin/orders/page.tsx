@@ -31,6 +31,18 @@ export default function AdminOrdersPage() {
   const [updating, setUpdating] = useState<Record<string, boolean>>({})
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
+  // Handmatige bestelling (bv. via WhatsApp/mail tijdens een storing).
+  const [showManualForm, setShowManualForm] = useState(false)
+  const [manualClientCode, setManualClientCode] = useState('')
+  const [manualCustomerName, setManualCustomerName] = useState('')
+  const [manualCustomerEmail, setManualCustomerEmail] = useState('')
+  const [manualDescription, setManualDescription] = useState('')
+  const [manualPrice, setManualPrice] = useState('')
+  const [manualStatus, setManualStatus] = useState<OrderStatus>('paid')
+  const [manualNotes, setManualNotes] = useState('')
+  const [manualSubmitting, setManualSubmitting] = useState(false)
+  const [manualError, setManualError] = useState('')
+
   useEffect(() => {
     async function load() {
       const res = await fetch('/api/orders')
@@ -124,6 +136,45 @@ export default function AdminOrdersPage() {
     }
   }
 
+  async function submitManualOrder(e: React.FormEvent) {
+    e.preventDefault()
+    setManualSubmitting(true)
+    setManualError('')
+    try {
+      const res = await fetch('/api/orders/manual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientCode: manualClientCode,
+          customerName: manualCustomerName,
+          customerEmail: manualCustomerEmail,
+          description: manualDescription,
+          price: manualPrice,
+          status: manualStatus,
+          notes: manualNotes,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setManualError(data?.error || 'Toevoegen mislukt')
+        return
+      }
+      setOrders(prev => [data.order, ...prev])
+      setShowManualForm(false)
+      setManualClientCode('')
+      setManualCustomerName('')
+      setManualCustomerEmail('')
+      setManualDescription('')
+      setManualPrice('')
+      setManualStatus('paid')
+      setManualNotes('')
+    } catch {
+      setManualError('Toevoegen mislukt, probeer opnieuw')
+    } finally {
+      setManualSubmitting(false)
+    }
+  }
+
   // Download alle hi-res foto's van een bestelling. Werkt voor single (photoUrl)
   // en multi-foto orders (photoUrls).
   async function downloadOrderPhotos(order: Order) {
@@ -183,28 +234,121 @@ export default function AdminOrdersPage() {
       </header>
 
       <div className="max-w-4xl mx-auto px-4 py-8 flex flex-col gap-6">
-        {/* Filter chips */}
-        <div className="flex flex-wrap gap-2">
-          {(['all', ...STATUS_ORDER] as const).map(key => {
-            const active = filter === key
-            const label = key === 'all' ? 'Alles' : STATUS_LABELS[key]
-            return (
-              <button
-                key={key}
-                onClick={() => setFilter(key)}
-                className="px-3 py-1.5 text-xs tracking-widest uppercase transition"
-                style={{
-                  backgroundColor: active ? '#053221' : '#fff',
-                  color: active ? '#c8a96e' : '#053221',
-                  border: '1px solid rgba(200,169,110,0.4)',
-                  borderRadius: '999px',
-                }}
-              >
-                {label} ({counts[key]})
-              </button>
-            )
-          })}
+        {/* Filter chips + handmatige bestelling */}
+        <div className="flex flex-wrap items-center gap-2 justify-between">
+          <div className="flex flex-wrap gap-2">
+            {(['all', ...STATUS_ORDER] as const).map(key => {
+              const active = filter === key
+              const label = key === 'all' ? 'Alles' : STATUS_LABELS[key]
+              return (
+                <button
+                  key={key}
+                  onClick={() => setFilter(key)}
+                  className="px-3 py-1.5 text-xs tracking-widest uppercase transition"
+                  style={{
+                    backgroundColor: active ? '#053221' : '#fff',
+                    color: active ? '#c8a96e' : '#053221',
+                    border: '1px solid rgba(200,169,110,0.4)',
+                    borderRadius: '999px',
+                  }}
+                >
+                  {label} ({counts[key]})
+                </button>
+              )
+            })}
+          </div>
+          <button
+            onClick={() => setShowManualForm(!showManualForm)}
+            className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
+            style={{ backgroundColor: '#053221', color: '#c8a96e', border: '1px solid #053221' }}
+          >
+            {showManualForm ? 'Annuleer' : '+ Handmatige bestelling'}
+          </button>
         </div>
+
+        {showManualForm && (
+          <form
+            onSubmit={submitManualOrder}
+            className="rounded-lg p-4 flex flex-col gap-3"
+            style={{ backgroundColor: '#fff', border: '1px solid rgba(200,169,110,0.3)' }}
+          >
+            <p className="text-xs" style={{ color: '#4a6358' }}>
+              Voor bestellingen die buiten de app om binnenkwamen (bv. via WhatsApp/mail). Geen bevestigingsmail wordt verstuurd.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                type="text"
+                required
+                placeholder="Klant-code (bv. gltbopen2026)"
+                value={manualClientCode}
+                onChange={e => setManualClientCode(e.target.value)}
+                className="px-3 py-2 text-sm focus:outline-none"
+                style={{ backgroundColor: '#fff', color: '#053221', border: '1px solid rgba(200,169,110,0.4)' }}
+              />
+              <input
+                type="text"
+                placeholder="Naam klant"
+                value={manualCustomerName}
+                onChange={e => setManualCustomerName(e.target.value)}
+                className="px-3 py-2 text-sm focus:outline-none"
+                style={{ backgroundColor: '#fff', color: '#053221', border: '1px solid rgba(200,169,110,0.4)' }}
+              />
+              <input
+                type="email"
+                placeholder="E-mail klant (optioneel)"
+                value={manualCustomerEmail}
+                onChange={e => setManualCustomerEmail(e.target.value)}
+                className="px-3 py-2 text-sm focus:outline-none"
+                style={{ backgroundColor: '#fff', color: '#053221', border: '1px solid rgba(200,169,110,0.4)' }}
+              />
+              <input
+                type="text"
+                required
+                placeholder="Omschrijving (bv. 3 foto's hoge resolutie)"
+                value={manualDescription}
+                onChange={e => setManualDescription(e.target.value)}
+                className="px-3 py-2 text-sm focus:outline-none"
+                style={{ backgroundColor: '#fff', color: '#053221', border: '1px solid rgba(200,169,110,0.4)' }}
+              />
+              <input
+                type="text"
+                required
+                placeholder="Prijs (bv. 15 of 15,50)"
+                value={manualPrice}
+                onChange={e => setManualPrice(e.target.value)}
+                className="px-3 py-2 text-sm focus:outline-none"
+                style={{ backgroundColor: '#fff', color: '#053221', border: '1px solid rgba(200,169,110,0.4)' }}
+              />
+              <select
+                value={manualStatus}
+                onChange={e => setManualStatus(e.target.value as OrderStatus)}
+                className="px-3 py-2 text-sm focus:outline-none"
+                style={{ backgroundColor: '#fff', color: '#053221', border: '1px solid rgba(200,169,110,0.4)' }}
+              >
+                {STATUS_ORDER.map(s => (
+                  <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                ))}
+              </select>
+            </div>
+            <textarea
+              placeholder="Notitie (optioneel)"
+              value={manualNotes}
+              onChange={e => setManualNotes(e.target.value)}
+              rows={2}
+              className="px-3 py-2 text-sm focus:outline-none"
+              style={{ backgroundColor: '#fff', color: '#053221', border: '1px solid rgba(200,169,110,0.4)' }}
+            />
+            {manualError && <p className="text-xs" style={{ color: '#a05a5a' }}>{manualError}</p>}
+            <button
+              type="submit"
+              disabled={manualSubmitting}
+              className="self-start px-4 py-2 text-xs font-medium tracking-widest uppercase transition hover:opacity-80 disabled:opacity-50"
+              style={{ backgroundColor: '#053221', color: '#c8a96e' }}
+            >
+              {manualSubmitting ? 'Bezig...' : 'Toevoegen'}
+            </button>
+          </form>
+        )}
 
         {loading ? (
           <p style={{ color: '#4a6358' }}>Laden...</p>
@@ -264,13 +408,24 @@ export default function AdminOrdersPage() {
                           ))}
                         </div>
                       )
-                    ) : (
+                    ) : order.photoUrl ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
                         src={order.photoUrl}
                         alt=""
                         className="w-24 h-24 object-cover rounded"
                       />
+                    ) : (
+                      <div
+                        className="w-24 h-24 rounded flex items-center justify-center text-center text-xs"
+                        style={{
+                          backgroundColor: 'rgba(200,169,110,0.15)',
+                          color: '#c8a96e',
+                          border: '1px dashed rgba(200,169,110,0.5)',
+                        }}
+                      >
+                        Handmatig
+                      </div>
                     )}
                   </div>
 
