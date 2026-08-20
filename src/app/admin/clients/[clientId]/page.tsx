@@ -1058,8 +1058,8 @@ export default function AdminClientPage() {
             </div>
           )}
 
-          {/* Betaalverzoek (events met e-mail): bedrag + IBAN naar de organisator */}
-          {isEvent && client?.email && (
+          {/* Betaalverzoek (elke klant met e-mail): bedrag + IBAN, los van de toegangsmail */}
+          {client?.email && (
             <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2">
               <p className="text-xs flex-1" style={{ color: '#4a6358' }}>
                 {client?.paymentRequestSentAt
