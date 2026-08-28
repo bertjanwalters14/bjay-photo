@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import { formatEuros } from '@/lib/format'
+import { formatVatRate } from '@/lib/invoiceSettings'
 import type { Invoice } from '@/lib/types'
 
 const MONTHS_NL = [
@@ -50,6 +51,12 @@ export const INVOICE_PRINT_CSS = `
 // oude factuur er over een jaar nog exact zo uitziet.
 export default function InvoiceSheet({ invoice }: { invoice: Invoice }) {
   const sender = invoice.sender
+  // Facturen van vóór de btw-plicht hebben geen vatRate; die tonen alleen hun
+  // oude tekstregel en één totaal, zodat ze blijven kloppen zoals ze destijds
+  // zijn uitgeschreven.
+  const hasVat = typeof invoice.vatRate === 'number'
+  const vatAmount = invoice.vatAmount ?? 0
+  const total = invoice.totalIncl ?? invoice.amount
 
   return (
     <div
@@ -143,10 +150,10 @@ export default function InvoiceSheet({ invoice }: { invoice: Invoice }) {
               Omschrijving
             </th>
             <th
-              className="text-right pb-2 text-[10px] tracking-widest uppercase font-medium"
+              className="text-right pb-2 text-[10px] tracking-widest uppercase font-medium whitespace-nowrap"
               style={{ color: '#c8a96e' }}
             >
-              Bedrag
+              {hasVat ? 'Bedrag excl. btw' : 'Bedrag'}
             </th>
           </tr>
         </thead>
@@ -166,29 +173,50 @@ export default function InvoiceSheet({ invoice }: { invoice: Invoice }) {
           </tr>
         </tbody>
         <tfoot>
+          {hasVat && (
+            <>
+              <tr style={{ borderTop: '1px solid rgba(200,169,110,0.6)' }}>
+                <td className="pt-3 text-right pr-4">Subtotaal excl. btw</td>
+                <td className="pt-3 text-right whitespace-nowrap">
+                  {formatEuros(invoice.amount)}
+                </td>
+              </tr>
+              <tr>
+                <td className="pt-1 text-right pr-4">
+                  Btw {formatVatRate(invoice.vatRate as number)}
+                </td>
+                <td className="pt-1 text-right whitespace-nowrap">
+                  {formatEuros(vatAmount)}
+                </td>
+              </tr>
+            </>
+          )}
           <tr style={{ borderTop: '1px solid rgba(200,169,110,0.6)' }}>
             <td className="pt-3 text-right pr-4" style={{ fontWeight: 600 }}>
-              Totaal te betalen
+              {hasVat ? 'Totaal te betalen incl. btw' : 'Totaal te betalen'}
             </td>
             <td className="pt-3 text-right whitespace-nowrap text-base" style={{ fontWeight: 700 }}>
-              {formatEuros(invoice.amount)}
+              {formatEuros(total)}
             </td>
           </tr>
         </tfoot>
       </table>
 
-      <p className="mt-2 text-xs" style={{ color: '#4a6358' }}>
-        {invoice.vatNote}
-      </p>
+      {invoice.vatNote && (
+        <p className="mt-2 text-xs" style={{ color: '#4a6358' }}>
+          {invoice.vatNote}
+        </p>
+      )}
 
       {/* Betaalinstructie */}
       <div
         className="mt-8 p-4 text-sm leading-relaxed"
         style={{ backgroundColor: 'rgba(200,169,110,0.1)', border: '1px solid rgba(200,169,110,0.4)' }}
       >
-        Graag betalen voor <strong>{longDate(invoice.dueDate)}</strong> op rekening{' '}
-        <strong>{sender.iban}</strong> t.n.v. {sender.accountName}, onder vermelding van
-        factuurnummer <strong>{invoice.number}</strong>.
+        Graag <strong>{formatEuros(total)}</strong> betalen voor{' '}
+        <strong>{longDate(invoice.dueDate)}</strong> op rekening <strong>{sender.iban}</strong>{' '}
+        t.n.v. {sender.accountName}, onder vermelding van factuurnummer{' '}
+        <strong>{invoice.number}</strong>.
       </div>
 
       {/* Voettekst — mt-auto duwt 'm naar de onderkant van het vel. Contact
@@ -202,7 +230,6 @@ export default function InvoiceSheet({ invoice }: { invoice: Invoice }) {
           <span>{sender.phone}</span>
           <span>bjay.photo</span>
           <span>IBAN {sender.iban}</span>
-          {sender.kvk ? <span>KVK {sender.kvk}</span> : null}
           {sender.vatNumber ? <span>Btw-nr {sender.vatNumber}</span> : null}
         </div>
         <div

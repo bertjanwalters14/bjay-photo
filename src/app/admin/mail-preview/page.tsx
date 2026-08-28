@@ -3,7 +3,7 @@ import { accessBodyHtml, sneakPeekBodyHtml, bookingBodyHtml, paymentRequestBodyH
 import { buildReviewHtml } from '@/lib/reviews'
 import { orderConfirmationBodyHtml } from '@/lib/orderMail'
 import { invoiceBodyHtml } from '@/lib/invoiceMail'
-import { INVOICE_SENDER, VAT_NOTE } from '@/lib/invoiceSettings'
+import { INVOICE_SENDER, VAT_RATE } from '@/lib/invoiceSettings'
 import type { Client, Invoice } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
@@ -38,8 +38,10 @@ export default function MailPreviewPage() {
     customerEmail: 'test@voorbeeld.nl',
     customerContactName: 'Mick & Marieke',
     description: 'Fotoreportage Feest Mick & Marieke',
-    amount: 200,
-    vatNote: VAT_NOTE,
+    amount: 500,
+    vatRate: VAT_RATE,
+    vatAmount: Math.round(500 * VAT_RATE * 100) / 100,
+    totalIncl: Math.round(500 * (1 + VAT_RATE) * 100) / 100,
     sender: INVOICE_SENDER,
   }
 

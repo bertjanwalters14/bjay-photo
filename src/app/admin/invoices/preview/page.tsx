@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import InvoiceSheet, { INVOICE_PRINT_CSS } from '@/components/InvoiceSheet'
-import { INVOICE_SENDER, PAYMENT_TERM_DAYS, VAT_NOTE } from '@/lib/invoiceSettings'
+import { INVOICE_SENDER, PAYMENT_TERM_DAYS, VAT_RATE } from '@/lib/invoiceSettings'
 import type { Invoice } from '@/lib/types'
 
 // Preview van de factuur-opmaak met test-data, in dezelfde geest als
@@ -20,8 +20,10 @@ const SAMPLE: Invoice = {
   customerAddress: 'T.a.v. de penningmeester\nSportlaan 5\n9700 AA Groningen',
   customerEmail: 'penningmeester@voorbeeld.nl',
   description: 'Fotoreportage GLTB Open 2026',
-  amount: 200,
-  vatNote: VAT_NOTE,
+  amount: 500,
+  vatRate: VAT_RATE,
+  vatAmount: Math.round(500 * VAT_RATE * 100) / 100,
+  totalIncl: Math.round(500 * (1 + VAT_RATE) * 100) / 100,
   sender: INVOICE_SENDER,
 }
 
@@ -81,7 +83,7 @@ export default function InvoicePreviewPage() {
           </button>
         </div>
         <p className="no-print text-xs" style={{ color: 'rgba(74,99,88,0.8)' }}>
-          Afzendergegevens, betaaltermijn ({PAYMENT_TERM_DAYS} dagen) en de btw-regel komen uit
+          Afzendergegevens, betaaltermijn ({PAYMENT_TERM_DAYS} dagen) en het btw-tarief komen uit
           src/lib/invoiceSettings.ts. Klopt er iets niet, pas dat bestand dan aan.
         </p>
 

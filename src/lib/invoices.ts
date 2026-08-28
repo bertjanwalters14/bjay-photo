@@ -2,7 +2,7 @@
 // Alleen importeren vanuit API-routes; dit bestand gebruikt de Redis-client.
 
 import redis from './redis'
-import { INVOICE_SENDER, PAYMENT_TERM_DAYS, VAT_NOTE } from './invoiceSettings'
+import { INVOICE_SENDER, PAYMENT_TERM_DAYS, VAT_RATE } from './invoiceSettings'
 import type { Client, Invoice } from './types'
 
 const INDEX_KEY = 'invoices:all'
@@ -36,7 +36,7 @@ async function nextInvoiceNumber(year: number): Promise<string> {
 export interface CreateInvoiceInput {
   client: Client
   description: string
-  amount: number
+  amount: number        // exclusief btw
   invoiceDate?: string  // 'YYYY-MM-DD', standaard vandaag
 }
 
@@ -53,6 +53,9 @@ export async function createInvoice({
   const year = parseInt(date.slice(0, 4), 10)
   const number = await nextInvoiceNumber(year)
 
+  // Btw over het (exclusieve) bedrag, op hele centen afgerond.
+  const vatAmount = Math.round(amount * VAT_RATE * 100) / 100
+
   const invoice: Invoice = {
     number,
     clientCode: client.code,
@@ -66,7 +69,9 @@ export async function createInvoice({
     customerContactName: client.contactName || undefined,
     description,
     amount,
-    vatNote: VAT_NOTE,
+    vatRate: VAT_RATE,
+    vatAmount,
+    totalIncl: Math.round((amount + vatAmount) * 100) / 100,
     sender: { ...INVOICE_SENDER },
   }
 

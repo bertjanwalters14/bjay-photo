@@ -1,10 +1,10 @@
 // Vaste gegevens die op elke factuur komen. Eén plek, zodat je bij een
-// verhuizing of zodra je bij de KVK ingeschreven staat maar één bestand
-// hoeft aan te passen.
+// verhuizing of een wijziging in je fiscale situatie maar één bestand hoeft
+// aan te passen.
 //
 // LET OP: al bestaande facturen bewaren hun eigen kopie van deze gegevens
-// (Invoice.sender). Wat je hier wijzigt geldt dus alleen voor NIEUWE facturen;
-// een factuur die al verstuurd is verandert nooit meer mee.
+// (Invoice.sender + het btw-tarief). Wat je hier wijzigt geldt dus alleen voor
+// NIEUWE facturen; een factuur die al uitgeschreven is verandert nooit meer mee.
 
 import type { InvoiceSender } from './types'
 
@@ -18,21 +18,22 @@ export const INVOICE_SENDER: InvoiceSender = {
   phone: '06-15136672',
   iban: 'NL03 TRBK 0594 0453 11',
   accountName: 'Berend Jan-Geert Walters',
-  // Leeg = wordt niet op de factuur getoond. Vul in zodra de inschrijving rond
-  // is; dan verschijnen ze automatisch in de voettekst van nieuwe facturen.
-  kvk: '',
-  vatNumber: '',
+  // Btw-identificatienummer zoals toegekend door de Belastingdienst. Er staat
+  // bewust geen KVK-nummer op de factuur: BJAY is als particulier voor de btw
+  // geregistreerd en heeft geen inschrijving in het Handelsregister.
+  vatNumber: 'NL005449758B10',
 }
 
 // Aantal dagen dat de klant heeft om te betalen, gerekend vanaf factuurdatum.
 export const PAYMENT_TERM_DAYS = 14
 
-// Btw-regel onderaan de factuur. Nu geen btw omdat er (nog) geen
-// btw-ondernemerschap is; de opbrengst gaat als resultaat uit overige
-// werkzaamheden in de IB-aangifte.
-//
-// Zodra je ingeschreven staat MET de kleineondernemersregeling wordt dit:
-//   'Vrijgesteld van btw op grond van de kleineondernemersregeling (KOR).'
-// Zonder KOR moet de factuur btw specificeren en is deze regel niet genoeg;
-// dan moeten ook de btw-kolommen op de factuurpagina terugkomen.
-export const VAT_NOTE = 'Geen btw in rekening gebracht.'
+// Btw-tarief op fotografiediensten: het algemene tarief van 21%. Reguliere
+// btw-plicht, dus geen KOR-vrijstelling. Als fractie zodat het rekenwerk
+// eenvoudig blijft; de weergave ("21%") komt uit formatVatRate().
+export const VAT_RATE = 0.21
+
+// Tarief als percentage voor op de factuur: 0.21 -> "21%".
+export function formatVatRate(rate: number): string {
+  const pct = rate * 100
+  return `${Number.isInteger(pct) ? pct : pct.toFixed(1).replace('.', ',')}%`
+}

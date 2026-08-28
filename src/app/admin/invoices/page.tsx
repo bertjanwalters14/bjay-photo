@@ -32,7 +32,11 @@ export default function AdminInvoicesPage() {
     load()
   }, [router])
 
-  const total = invoices.reduce((sum, i) => sum + i.amount, 0)
+  // Excl. btw is de omzet; de btw is doorstroompost naar de Belastingdienst.
+  // Beide tonen, zodat je weet wat er binnenkomt en wat ervan van jou is.
+  const totalExcl = invoices.reduce((sum, i) => sum + i.amount, 0)
+  const totalVat = invoices.reduce((sum, i) => sum + (i.vatAmount ?? 0), 0)
+  const totalIncl = invoices.reduce((sum, i) => sum + (i.totalIncl ?? i.amount), 0)
 
   return (
     <main className="min-h-screen" style={{ backgroundColor: '#e8ede9' }}>
@@ -88,13 +92,16 @@ export default function AdminInvoicesPage() {
               style={{ backgroundColor: '#053221', border: '1px solid rgba(200,169,110,0.3)' }}
             >
               <span className="text-xs tracking-widest uppercase" style={{ color: 'rgba(200,169,110,0.7)' }}>
-                Gefactureerd
+                Gefactureerd excl. btw
               </span>
               <span className="text-3xl font-bold" style={{ color: '#c8a96e' }}>
-                {formatEuros(total)}
+                {formatEuros(totalExcl)}
               </span>
               <span className="text-xs" style={{ color: 'rgba(200,169,110,0.7)' }}>
                 {invoices.length} factu{invoices.length !== 1 ? 'ren' : 'ur'}
+                {totalVat > 0 && (
+                  <> · {formatEuros(totalVat)} btw · {formatEuros(totalIncl)} incl.</>
+                )}
               </span>
             </div>
 
@@ -123,8 +130,13 @@ export default function AdminInvoicesPage() {
                       )}
                     </span>
                   </div>
-                  <span className="text-sm whitespace-nowrap" style={{ color: '#053221' }}>
-                    {formatEuros(invoice.amount)}
+                  <span className="text-sm whitespace-nowrap text-right" style={{ color: '#053221' }}>
+                    {formatEuros(invoice.totalIncl ?? invoice.amount)}
+                    {invoice.vatAmount ? (
+                      <span className="block text-xs" style={{ color: 'rgba(74,99,88,0.7)' }}>
+                        {formatEuros(invoice.amount)} excl.
+                      </span>
+                    ) : null}
                   </span>
                 </button>
               ))}

@@ -191,9 +191,11 @@ export interface InvoiceSender {
   phone: string
   iban: string
   accountName: string
-  // Leeg zolang er geen inschrijving is; dan blijven ze van de factuur.
-  kvk?: string
-  vatNumber?: string
+  // Btw-identificatienummer. Verplicht op de factuur nu er btw in rekening
+  // wordt gebracht. Geen KVK-nummer: BJAY staat als particulier bij de
+  // Belastingdienst geregistreerd en heeft geen inschrijving in het
+  // Handelsregister.
+  vatNumber: string
 }
 
 // Een uitgeschreven factuur. Bewust een VOLLEDIGE momentopname: bedrag,
@@ -215,8 +217,14 @@ export interface Invoice {
   customerContactName?: string  // aanhef voor de factuurmail ("Hoi ...")
   // Momentopname factuurregel (één regel; zie handoff)
   description: string
-  amount: number            // in euro's
-  vatNote: string
+  amount: number            // bedrag EXCLUSIEF btw, in euro's
+  vatRate?: number          // btw-tarief als fractie, bv. 0.21
+  vatAmount?: number        // btw-bedrag in euro's
+  totalIncl?: number        // amount + vatAmount, wat de klant betaalt
+  // Legacy: facturen van vóór de btw-plicht droegen alleen een tekstregel
+  // ("Geen btw in rekening gebracht") en geen btw-opbouw. Blijft staan zodat
+  // zo'n oude factuur nog correct rendert; nieuwe facturen zetten 'm niet.
+  vatNote?: string
   // Momentopname afzender
   sender: InvoiceSender
   // Wanneer de factuur als PDF-bijlage naar de klant is gemaild. Het enige

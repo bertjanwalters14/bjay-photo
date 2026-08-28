@@ -30,13 +30,22 @@ function greeting(invoice: Invoice): string {
   })
 }
 
+// Het te betalen bedrag: inclusief btw als die er is, anders het kale bedrag
+// (facturen van vóór de btw-plicht).
+function payable(invoice: Invoice): string {
+  const total = invoice.totalIncl ?? invoice.amount
+  return typeof invoice.vatRate === 'number'
+    ? `${formatEuros(total)} inclusief btw`
+    : formatEuros(total)
+}
+
 // Body (HTML) van de factuurmail. Ook gebruikt door /admin/mail-preview.
 export function invoiceBodyHtml(invoice: Invoice): string {
   const { sender } = invoice
   return [
     `<p>Hoi ${escapeHtml(greeting(invoice))},</p>`,
     `<p>Hierbij de factuur voor <strong>${escapeHtml(invoice.description)}</strong>. Je vindt 'm als PDF in de bijlage.</p>`,
-    `<p>Het bedrag is <strong>${formatEuros(invoice.amount)}</strong>. Graag betalen voor <strong>${longDate(invoice.dueDate)}</strong> op ${sender.iban} t.n.v. ${escapeHtml(sender.accountName)}, onder vermelding van factuurnummer <strong>${invoice.number}</strong>.</p>`,
+    `<p>Het bedrag is <strong>${payable(invoice)}</strong>. Graag betalen voor <strong>${longDate(invoice.dueDate)}</strong> op ${sender.iban} t.n.v. ${escapeHtml(sender.accountName)}, onder vermelding van factuurnummer <strong>${invoice.number}</strong>.</p>`,
     `<p>Klopt er iets niet of heb je een vraag over de factuur? Laat het gerust weten.</p>`,
   ].join('\n  ')
 }
@@ -46,7 +55,7 @@ export function invoiceBodyText(invoice: Invoice): string {
   return [
     `Hoi ${greeting(invoice)},`,
     `Hierbij de factuur voor ${invoice.description}. Je vindt 'm als PDF in de bijlage.`,
-    `Het bedrag is ${formatEuros(invoice.amount)}. Graag betalen voor ${longDate(invoice.dueDate)} op ${sender.iban} t.n.v. ${sender.accountName}, onder vermelding van factuurnummer ${invoice.number}.`,
+    `Het bedrag is ${payable(invoice)}. Graag betalen voor ${longDate(invoice.dueDate)} op ${sender.iban} t.n.v. ${sender.accountName}, onder vermelding van factuurnummer ${invoice.number}.`,
     'Klopt er iets niet of heb je een vraag over de factuur? Laat het gerust weten.',
   ].join('\n\n')
 }

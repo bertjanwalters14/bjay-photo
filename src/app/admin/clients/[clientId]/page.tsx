@@ -4,12 +4,20 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Client, Photo, Feedback, Event } from '@/lib/types'
-import { formatPrice, parsePrice } from '@/lib/format'
+import { formatPrice, parsePrice, formatEuros } from '@/lib/format'
+import { VAT_RATE } from '@/lib/invoiceSettings'
 
 type LikesByPhoto = Record<
   string,
   { count: number; names: { name: string; createdAt: string }[] }
 >
+
+// Btw over een bedrag exclusief btw, op hele centen. Zelfde berekening als
+// server-side in createInvoice; hier alleen voor de live preview in het
+// factuur-paneel.
+function vatOf(amountExcl: number): number {
+  return Math.round(amountExcl * VAT_RATE * 100) / 100
+}
 
 // Toont "5 min geleden", "3 uur geleden", "2 dagen geleden", etc. — leesbaarder
 // dan een absolute datum voor de portaal-bezoek-stat.
@@ -1207,7 +1215,7 @@ export default function AdminClientPage() {
                   />
                 </label>
                 <label className="text-xs" style={{ color: '#4a6358' }}>
-                  Bedrag
+                  Bedrag excl. btw
                   <div
                     className="flex items-stretch mt-1"
                     style={{ border: '1px solid rgba(200,169,110,0.4)', backgroundColor: '#fff' }}
@@ -1229,9 +1237,21 @@ export default function AdminClientPage() {
                     />
                   </div>
                   <span className="block mt-1" style={{ color: '#4a6358' }}>
-                    {invoiceAmount.trim() && formatPrice(invoiceAmount)
-                      ? <>Op de factuur: <strong style={{ color: '#053221' }}>{formatPrice(invoiceAmount)}</strong></>
-                      : 'Alleen het getal.'}
+                    {invoiceAmount.trim() && parsePrice(invoiceAmount) > 0
+                      ? (
+                        <>
+                          Op de factuur:{' '}
+                          <strong style={{ color: '#053221' }}>
+                            {formatEuros(parsePrice(invoiceAmount))}
+                          </strong>{' '}
+                          excl. btw + {formatEuros(vatOf(parsePrice(invoiceAmount)))} btw ={' '}
+                          <strong style={{ color: '#053221' }}>
+                            {formatEuros(parsePrice(invoiceAmount) + vatOf(parsePrice(invoiceAmount)))}
+                          </strong>{' '}
+                          te betalen
+                        </>
+                      )
+                      : 'Alleen het getal, exclusief btw.'}
                   </span>
                 </label>
                 <label className="text-xs" style={{ color: '#4a6358' }}>
