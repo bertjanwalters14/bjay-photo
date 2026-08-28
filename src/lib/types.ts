@@ -98,6 +98,14 @@ export interface Client {
   // gestuurd. Vooral voor events; personal heeft de betaalregel al in de
   // oplever-mail.
   paymentRequestSentAt?: string | null
+  // Factuuradres van de klant (vrije tekst, meerdere regels: bedrijfsnaam,
+  // straat, postcode + plaats). Alleen nodig als je een factuur wilt maken;
+  // een factuur moet nu eenmaal naam en adres van de ontvanger bevatten.
+  invoiceAddress?: string
+  // Backlink naar de factuur die voor deze klant is aangemaakt (bv. '2026-001').
+  // Leeg = nog geen factuur. Zie Invoice; die is leidend, dit is alleen zodat
+  // de klantpagina weet of er al een factuur ligt.
+  invoiceNumber?: string
 }
 
 export interface Photo {
@@ -168,4 +176,50 @@ export interface Order {
   reviewRequestedAt?: string | null
   createdAt: string
   updatedAt: string
+}
+
+// Afzendergegevens op een factuur. Wordt als kopie in de factuur opgeslagen
+// zodat een oude factuur niet meeverandert als je verhuist of straks een
+// KVK-/btw-nummer toevoegt. Actuele waarden: src/lib/invoiceSettings.ts.
+export interface InvoiceSender {
+  name: string
+  tradeName: string
+  address: string
+  postalCode: string
+  city: string
+  email: string
+  phone: string
+  iban: string
+  accountName: string
+  // Leeg zolang er geen inschrijving is; dan blijven ze van de factuur.
+  kvk?: string
+  vatNumber?: string
+}
+
+// Een uitgeschreven factuur. Bewust een VOLLEDIGE momentopname: bedrag,
+// omschrijving, klantgegevens en afzender worden bij het aanmaken vastgelegd
+// en daarna nooit meer aangepast. Wijzig je later Client.price, dan blijft de
+// verstuurde factuur kloppen. Redis: `invoice:<number>` + set `invoices:all`,
+// nummers uit teller `invoice:counter:<jaar>`.
+export interface Invoice {
+  number: string            // '2026-001', doorlopend per kalenderjaar
+  clientCode: string        // welke klant/shoot dit was
+  createdAt: string         // ISO, moment van uitschrijven
+  invoiceDate: string       // 'YYYY-MM-DD'
+  dueDate: string           // 'YYYY-MM-DD', factuurdatum + PAYMENT_TERM_DAYS
+  deliveryDate?: string     // 'YYYY-MM-DD', datum van de shoot/het event
+  // Momentopname klant
+  customerName: string
+  customerAddress?: string  // meerdere regels, zoals ingevoerd
+  customerEmail?: string
+  customerContactName?: string  // aanhef voor de factuurmail ("Hoi ...")
+  // Momentopname factuurregel (één regel; zie handoff)
+  description: string
+  amount: number            // in euro's
+  vatNote: string
+  // Momentopname afzender
+  sender: InvoiceSender
+  // Wanneer de factuur als PDF-bijlage naar de klant is gemaild. Het enige
+  // veld dat na het uitschrijven nog verandert; de factuurinhoud zelf niet.
+  sentAt?: string | null
 }

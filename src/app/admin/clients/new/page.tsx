@@ -15,6 +15,7 @@ export default function NewClientPage() {
   const [contactName, setContactName] = useState('')
   const [price, setPrice] = useState('')
   const [personalNote, setPersonalNote] = useState('')
+  const [invoiceAddress, setInvoiceAddress] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
@@ -35,6 +36,7 @@ export default function NewClientPage() {
         contactName: contactName.trim() || undefined,
         price: price.trim() || undefined,
         personalNote: personalNote.trim() || undefined,
+        invoiceAddress: invoiceAddress.trim() || undefined,
         customCode: customCode.trim() || undefined,
       }),
     })
@@ -300,6 +302,27 @@ export default function NewClientPage() {
                 {type === 'personal'
                   ? 'Verschijnt als opening van de oplever-mail, net na "Hoi ...". Leeg laten = geen extra alinea.'
                   : 'Interne notitie, niet zichtbaar voor bezoekers. Leeg laten mag.'}
+              </p>
+            </div>
+
+            <div>
+              <label
+                className="block text-xs tracking-widest uppercase mb-2"
+                style={{ color: '#4a6358' }}
+              >
+                Factuuradres (optioneel)
+              </label>
+              <textarea
+                value={invoiceAddress}
+                onChange={e => setInvoiceAddress(e.target.value)}
+                placeholder={'Bv.\nTennisvereniging GLTB\nSportlaan 5\n9700 AA Groningen'}
+                rows={4}
+                className="w-full px-4 py-3 text-sm focus:outline-none transition resize-y"
+                style={inputStyle}
+              />
+              <p className="text-xs mt-2" style={{ color: '#4a6358' }}>
+                Alleen nodig als je later een factuur wilt maken. Kan ook achteraf op de
+                klantpagina. Elke regel komt zo op de factuur te staan.
               </p>
             </div>
 

@@ -64,6 +64,9 @@ export async function sendBrandedMail(opts: {
   bodyHtml: string
   bodyText: string
   replyTo?: string
+  // Optionele bijlagen; content is de base64 van het bestand (zonder
+  // data:-prefix). Resend accepteert dat rechtstreeks in de REST-call.
+  attachments?: { filename: string; content: string }[]
 }): Promise<boolean> {
   const resendKey = process.env.RESEND_API_KEY
   if (!resendKey) {
@@ -85,6 +88,7 @@ export async function sendBrandedMail(opts: {
         html: brandedHtml(opts.bodyHtml),
         text: `${opts.bodyText}\n\n${SIGNATURE_TEXT}`,
         ...(opts.replyTo ? { reply_to: opts.replyTo } : {}),
+        ...(opts.attachments?.length ? { attachments: opts.attachments } : {}),
       }),
     })
     if (res.ok) return true

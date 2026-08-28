@@ -105,6 +105,11 @@ export async function PATCH(
   if ('personalNote' in body) {
     updates.personalNote = typeof body.personalNote === 'string' && body.personalNote.trim() ? body.personalNote.trim() : undefined
   }
+  if ('invoiceAddress' in body) {
+    updates.invoiceAddress = typeof body.invoiceAddress === 'string' && body.invoiceAddress.trim()
+      ? body.invoiceAddress.trim().slice(0, 300)
+      : undefined
+  }
   if ('photoSourceClientId' in body) {
     updates.photoSourceClientId = typeof body.photoSourceClientId === 'string' && body.photoSourceClientId.trim()
       ? body.photoSourceClientId.trim()

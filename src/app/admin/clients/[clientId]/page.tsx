@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Client, Photo, Feedback, Event } from '@/lib/types'
-import { formatPrice } from '@/lib/format'
+import { formatPrice, parsePrice } from '@/lib/format'
 
 type LikesByPhoto = Record<
   string,
@@ -57,6 +57,7 @@ export default function AdminClientPage() {
   const [editContactName, setEditContactName] = useState('')
   const [editPrice, setEditPrice] = useState('')
   const [editPersonalNote, setEditPersonalNote] = useState('')
+  const [editInvoiceAddress, setEditInvoiceAddress] = useState('')
   const [editPhotoSourceClientId, setEditPhotoSourceClientId] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
   const [archiving, setArchiving] = useState(false)
@@ -69,6 +70,14 @@ export default function AdminClientPage() {
   const [sendingSneak, setSendingSneak] = useState(false)
   const [sendingBooking, setSendingBooking] = useState(false)
   const [sendingPayment, setSendingPayment] = useState(false)
+  // Factuur uitschrijven: het paneel met omschrijving/bedrag/datum, en de
+  // factuur die er al ligt (opgehaald zodra client.invoiceNumber gezet is).
+  const [invoiceOpen, setInvoiceOpen] = useState(false)
+  const [invoiceDescription, setInvoiceDescription] = useState('')
+  const [invoiceAmount, setInvoiceAmount] = useState('')
+  const [invoiceDate, setInvoiceDate] = useState('')
+  const [creatingInvoice, setCreatingInvoice] = useState(false)
+  const [invoiceError, setInvoiceError] = useState('')
   // Verhaal-export: selectie van foto's die als webp-zip voor een
   // verhaal-pagina op bjay.photo wordt gedownload. Volgorde van aanvinken
   // bepaalt de nummering in de bestandsnamen.
@@ -360,6 +369,54 @@ export default function AdminClientPage() {
     }
   }
 
+  // Opent het factuur-paneel met alles alvast ingevuld: omschrijving uit de
+  // albumnaam, bedrag uit het afgesproken bedrag, factuurdatum vandaag.
+  function openInvoiceForm() {
+    if (!client) return
+    setInvoiceDescription(`Fotoreportage ${client.name}`)
+    setInvoiceAmount(client.price || '')
+    setInvoiceDate(new Date().toISOString().slice(0, 10))
+    setInvoiceError('')
+    setInvoiceOpen(true)
+  }
+
+  // Schrijft de factuur uit en gaat direct naar de factuurpagina, waar je 'm
+  // kunt printen of als PDF opslaan.
+  async function handleCreateInvoice() {
+    if (!client) return
+    const amount = parsePrice(invoiceAmount)
+    if (amount <= 0) {
+      setInvoiceError('Vul een bedrag groter dan nul in')
+      return
+    }
+    if (!invoiceDescription.trim()) {
+      setInvoiceError('Vul een omschrijving in')
+      return
+    }
+
+    setCreatingInvoice(true)
+    setInvoiceError('')
+    try {
+      const res = await fetch(`/api/clients/${clientId}/invoice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: invoiceDescription.trim(),
+          amount,
+          invoiceDate,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setInvoiceError(data?.error || 'Factuur aanmaken mislukt')
+        return
+      }
+      router.push(`/admin/invoices/${data.invoice.number}`)
+    } finally {
+      setCreatingInvoice(false)
+    }
+  }
+
   // Popup van het gekoppelde event direct aan/uit zetten.
   async function togglePopup() {
     if (!linkedEvent) return
@@ -451,7 +508,7 @@ export default function AdminClientPage() {
 
   // Inline-bewerken voor naam + e-mail. Gebruik je vooral als je een klant
   // hebt aangemaakt zonder e-mail en die later toevoegt.
-  async function saveClientEdit(updates: { name?: string; email?: string; date?: string; contactName?: string; price?: string; personalNote?: string; photoSourceClientId?: string; archiveDeadline?: string }) {
+  async function saveClientEdit(updates: { name?: string; email?: string; date?: string; contactName?: string; price?: string; personalNote?: string; invoiceAddress?: string; photoSourceClientId?: string; archiveDeadline?: string }) {
     const res = await fetch(`/api/clients/${clientId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -735,6 +792,7 @@ export default function AdminClientPage() {
                   setEditContactName(client?.contactName || '')
                   setEditPrice(client?.price || '')
                   setEditPersonalNote(client?.personalNote || '')
+                  setEditInvoiceAddress(client?.invoiceAddress || '')
                   setEditPhotoSourceClientId(client?.photoSourceClientId || '')
                   setEditing(true)
                 }}
@@ -833,6 +891,21 @@ export default function AdminClientPage() {
                 />
               </label>
               <label className="text-xs" style={{ color: '#4a6358' }}>
+                Factuuradres (optioneel)
+                <textarea
+                  value={editInvoiceAddress}
+                  onChange={e => setEditInvoiceAddress(e.target.value)}
+                  placeholder={'Bv.\nTennisvereniging GLTB\nSportlaan 5\n9700 AA Groningen'}
+                  rows={4}
+                  className="w-full mt-1 px-2 py-1.5 text-sm focus:outline-none resize-y"
+                  style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221' }}
+                />
+                <span className="block mt-1" style={{ color: '#4a6358' }}>
+                  Alleen nodig als je een factuur wilt maken; naam en adres van de ontvanger
+                  zijn verplicht op een factuur. Elke regel komt zo op de factuur te staan.
+                </span>
+              </label>
+              <label className="text-xs" style={{ color: '#4a6358' }}>
                 Foto&apos;s overnemen van andere klant-code (optioneel)
                 <input
                   type="text"
@@ -858,6 +931,7 @@ export default function AdminClientPage() {
                       contactName: editContactName,
                       price: editPrice,
                       personalNote: editPersonalNote,
+                      invoiceAddress: editInvoiceAddress,
                       photoSourceClientId: editPhotoSourceClientId,
                     })
                     setSavingEdit(false)
@@ -1076,6 +1150,131 @@ export default function AdminClientPage() {
               </button>
             </div>
           )}
+
+          {/* Factuur: uitschrijven of, als 'ie er al is, openen. De factuur is
+              een momentopname; wijzig je hierna het bedrag, dan verandert de
+              factuur niet meer mee. */}
+          <div className="mt-2 flex flex-col gap-2">
+            {client?.invoiceNumber ? (
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <p className="text-xs flex-1" style={{ color: '#4a6358' }}>
+                  Factuur{' '}
+                  <span className="font-mono" style={{ color: '#053221' }}>{client.invoiceNumber}</span>{' '}
+                  uitgeschreven.
+                </p>
+                <button
+                  onClick={() => router.push(`/admin/invoices/${client.invoiceNumber}`)}
+                  className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
+                  style={{ border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }}
+                >
+                  Bekijk factuur
+                </button>
+              </div>
+            ) : !invoiceOpen ? (
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <p className="text-xs flex-1" style={{ color: '#4a6358' }}>
+                  Maak een factuur met een eigen factuurnummer, om te printen of als PDF te bewaren.
+                </p>
+                <button
+                  onClick={openInvoiceForm}
+                  className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
+                  style={{ border: '1px solid rgba(200,169,110,0.6)', color: '#c8a96e' }}
+                >
+                  Maak factuur
+                </button>
+              </div>
+            ) : (
+              <div
+                className="p-3 flex flex-col gap-2"
+                style={{ backgroundColor: 'rgba(200,169,110,0.08)', border: '1px solid rgba(200,169,110,0.4)' }}
+              >
+                {!client?.invoiceAddress && (
+                  <p className="text-xs" style={{ color: '#a05a5a' }}>
+                    Er staat nog geen factuuradres bij deze klant. Vul het in via
+                    &lsquo;Bewerk&rsquo; hierboven; zonder naam en adres van de ontvanger is de
+                    factuur niet compleet.
+                  </p>
+                )}
+                <label className="text-xs" style={{ color: '#4a6358' }}>
+                  Omschrijving
+                  <input
+                    type="text"
+                    value={invoiceDescription}
+                    onChange={e => setInvoiceDescription(e.target.value)}
+                    placeholder="Bv. Fotoreportage GLTB Open 2026"
+                    className="w-full mt-1 px-2 py-1.5 text-sm focus:outline-none"
+                    style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221', backgroundColor: '#fff' }}
+                  />
+                </label>
+                <label className="text-xs" style={{ color: '#4a6358' }}>
+                  Bedrag
+                  <div
+                    className="flex items-stretch mt-1"
+                    style={{ border: '1px solid rgba(200,169,110,0.4)', backgroundColor: '#fff' }}
+                  >
+                    <span
+                      className="flex items-center px-2 text-sm"
+                      style={{ color: '#053221', borderRight: '1px solid rgba(200,169,110,0.4)' }}
+                    >
+                      €
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={invoiceAmount}
+                      onChange={e => setInvoiceAmount(e.target.value)}
+                      placeholder="200"
+                      className="flex-1 px-2 py-1.5 text-sm focus:outline-none"
+                      style={{ color: '#053221', border: 'none', backgroundColor: 'transparent' }}
+                    />
+                  </div>
+                  <span className="block mt-1" style={{ color: '#4a6358' }}>
+                    {invoiceAmount.trim() && formatPrice(invoiceAmount)
+                      ? <>Op de factuur: <strong style={{ color: '#053221' }}>{formatPrice(invoiceAmount)}</strong></>
+                      : 'Alleen het getal.'}
+                  </span>
+                </label>
+                <label className="text-xs" style={{ color: '#4a6358' }}>
+                  Factuurdatum
+                  <input
+                    type="date"
+                    value={invoiceDate}
+                    onChange={e => setInvoiceDate(e.target.value)}
+                    className="w-full mt-1 px-2 py-1.5 text-sm focus:outline-none"
+                    style={{ border: '1px solid rgba(200,169,110,0.4)', color: '#053221', backgroundColor: '#fff' }}
+                  />
+                  <span className="block mt-1" style={{ color: '#4a6358' }}>
+                    De vervaldatum wordt hier 14 dagen bij opgeteld.
+                  </span>
+                </label>
+                {invoiceError && (
+                  <p className="text-xs" style={{ color: '#a05a5a' }}>{invoiceError}</p>
+                )}
+                <div className="flex gap-2 mt-1">
+                  <button
+                    onClick={handleCreateInvoice}
+                    disabled={creatingInvoice}
+                    className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80 disabled:opacity-50"
+                    style={{ backgroundColor: '#053221', color: '#c8a96e' }}
+                  >
+                    {creatingInvoice ? 'Bezig...' : 'Factuur uitschrijven'}
+                  </button>
+                  <button
+                    onClick={() => setInvoiceOpen(false)}
+                    disabled={creatingInvoice}
+                    className="px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition hover:opacity-80"
+                    style={{ border: '1px solid rgba(74,99,88,0.4)', color: '#4a6358' }}
+                  >
+                    Annuleer
+                  </button>
+                </div>
+                <p className="text-xs" style={{ color: 'rgba(74,99,88,0.8)' }}>
+                  Het factuurnummer wordt automatisch toegekend en de gegevens worden vastgelegd.
+                  Daarna verandert de factuur niet meer mee met de klantgegevens.
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Archief-status. Bij Event: auto-cleanup 30 dagen + handmatige knop.
               Bij Personal: alleen handmatige knop (geen auto-cleanup, want klant

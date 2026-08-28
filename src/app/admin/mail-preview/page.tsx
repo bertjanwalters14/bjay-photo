@@ -2,7 +2,9 @@ import { brandedHtml } from '@/lib/email'
 import { accessBodyHtml, sneakPeekBodyHtml, bookingBodyHtml, paymentRequestBodyHtml } from '@/lib/clientMail'
 import { buildReviewHtml } from '@/lib/reviews'
 import { orderConfirmationBodyHtml } from '@/lib/orderMail'
-import type { Client } from '@/lib/types'
+import { invoiceBodyHtml } from '@/lib/invoiceMail'
+import { INVOICE_SENDER, VAT_NOTE } from '@/lib/invoiceSettings'
+import type { Client, Invoice } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,11 +26,33 @@ export default function MailPreviewPage() {
       'We hadden 2 uur afgesproken, maar ik vond het zo leuk dat het er 5 werden. Geen zorgen, dat is mijn plezier!',
   }
 
+  const sampleInvoice: Invoice = {
+    number: '2026-001',
+    clientCode: 'abc12345',
+    createdAt: new Date().toISOString(),
+    invoiceDate: '2026-07-08',
+    dueDate: '2026-07-22',
+    deliveryDate: '2026-07-05',
+    customerName: 'Feest Mick & Marieke',
+    customerAddress: 'Voorbeeldstraat 12\n9700 AA Groningen',
+    customerEmail: 'test@voorbeeld.nl',
+    customerContactName: 'Mick & Marieke',
+    description: 'Fotoreportage Feest Mick & Marieke',
+    amount: 200,
+    vatNote: VAT_NOTE,
+    sender: INVOICE_SENDER,
+  }
+
   const mails: { label: string; subject: string; html: string }[] = [
     {
       label: 'Boekingsbevestiging',
       subject: 'Je boeking bij BJAY Fotografie - even bevestigen',
       html: brandedHtml(bookingBodyHtml(sampleClient)),
+    },
+    {
+      label: 'Factuur (met PDF-bijlage)',
+      subject: 'Factuur 2026-001 - BJAY Fotografie',
+      html: brandedHtml(invoiceBodyHtml(sampleInvoice)),
     },
     {
       label: 'Betaalverzoek (event)',

@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
   const contactName: string | undefined = typeof body?.contactName === 'string' ? body.contactName.trim() : undefined
   const price: string | undefined = typeof body?.price === 'string' ? body.price.trim() : undefined
   const personalNote: string | undefined = typeof body?.personalNote === 'string' ? body.personalNote.trim() : undefined
+  const invoiceAddress: string | undefined = typeof body?.invoiceAddress === 'string' ? body.invoiceAddress.trim().slice(0, 300) : undefined
 
   if (!name || !name.trim()) {
     return NextResponse.json({ error: 'Naam is verplicht' }, { status: 400 })
@@ -90,6 +91,7 @@ export async function POST(req: NextRequest) {
     ...(contactName ? { contactName } : {}),
     ...(price ? { price } : {}),
     ...(personalNote ? { personalNote } : {}),
+    ...(invoiceAddress ? { invoiceAddress } : {}),
   }
 
   try {
