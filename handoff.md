@@ -177,6 +177,8 @@ Beide endpoints accepteren drie auth-paden:
 
 ## Open items en nice-to-haves
 
+- **Btw-tarief per factuur kiezen** (besproken sept 2026, bewust geparkeerd): nu staat 21% vast in `VAT_RATE`. Voorstel was een keuzelijst in het factuur-paneel: 21% / 9% / btw verlegd (met verplicht veld voor het btw-nummer van de klant + de voorgeschreven tekst) / geen btw. Bewust géén optie "0%": dat tarief bestaat niet voor een NL-klant, wie iets zonder btw wil sturen moet "geen btw" hebben.
+- **Mail-templates zelf kunnen bewerken** (besproken sept 2026, bewust geparkeerd): `/admin/mail-templates` met per mail één tekstvak in platte tekst, waaruit de app zelf de HTML- én tekstversie maakt; huisstijl-wrapper en handtekening blijven in code. Placeholders (`{{aanhef}}`, `{{bedrag_incl}}`, `{{vervaldatum}}`, `{{iban}}`, `{{factuurnummer}}`, ...), per mail een set **verplichte** placeholders die opslaan blokkeert als er eentje ontbreekt (anders gaat er een factuurmail uit zonder rekeningnummer), live preview met testdata en een "terug naar standaard"-knop. Opslag in Redis met de code-versie als fallback, dus zonder override verandert er niks. Schatting: halve dag.
 - **Mollie of Stripe integratie**: zodra KVK rond is. Stripe-code is al eens gebouwd en weer weggehaald, kan terug.
 - **Self-hosted Umami**: als hij echt analytics-data wil, deploy Umami op Vercel + Postgres.
 - **GoatCounter migratie**: alternatief voor Umami met gratis API.
