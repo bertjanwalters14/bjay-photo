@@ -5,6 +5,7 @@
 
 import { sendBrandedMail, escapeHtml, greetingName } from './email'
 import { formatEuros } from './format'
+import { formatVatRate } from './invoiceSettings'
 import type { Invoice } from './types'
 
 const MONTHS_NL = [
@@ -30,13 +31,16 @@ function greeting(invoice: Invoice): string {
   })
 }
 
-// Het te betalen bedrag: inclusief btw als die er is, anders het kale bedrag
-// (facturen van vóór de btw-plicht).
-function payable(invoice: Invoice): string {
+// De bedrag-zin. Bij btw noemen we eerst het bedrag exclusief en dan het
+// totaal, zodat de klant ziet wat de btw is maar het over te maken bedrag als
+// laatste blijft staan — anders wordt er zo het exclusieve bedrag overgemaakt.
+// Facturen van vóór de btw-plicht hebben geen vatRate en noemen één bedrag.
+function amountSentence(invoice: Invoice, bold: (s: string) => string): string {
+  if (typeof invoice.vatRate !== 'number') {
+    return `Het gaat om ${bold(formatEuros(invoice.amount))}.`
+  }
   const total = invoice.totalIncl ?? invoice.amount
-  return typeof invoice.vatRate === 'number'
-    ? `${formatEuros(total)} inclusief btw`
-    : formatEuros(total)
+  return `Het gaat om ${bold(formatEuros(invoice.amount))} exclusief btw; met ${formatVatRate(invoice.vatRate)} btw komt het totaal op ${bold(formatEuros(total))}.`
 }
 
 // Body (HTML) van de factuurmail. Ook gebruikt door /admin/mail-preview.
@@ -44,9 +48,9 @@ export function invoiceBodyHtml(invoice: Invoice): string {
   const { sender } = invoice
   return [
     `<p>Hoi ${escapeHtml(greeting(invoice))},</p>`,
-    `<p>Hierbij de factuur voor <strong>${escapeHtml(invoice.description)}</strong>. Je vindt 'm als PDF in de bijlage.</p>`,
-    `<p>Het bedrag is <strong>${payable(invoice)}</strong>. Graag betalen voor <strong>${longDate(invoice.dueDate)}</strong> op ${sender.iban} t.n.v. ${escapeHtml(sender.accountName)}, onder vermelding van factuurnummer <strong>${invoice.number}</strong>.</p>`,
-    `<p>Klopt er iets niet of heb je een vraag over de factuur? Laat het gerust weten.</p>`,
+    `<p>Bedankt voor de fijne samenwerking! Hierbij de factuur voor <strong>${escapeHtml(invoice.description)}</strong>, je vindt 'm als PDF in de bijlage.</p>`,
+    `<p>${amountSentence(invoice, s => `<strong>${s}</strong>`)} Zou je dat bedrag voor <strong>${longDate(invoice.dueDate)}</strong> willen overmaken naar ${sender.iban} t.n.v. ${escapeHtml(sender.accountName)}, met factuurnummer <strong>${invoice.number}</strong> erbij?</p>`,
+    `<p>Heb je een vraag of klopt er iets niet? Laat het gerust weten, dan kijk ik er even naar.</p>`,
   ].join('\n  ')
 }
 
@@ -54,9 +58,9 @@ export function invoiceBodyText(invoice: Invoice): string {
   const { sender } = invoice
   return [
     `Hoi ${greeting(invoice)},`,
-    `Hierbij de factuur voor ${invoice.description}. Je vindt 'm als PDF in de bijlage.`,
-    `Het bedrag is ${payable(invoice)}. Graag betalen voor ${longDate(invoice.dueDate)} op ${sender.iban} t.n.v. ${sender.accountName}, onder vermelding van factuurnummer ${invoice.number}.`,
-    'Klopt er iets niet of heb je een vraag over de factuur? Laat het gerust weten.',
+    `Bedankt voor de fijne samenwerking! Hierbij de factuur voor ${invoice.description}, je vindt 'm als PDF in de bijlage.`,
+    `${amountSentence(invoice, s => s)} Zou je dat bedrag voor ${longDate(invoice.dueDate)} willen overmaken naar ${sender.iban} t.n.v. ${sender.accountName}, met factuurnummer ${invoice.number} erbij?`,
+    'Heb je een vraag of klopt er iets niet? Laat het gerust weten, dan kijk ik er even naar.',
   ].join('\n\n')
 }
 
